@@ -28,40 +28,55 @@ extern "C" {
 typedef struct zip_t zip_t;
 
 /*
-    Opens zip archive with compression level.
-    If append is 0 then new archive will be created, otherwise function will try to append to the specified zip archive,
-    instead of creating a new one.
-    Compression levels: 0-9 are the standard zlib-style levels.
-    Returns pointer to zip_t structure or NULL on error.
+  Opens zip archive with compression level.
+  If append is 0 then new archive will be created, otherwise function will try to append to the specified zip archive,
+  instead of creating a new one.
+  Compression levels: 0-9 are the standard zlib-style levels.
+  Returns pointer to zip_t structure or NULL on error.
 */
 zip_t *zip_open(const char *zipname, int level, int append);
 
 /* Closes zip archive, releases resources - always finalize. */
 void zip_close(zip_t *zip);
 
-// Opens a new entry for writing in a zip archive.
-// Returns 0 or -1 on error.
+/*
+  Opens a new entry for writing in a zip archive.
+  Returns negative number (< 0) on error, 0 on success.
+*/
 int zip_entry_open(zip_t *zip, const char *entryname);
 
-// Closes zip entry, flushes buffer and releases resources.
-// Returns 0 or -1 on error.
+/*
+  Closes zip entry, flushes buffer and releases resources.
+  Returns negative number (< 0) on error, 0 on success.
+*/
 int zip_entry_close(zip_t *zip);
 
-// Compresses an input buffer for the current zip entry.
-// Returns 0 or -1 on error.
+/*
+  Compresses an input buffer for the current zip entry.
+  Returns negative number (< 0) on error, 0 on success.
+*/
 int zip_entry_write(zip_t *zip, const void *buf, size_t bufsize);
 
-// Compresses a file for the current zip entry.
-// Returns 0 or -1 on error.
+/*
+  Compresses a file for the current zip entry.
+  Returns negative number (< 0) on error, 0 on success.
+*/
 int zip_entry_fwrite(zip_t *zip, const char *filename);
 
-// Puts len files into a single zip archive
-// Returns 0 or -1 on error.
-int zip_create(zip_t *zip, const char *filenames[], size_t len);
+/*
+  Creates a new archive and puts len files into a single zip archive
+  Returns negative number (< 0) on error, 0 on success.
+*/
+int zip_create(const char *zipname, const char *filenames[], size_t len);
 
-// Extracts a zip archive file into dir.
-// Returns 0 or -1 on error.
-int zip_extract(const char *zipname, const char *dir, int (* on_extract)(const char *filename, void *arg), void *arg);
+/*
+  Extracts a zip archive file into dir.
+  If on_extract_entry is not NULL, the callback will be called after successfully extracted each zip entry.
+  The last argument (void *arg) is optional, which you can use to pass some data to the on_extract_entry callback.
+
+  Returns negative number (< 0) on error, 0 on success.
+*/
+int zip_extract(const char *zipname, const char *dir, int (* on_extract_entry)(const char *filename, void *arg), void *arg);
 
 #ifdef __cplusplus
 }
