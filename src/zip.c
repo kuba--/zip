@@ -8,28 +8,26 @@
   OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <string.h>
-
 #include "miniz.h"
 #include "zip.h"
 
-#define cleanup(ptr)    do { if (ptr) { free((void *)ptr); ptr = NULL; } } while (0)
-#define strclone(ptr)   ((ptr) ? strdup(ptr) : NULL)
-
 #if defined _WIN32 || defined __WIN32__ || defined __EMX__ || defined __DJGPP__
 /* Win32, OS/2, DOS */
-# define HAS_DEVICE(P) ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && (P)[1] == ':')
-# define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE (P) ? 2 : 0)
-# define ISSLASH(C) ((C) == '/' || (C) == '\\')
+#define HAS_DEVICE(P) ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && (P)[1] == ':')
+#define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE (P) ? 2 : 0)
+#define ISSLASH(C) ((C) == '/' || (C) == '\\')
 #endif
 
 #ifndef FILESYSTEM_PREFIX_LEN
-# define FILESYSTEM_PREFIX_LEN(Filename) 0
+#define FILESYSTEM_PREFIX_LEN(P) 0
 #endif
 
 #ifndef ISSLASH
-# define ISSLASH(C) ((C) == '/')
+#define ISSLASH(C) ((C) == '/')
 #endif
+
+#define cleanup(ptr)    do { if (ptr) { free((void *)ptr); ptr = NULL; } } while (0)
+#define strclone(ptr)   ((ptr) ? strdup(ptr) : NULL)
 
 static char *basename (const char *name) {
     char const *base = name += FILESYSTEM_PREFIX_LEN (name);
@@ -69,7 +67,7 @@ struct zip_t {
     struct zip_entry_t  entry;
 };
 
-zip_t *zip_open(const char *zipname, int level, int add) {
+zip_t *zip_open(const char *zipname, int level, int append) {
     if (!zipname || strlen(zipname) < 1) {
         // zip_t archive name is empty or NULL
         return NULL;
@@ -84,9 +82,27 @@ zip_t *zip_open(const char *zipname, int level, int add) {
     zip_t *zip = (zip_t *)calloc(1, sizeof(zip_t));
     if (zip) {
         zip->level = level;
-        if (!mz_zip_writer_init_file(&(zip->archive), zipname, 0)) {
-            // Cannot initialize zip_archive writer
-            cleanup(zip);
+
+        struct MZ_FILE_STAT_STRUCT fstat;
+        if (append && MZ_FILE_STAT(zipname, &fstat) == 0) {
+            // Append to an existing archive.
+            if (!mz_zip_reader_init_file(&(zip->archive), zipname, level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+                cleanup(zip);
+                return NULL;
+            }
+
+            if (!mz_zip_writer_init_from_reader(&(zip->archive), zipname)) {
+                mz_zip_reader_end(&(zip->archive));
+                cleanup(zip);
+                return NULL;
+            }
+        } else {
+            // Create a new archive.
+            if (!mz_zip_writer_init_file(&(zip->archive), zipname, 0)) {
+                // Cannot initialize zip_archive writer
+                cleanup(zip);
+                return NULL;
+            }
         }
     }
 

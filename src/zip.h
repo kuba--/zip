@@ -12,6 +12,8 @@
 #ifndef	ZIP_H
 #define ZIP_H
 
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,17 +24,19 @@ extern "C" {
 
 #define ZIP_DEFAULT_COMPRESSION_LEVEL   6
 
-// This data structure is used throughout the library to represent zip archive - forward declaration.
+/* This data structure is used throughout the library to represent zip archive - forward declaration. */
 typedef struct zip_t zip_t;
 
-// Opens zip archive with compression level.
-// If add is 0 then new archive will be created,
-// otherwise function will try to open existing archive to add data.
-// Compression levels: 0-9 are the standard zlib-style levels.
-// Returns pointer to zip_t structure or NULL on error.
-zip_t *zip_open(const char *zipname, int level, int add);
+/*
+    Opens zip archive with compression level.
+    If append is 0 then new archive will be created, otherwise function will try to append to the specified zip archive,
+    instead of creating a new one.
+    Compression levels: 0-9 are the standard zlib-style levels.
+    Returns pointer to zip_t structure or NULL on error.
+*/
+zip_t *zip_open(const char *zipname, int level, int append);
 
-// Closes zip archive, releases resources - always finalize.
+/* Closes zip archive, releases resources - always finalize. */
 void zip_close(zip_t *zip);
 
 // Opens a new entry for writing in a zip archive.
