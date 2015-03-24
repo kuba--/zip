@@ -303,22 +303,42 @@ int zip_entry_fwrite(zip_t *zip, const char *filename) {
     return status;
 }
 
-int zip_create(zip_t *zip, const char *filenames[], size_t len) {
-    if (!zip) {
-        // zip_t handler is not initialized
+int zip_create(const char *zipname, const char *filenames[], size_t len) {
+    if (!zipname || strlen(zipname) < 1) {
+        // zip_t archive name is empty or NULL
         return -1;
     }
 
+    // Create a new archive.
+    mz_zip_archive  zip_archive;
+    if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
+        // Cannot memset zip archive
+        return -1;
+    }
+
+    if (!mz_zip_writer_init_file(&zip_archive, zipname, 0)) {
+        // Cannot initialize zip_archive writer
+        return -1;
+    }
+
+    int status = 0;
     for (int i = 0; i < len; ++i) {
         const char *name = filenames[i];
-        if (!name) continue;
+        if (!name) {
+            status = -1;
+            break;
+        }
 
-        if (!mz_zip_writer_add_file(&(zip->archive), basename(name), name, "", 0, zip->level)) {
+        if (!mz_zip_writer_add_file(&zip_archive, basename(name), name, "", 0, ZIP_DEFAULT_COMPRESSION_LEVEL)) {
             // Cannot add file to zip_archive
-            return -1;
+            status = -1;
+            break;
         }
     }
-    return 0;
+
+    mz_zip_writer_finalize_archive(&zip_archive);
+    mz_zip_writer_end(&zip_archive);
+    return status;
 }
 
 int zip_extract(const char *zipname, const char *dir, int (* on_extract)(const char *filename, void *arg), void *arg) {
