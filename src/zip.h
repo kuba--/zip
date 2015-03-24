@@ -25,7 +25,7 @@ extern "C" {
 #define ZIP_DEFAULT_COMPRESSION_LEVEL   6
 
 /* This data structure is used throughout the library to represent zip archive - forward declaration. */
-typedef struct zip_t zip_t;
+struct zip_t;
 
 /*
   Opens zip archive with compression level.
@@ -34,34 +34,34 @@ typedef struct zip_t zip_t;
   Compression levels: 0-9 are the standard zlib-style levels.
   Returns pointer to zip_t structure or NULL on error.
 */
-zip_t *zip_open(const char *zipname, int level, int append);
+struct zip_t *zip_open(const char *zipname, int level, int append);
 
 /* Closes zip archive, releases resources - always finalize. */
-void zip_close(zip_t *zip);
+void zip_close(struct zip_t *zip);
 
 /*
   Opens a new entry for writing in a zip archive.
   Returns negative number (< 0) on error, 0 on success.
 */
-int zip_entry_open(zip_t *zip, const char *entryname);
+int zip_entry_open(struct zip_t *zip, const char *entryname);
 
 /*
   Closes zip entry, flushes buffer and releases resources.
   Returns negative number (< 0) on error, 0 on success.
 */
-int zip_entry_close(zip_t *zip);
+int zip_entry_close(struct zip_t *zip);
 
 /*
   Compresses an input buffer for the current zip entry.
   Returns negative number (< 0) on error, 0 on success.
 */
-int zip_entry_write(zip_t *zip, const void *buf, size_t bufsize);
+int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
 
 /*
   Compresses a file for the current zip entry.
   Returns negative number (< 0) on error, 0 on success.
 */
-int zip_entry_fwrite(zip_t *zip, const char *filename);
+int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 
 /*
   Creates a new archive and puts len files into a single zip archive
