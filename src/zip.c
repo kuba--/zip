@@ -129,6 +129,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 	if (!zip || !entryname) {
         return -1;
     }
+
     entrylen = strlen(entryname);
     if (entrylen < 1) {
         return -1;
@@ -364,7 +365,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
 }
 
 int zip_extract(const char *zipname, const char *dir, int (* on_extract)(const char *filename, void *arg), void *arg) {
-    int status = 0, i, n;
+    int status = 0;
+    mz_uint i, n;
     char path[MAX_PATH + 1] = { 0 };
 	mz_zip_archive zip_archive;
 	mz_zip_archive_file_stat info;
@@ -403,7 +405,7 @@ int zip_extract(const char *zipname, const char *dir, int (* on_extract)(const c
     }
 
     // Get and print information about each file in the archive.
-    n = (int)mz_zip_reader_get_num_files(&zip_archive);
+    n = mz_zip_reader_get_num_files(&zip_archive);
     for (i = 0; i < n; ++i) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &info)) {
             // Cannot get information about zip archive;
