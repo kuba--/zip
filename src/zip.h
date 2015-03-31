@@ -72,6 +72,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len);
 /*
   Extracts a zip archive file into dir.
   If on_extract_entry is not NULL, the callback will be called after successfully extracted each zip entry.
+  Returning a negative value from the callback will cause abort the extract and return an error.
+
   The last argument (void *arg) is optional, which you can use to pass some data to the on_extract_entry callback.
 
   Returns negative number (< 0) on error, 0 on success.
