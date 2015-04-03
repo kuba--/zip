@@ -10,7 +10,7 @@ I wanted something powerfull and small enough, so I could add just a few files a
 And finally I found miniz. 
 Miniz is a lossless, high performance data compression library in a single source file. I only needed simple interface to append buffers or files to the current zip-entry. Thanks to this feature I'm able to merge many files/buffers and compress them on-the-fly.
 
-It was the reason, why I decided to write zip module on top of the miniz. It required a little bit hacking and wrapping some functions, but I kept simplicity. So, you grab these 3 files and compile it into your project. I hope that interface is also extremely simple, so you will not have any problems to understand it.
+It was the reason, why I decided to write zip module on top of the miniz. It required a little bit hacking and wrapping some functions, but I kept simplicity. So, you can grab these 3 files and compile them into your project. I hope that interface is also extremely simple, so you will not have any problems to understand it.
 
 # Example
 
