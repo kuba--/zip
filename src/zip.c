@@ -7,6 +7,8 @@
   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   OTHER DEALINGS IN THE SOFTWARE.
 */
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "miniz.h"
 #include "zip.h"
@@ -29,23 +31,40 @@
 #define cleanup(ptr)    do { if (ptr) { free((void *)ptr); ptr = NULL; } } while (0)
 #define strclone(ptr)   ((ptr) ? strdup(ptr) : NULL)
 
-static char *basename (const char *name) {
+static char *basename(const char *name) {
+    char const *p;
     char const *base = name += FILESYSTEM_PREFIX_LEN (name);
     int all_slashes = 1;
-    char const *p;
 
     for (p = name; *p; p++) {
-        if (ISSLASH (*p))
+        if (ISSLASH(*p))
             base = p + 1;
         else
             all_slashes = 0;
     }
 
     /* If NAME is all slashes, arrange to return `/'. */
-    if (*base == '\0' && ISSLASH (*name) && all_slashes)
+    if (*base == '\0' && ISSLASH(*name) && all_slashes)
         --base;
 
     return (char *)base;
+}
+
+static int mkpath(const char *path) {
+    const int mode = 0755;
+    char const *p;
+    char npath[MAX_PATH + 1] = { 0 };
+    int len = 0;
+
+    for (p = path; *p && len < MAX_PATH; p++) {
+        if (ISSLASH(*p) && len > 0) {
+            if (mkdir(npath, mode) == -1)
+                if (errno != EEXIST)  return -1;
+        }
+        npath[len++] = *p;
+    }
+
+    return 0;
 }
 
 struct zip_entry_t {
@@ -414,6 +433,12 @@ int zip_extract(const char *zipname, const char *dir, int (* on_extract)(const c
         }
 
         strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+        if (mkpath(path) < 0) {
+            // Cannot make a path
+            status = -1;
+            break;
+        }
+
         if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
             // Cannot extract zip archive to file
             status = -1;
