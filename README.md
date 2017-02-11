@@ -1,9 +1,6 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C 
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-# The Idea 
-<img src="zip.png" name="zip" /> 
-
 | Windows                           | OS X/Linux                             |
 | :-------------------------------: | :------------------------------------: |
 | [![Windows][win-badge]][win-link] | [![OS X][osx-linux-badge]][osx-linux-link] |
@@ -13,7 +10,8 @@ This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library
 [osx-linux-badge]: https://travis-ci.org/kuba--/zip.svg?branch=master "Travis CI build status"
 [osx-linux-link]:  https://travis-ci.org/kuba--/zip "Travis CI build status"
 
-
+# The Idea 
+<img src="zip.png" name="zip" /> 
 ... Some day, I was looking for zip library written in C for my project, but I could not find anything simple enough and lightweight.
 Everything what I tried required 'crazy mental gymnastics' to integrate or had some limitations or was too heavy. 
 I hate frameworks, factories and adding new dependencies. If I must to install all those dependencies and link new library, I'm getting almost sick. 
