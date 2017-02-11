@@ -1,13 +1,11 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C 
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-| Windows                           | OS X/Linux                             |
-| :-------------------------------: | :------------------------------------: |
-| [![Windows][win-badge]][win-link] | [![OS X][osx-linux-badge]][osx-linux-link] |
+[![Windows][win-badge]][win-link] [![OS X][osx-linux-badge]][osx-linux-link]
 
-[win-badge]: https://ci.appveyor.com/api/projects/status/bph8dr3jacgmjv32?svg=true "AppVeyor build status"
+[win-badge]: https://img.shields.io/appveyor/ci/kuba--/zip/master.svg?label=windows "AppVeyor build status"
 [win-link]:  https://ci.appveyor.com/project/kuba--/zip "AppVeyor build status"
-[osx-linux-badge]: https://travis-ci.org/kuba--/zip.svg?branch=master "Travis CI build status"
+[osx-linux-badge]: https://img.shields.io/travis/kuba--/zip/master.svg?label=linux/osx "Travis CI build status"
 [osx-linux-link]:  https://travis-ci.org/kuba--/zip "Travis CI build status"
 
 # The Idea 
