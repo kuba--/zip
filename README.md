@@ -2,7 +2,17 @@
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
 # The Idea 
-<img src="zip.png" name="zip" /> <img src="https://travis-ci.org/kuba--/zip.svg?branch=master" name="build" />
+<img src="zip.png" name="zip" /> 
+
+| Windows                           | OS X/Linux                             |
+| :-------------------------------: | :------------------------------------: |
+| [![Windows][win-badge]][win-link] | [![OS X][osx-linux-badge]][osx-linux-link] |
+
+[win-badge]: https://ci.appveyor.com/api/projects/status/bph8dr3jacgmjv32?svg=true "AppVeyor build status"
+[win-link]:  https://ci.appveyor.com/project/kuba--/zip "AppVeyor build status"
+[osx-linux-badge]: https://travis-ci.org/kuba--/zip.svg?branch=master "Travis CI build status"
+[osx-linux-link]:  https://travis-ci.org/kuba--/zip "Travis CI build status"
+
 
 ... Some day, I was looking for zip library written in C for my project, but I could not find anything simple enough and lightweight.
 Everything what I tried required 'crazy mental gymnastics' to integrate or had some limitations or was too heavy. 
