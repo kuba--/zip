@@ -7,20 +7,29 @@
   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   OTHER DEALINGS IN THE SOFTWARE.
 */
+#define __STDC_WANT_LIB_EXT1__ 1
 
 #include "zip.h"
 #include "miniz.h"
 
 #include <errno.h>
 #include <sys/stat.h>
+#include <time.h>
 
-#if defined _WIN32 || defined __WIN32__ || defined __EMX__ || defined __DJGPP__
-/* Win32, OS/2, DOS */
+#if defined _WIN32 || defined __WIN32__
+/* Win32, DOS */
+#include <direct.h>
+
+#define MKDIR(DIRNAME) _mkdir(DIRNAME)
+#define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
 #define HAS_DEVICE(P)                                                          \
     ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && \
      (P)[1] == ':')
 #define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
 #define ISSLASH(C) ((C) == '/' || (C) == '\\')
+#else
+#define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
+#define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 #endif
 
 #ifndef FILESYSTEM_PREFIX_LEN
@@ -38,7 +47,6 @@
             ptr = NULL;        \
         }                      \
     } while (0)
-#define strclone(ptr) ((ptr) ? strdup(ptr) : NULL)
 
 static char *basename(const char *name) {
     char const *p;
@@ -59,14 +67,13 @@ static char *basename(const char *name) {
 }
 
 static int mkpath(const char *path) {
-    const int mode = 0755;
     char const *p;
     char npath[MAX_PATH + 1] = {0};
     int len = 0;
 
     for (p = path; *p && len < MAX_PATH; p++) {
         if (ISSLASH(*p) && len > 0) {
-            if (mkdir(npath, mode) == -1)
+            if (MKDIR(npath) == -1)
                 if (errno != EEXIST) return -1;
         }
         npath[len++] = *p;
@@ -165,7 +172,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
         return -1;
     }
 
-    zip->entry.name = strclone(entryname);
+    zip->entry.name = STRCLONE(entryname);
     if (!zip->entry.name) {
         // Cannot parse zip entry name
         return -1;
@@ -271,7 +278,11 @@ int zip_entry_close(struct zip_t *zip) {
 
     entrylen = (mz_uint16)strlen(zip->entry.name);
     t = time(NULL);
+#ifdef __STDC_LIB_EXT1__
+    localtime_s(&t, &tm);
+#else
     tm = localtime(&t);
+#endif
     dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
     dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
@@ -368,7 +379,11 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
         return -1;
     }
 
+#ifdef __STDC_LIB_EXT1__
+    fopen_s(&stream, filename, "rb");
+#else
     stream = fopen(filename, "rb");
+#endif
     if (!stream) {
         // Cannot open filename
         return -1;
@@ -458,9 +473,14 @@ int zip_extract(const char *zipname, const char *dir,
         goto finally;
     }
 
+#ifdef __STDC_LIB_EXT1__
+    strcpy_s(path, sizeof(path), dir);
+#else
     strcpy(path, dir);
+#endif
+
     if (!ISSLASH(path[dirlen - 1])) {
-#if defined _WIN32 || defined __WIN32__ || defined __EMX__ || defined __DJGPP__
+#if defined _WIN32 || defined __WIN32__
         path[dirlen] = '\\';
 #else
         path[dirlen] = '/';
@@ -476,8 +496,12 @@ int zip_extract(const char *zipname, const char *dir,
             status = -1;
             break;
         }
-
+#ifdef __STDC_LIB_EXT1__
+        strncpy_s(&path[dirlen], MAX_PATH - dirlen, nfo.m_filename,
+                  MAX_PATH - dirlen);
+#else
         strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+#endif
         if (mkpath(path) < 0) {
             // Cannot make a path
             status = -1;
