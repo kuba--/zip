@@ -7,7 +7,6 @@
   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   OTHER DEALINGS IN THE SOFTWARE.
 */
-#define __STDC_WANT_LIB_EXT1__ 1
 
 #include "zip.h"
 #include "miniz.h"
@@ -278,11 +277,7 @@ int zip_entry_close(struct zip_t *zip) {
 
     entrylen = (mz_uint16)strlen(zip->entry.name);
     t = time(NULL);
-#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
-    localtime_s(&t, &tm);
-#else
     tm = localtime(&t);
-#endif
     dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
     dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
@@ -379,11 +374,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
         return -1;
     }
 
-#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
-    fopen_s(&stream, filename, "rb");
-#else
     stream = fopen(filename, "rb");
-#endif
     if (!stream) {
         // Cannot open filename
         return -1;
@@ -473,12 +464,7 @@ int zip_extract(const char *zipname, const char *dir,
         goto finally;
     }
 
-#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
-    strcpy_s(path, sizeof(path), dir);
-#else
     strcpy(path, dir);
-#endif
-
     if (!ISSLASH(path[dirlen - 1])) {
 #if defined _WIN32 || defined __WIN32__
         path[dirlen] = '\\';
@@ -496,12 +482,7 @@ int zip_extract(const char *zipname, const char *dir,
             status = -1;
             break;
         }
-#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
-        strncpy_s(&path[dirlen], MAX_PATH - dirlen, nfo.m_filename,
-                  MAX_PATH - dirlen);
-#else
         strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
-#endif
         if (mkpath(path) < 0) {
             // Cannot make a path
             status = -1;
