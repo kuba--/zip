@@ -278,7 +278,7 @@ int zip_entry_close(struct zip_t *zip) {
 
     entrylen = (mz_uint16)strlen(zip->entry.name);
     t = time(NULL);
-#ifdef __STDC_LIB_EXT1__
+#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
     localtime_s(&t, &tm);
 #else
     tm = localtime(&t);
@@ -379,7 +379,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
         return -1;
     }
 
-#ifdef __STDC_LIB_EXT1__
+#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
     fopen_s(&stream, filename, "rb");
 #else
     stream = fopen(filename, "rb");
@@ -473,7 +473,7 @@ int zip_extract(const char *zipname, const char *dir,
         goto finally;
     }
 
-#ifdef __STDC_LIB_EXT1__
+#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
     strcpy_s(path, sizeof(path), dir);
 #else
     strcpy(path, dir);
@@ -496,7 +496,7 @@ int zip_extract(const char *zipname, const char *dir,
             status = -1;
             break;
         }
-#ifdef __STDC_LIB_EXT1__
+#if defined __STDC_LIB_EXT1__ || defined _MSC_VER
         strncpy_s(&path[dirlen], MAX_PATH - dirlen, nfo.m_filename,
                   MAX_PATH - dirlen);
 #else
