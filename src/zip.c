@@ -19,6 +19,10 @@
 /* Win32, DOS */
 #include <direct.h>
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #define MKDIR(DIRNAME) _mkdir(DIRNAME)
 #define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
 #define HAS_DEVICE(P)                                                          \
@@ -26,6 +30,7 @@
      (P)[1] == ':')
 #define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
 #define ISSLASH(C) ((C) == '/' || (C) == '\\')
+
 #else
 #define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
