@@ -8,3 +8,4 @@ script:
   - mkdir build
   - cd build
   - cmake .. && make
+  - clang-format --version
