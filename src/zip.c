@@ -49,6 +49,7 @@
     } while (0)
 
 static void __suppress_unused__(void) {
+    (void)__suppress_unused__;
     (void)zip_open;
     (void)zip_close;
     (void)zip_entry_open;
