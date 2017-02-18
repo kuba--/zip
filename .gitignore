@@ -1,3 +1,6 @@
+/build/
+/xcodeproj/
+
 # Object files
 *.o
 *.ko
@@ -29,6 +32,6 @@
 *.x86_64
 *.hex
 
-/build/
-
+# Temporary
 *.swp
+.DS_Store
