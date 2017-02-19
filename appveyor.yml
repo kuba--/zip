@@ -7,7 +7,8 @@ build_script:
 
     cd build
 
-    cmake -G"Visual Studio 14" ..
+    cmake -G"Visual Studio 14" -DCMAKE_BUILD_TYPE=Debug ..
 
     cmake --build . --config %CMAKE_BUILD_TYPE%
-    
+
+    ctest --verbose

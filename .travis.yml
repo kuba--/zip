@@ -7,4 +7,4 @@ compiler:
 script:
   - mkdir build
   - cd build
-  - cmake .. && make && make test
+  - cmake -DCMAKE_BUILD_TYPE=Debug .. && make && make test
