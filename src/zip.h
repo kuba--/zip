@@ -44,7 +44,7 @@ struct zip_t;
   Returns:
     The zip archive handler or NULL on error
 */
-struct zip_t *zip_open(const char *zipname, int level, char mode);
+extern struct zip_t *zip_open(const char *zipname, int level, char mode);
 
 /*
   Closes zip archive, releases resources - always finalize.
@@ -52,7 +52,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode);
   Args:
     zip: zip archive handler.
 */
-void zip_close(struct zip_t *zip);
+extern void zip_close(struct zip_t *zip);
 
 /*
   Opens a new entry for writing in a zip archive.
@@ -64,7 +64,7 @@ void zip_close(struct zip_t *zip);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_open(struct zip_t *zip, const char *entryname);
+extern int zip_entry_open(struct zip_t *zip, const char *entryname);
 
 /*
   Closes a zip entry, flushes buffer and releases resources.
@@ -75,7 +75,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_close(struct zip_t *zip);
+extern int zip_entry_close(struct zip_t *zip);
 
 /*
   Compresses an input buffer for the current zip entry.
@@ -88,7 +88,7 @@ int zip_entry_close(struct zip_t *zip);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
+extern int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
 
 /*
   Compresses a file for the current zip entry.
@@ -100,7 +100,7 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_fwrite(struct zip_t *zip, const char *filename);
+extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 
 /*
   Extracts the current zip entry into output buffer.
@@ -113,7 +113,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
+extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
 /*
   Extracts the current zip entry into output file.
@@ -125,7 +125,7 @@ int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_entry_fread(struct zip_t *zip, const char *filename);
+extern int zip_entry_fread(struct zip_t *zip, const char *filename);
 
 /*
   Creates a new archive and puts files into a single zip archive.
@@ -138,7 +138,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_create(const char *zipname, const char *filenames[], size_t len);
+extern int zip_create(const char *zipname, const char *filenames[], size_t len);
 
 /*
   Extracts a zip archive file into directory.
@@ -157,9 +157,9 @@ int zip_create(const char *zipname, const char *filenames[], size_t len);
   Returns:
     The return code - 0 on success, negative number (< 0) on error.
 */
-int zip_extract(const char *zipname, const char *dir,
-                int (*on_extract_entry)(const char *filename, void *arg),
-                void *arg);
+extern int zip_extract(const char *zipname, const char *dir,
+                       int (*on_extract_entry)(const char *filename, void *arg),
+                       void *arg);
 
 #ifdef __cplusplus
 }
