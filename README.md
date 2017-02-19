@@ -19,20 +19,11 @@ Miniz is a lossless, high performance data compression library in a single sourc
 
 It was the reason, why I decided to write zip module on top of the miniz. It required a little bit hacking and wrapping some functions, but I kept simplicity. So, you can grab these 3 files and compile them into your project. I hope that interface is also extremely simple, so you will not have any problems to understand it.
 
-### Example (compress)
+# Examples
 
+* Create a new zip archive with default compression level.
 ```c
-#include <stdio.h>
-#include <string.h>
-
-#include <zip.h>
-
-int main() {
-    /*
-       Create a new zip archive with default compression level (6)
-    */
     struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-    // we should check if zip is NULL and if any other function returned < 0
     {
         zip_entry_open(zip, "foo-1.txt");
         {
@@ -50,14 +41,12 @@ int main() {
         }
         zip_entry_close(zip);
     }
-    // always remember to close and release resources
     zip_close(zip);
+```
 
-    /*
-        Append to existing zip archive
-    */
+* Append to the existing zip archive.
+```c
     zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-    // we should check if zip is NULL
     {
         zip_entry_open(zip, "foo-3.txt");
         {
@@ -66,70 +55,50 @@ int main() {
         }
         zip_entry_close(zip);
     }
-    // always remember to close and release resources
     zip_close(zip);
-
-    return 0;
-}
 ```
 
-### Example (decompress)
-
+* Extract a zip archive into a folder.
 ```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+    int on_extract_entry(const char *filename, void *arg) {
+        static int i = 0;
+        int n = *(int *)arg;
+        printf("Extracted: %s (%d of %d)\n", filename, ++i, n);
 
-#include <zip.h>
+        return 0;
+    }
 
-// callback function
-int on_extract_entry(const char *filename, void *arg) {
-    static int i = 0;
-    int n = *(int *)arg;
-    printf("Extracted: %s (%d of %d)\n", filename, ++i, n);
-
-    return 0;
-}
-int main() {
-    /*
-        Extract the zip archive into /tmp folder
-    */
     int arg = 2;
     zip_extract("foo.zip", "/tmp", on_extract_entry, &arg);
+```
 
-    /*
-        ...or open the zip archive with only read access
-     */
+* Extract a zip entry into memory.
+```c
     void *buf = NULL;
     size_t bufsize;
 
     struct zip_t *zip = zip_open("foo.zip", 0, 'r');
-    // we should check if zip is NULL and if any other function returned < 0
     {
         zip_entry_open(zip, "foo-1.txt");
         {
-            // extract into memory
             zip_entry_read(zip, &buf, &bufsize);
-            printf("Read(foo-1.txt): %zu bytes: %.*s\n", bufsize, (int)bufsize,
-                   buf);
         }
         zip_entry_close(zip);
+    }
+    zip_close(zip);
+    
+    free(buf);
+```
 
+* Extract a zip entry into a file.
+```c
+    struct zip_t *zip = zip_open("foo.zip", 0, 'r');
+    {
         zip_entry_open(zip, "foo-2.txt");
         {
-            // extract into a file
             zip_entry_fread(zip, "foo-2.txt");
         }
         zip_entry_close(zip);
     }
-    // always remember to close and release resources
     zip_close(zip);
-
-    // do something with buffer... and remember to free memory
-    free(buf);
-
-    return 0;
-}
 ```
-
-
