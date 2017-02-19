@@ -11,4 +11,4 @@ build_script:
 
     cmake --build . --config %CMAKE_BUILD_TYPE%
 
-    ctest --verbose
+    ctest --verbose -C "Debug"
