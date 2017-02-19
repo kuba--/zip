@@ -46,7 +46,7 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
 
 * Append to the existing zip archive.
 ```c
-    zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+    struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
     {
         zip_entry_open(zip, "foo-3.txt");
         {
