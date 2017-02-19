@@ -1,8 +1,6 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d70fb0b050b74ef7aed70087e377e7d7)](https://www.codacy.com/app/kuba--/zip?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=kuba--/zip&amp;utm_campaign=Badge_Grade)
-
 [![Windows][win-badge]][win-link] [![OS X][osx-linux-badge]][osx-linux-link]
 
 [win-badge]: https://img.shields.io/appveyor/ci/kuba--/zip/master.svg?label=windows "AppVeyor build status"
