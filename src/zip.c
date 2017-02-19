@@ -48,20 +48,6 @@
         }                      \
     } while (0)
 
-static void __suppress_unused__(void) {
-    (void)__suppress_unused__;
-    (void)zip_open;
-    (void)zip_close;
-    (void)zip_entry_open;
-    (void)zip_entry_close;
-    (void)zip_entry_write;
-    (void)zip_entry_fwrite;
-    (void)zip_entry_read;
-    (void)zip_entry_fread;
-    (void)zip_create;
-    (void)zip_extract;
-}
-
 static char *basename(const char *name) {
     char const *p;
     char const *base = name += FILESYSTEM_PREFIX_LEN(name);
