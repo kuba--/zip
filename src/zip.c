@@ -466,6 +466,31 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
     return (mz_zip_reader_extract_to_file(pzip, idx, filename, 0)) ? 0 : -1;
 }
 
+int zip_entry_extract(struct zip_t *zip,
+                      size_t (*on_extract)(void *arg, unsigned long long offset,
+                                           const void *buf, size_t bufsize),
+                      void *arg) {
+    mz_zip_archive *pzip = NULL;
+    mz_uint idx;
+
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    if (zip->mode != 'r' || zip->entry.index < 0) {
+        // the entry is not found or we do not have read access
+        return -1;
+    }
+
+    pzip = &(zip->archive);
+    idx = (mz_uint)zip->entry.index;
+
+    return (mz_zip_reader_extract_to_callback(pzip, idx, on_extract, arg, 0))
+               ? 0
+               : -1;
+}
+
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
     int status = 0;
     size_t i;
