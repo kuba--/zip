@@ -86,9 +86,43 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
         zip_entry_close(zip);
     }
     zip_close(zip);
-    
+
     free(buf);
 ```
+
+* Extract a zip entry into memory using callback.
+```c
+    struct buffer_t {
+        char *data;
+        size_t size;
+    };
+
+    static size_t on_extract(void *arg, unsigned long long offset, const void *data, size_t size) {
+        struct buffer_t *buf = (struct buffer_t *)arg;
+        buf->data = realloc(buf->data, buf->size + size + 1);
+        assert(NULL != buf->data);
+
+        memcpy(&(buf->data[buf->size]), data, size);
+        buf->size += size;
+        buf->data[buf->size] = 0;
+
+        return size;
+    }
+
+    struct buffer_t buf = {0};
+    struct zip_t *zip = zip_open("foo.zip", 0, 'r');
+    {
+        zip_entry_open(zip, "foo-1.txt");
+        {
+            zip_entry_extract(zip, on_extract, &buf);
+        }
+        zip_entry_close(zip);
+    }
+    zip_close(zip);
+
+    free(buf.data);
+```
+
 
 * Extract a zip entry into a file.
 ```c
@@ -102,3 +136,4 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
     }
     zip_close(zip);
 ```
+
