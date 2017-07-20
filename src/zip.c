@@ -585,9 +585,11 @@ int zip_extract(const char *zipname, const char *dir,
             goto out;
         }
 
-        if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
-            // Cannot extract zip archive to file
-            goto out;
+        if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+            if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
+                // Cannot extract zip archive to file
+                goto out;
+            }
         }
 
         if (on_extract) {
