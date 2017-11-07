@@ -13,7 +13,7 @@ static void test_write(void) {
     struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     assert(zip != NULL);
 
-    assert(0 == zip_entry_open(zip, "test-1.txt"));
+    assert(0 == zip_entry_open(zip, "test/test-1.txt"));
     assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
     assert(0 == zip_entry_close(zip));
 
@@ -24,7 +24,7 @@ static void test_append(void) {
     struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
     assert(zip != NULL);
 
-    assert(0 == zip_entry_open(zip, "test-2.txt"));
+    assert(0 == zip_entry_open(zip, "test\\test-2.txt"));
     assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
     assert(0 == zip_entry_close(zip));
 
@@ -37,7 +37,7 @@ static void test_read(void) {
     struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
     assert(zip != NULL);
 
-    assert(0 == zip_entry_open(zip, "test-1.txt"));
+    assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
     assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
     assert(bufsize == strlen(TESTDATA1));
     assert(0 == strncmp(buf, TESTDATA1, bufsize));
@@ -46,7 +46,7 @@ static void test_read(void) {
     buf = NULL;
     bufsize = 0;
 
-    assert(0 == zip_entry_open(zip, "test-2.txt"));
+    assert(0 == zip_entry_open(zip, "test/test-2.txt"));
     assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
     assert(bufsize == strlen(TESTDATA2));
     assert(0 == strncmp(buf, TESTDATA2, bufsize));
@@ -82,7 +82,7 @@ static void test_extract(void) {
     struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
     assert(zip != NULL);
 
-    assert(0 == zip_entry_open(zip, "test-1.txt"));
+    assert(0 == zip_entry_open(zip, "test/test-1.txt"));
     assert(0 == zip_entry_extract(zip, on_extract, &buf));
 
     assert(buf.size == strlen(TESTDATA1));
