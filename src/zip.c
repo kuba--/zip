@@ -82,13 +82,13 @@ static int mkpath(const char *path) {
     return 0;
 }
 
-static char *strrpl(const char *str, char old, char new) {
+static char *strrpl(const char *str, char oldchar, char newchar) {
     char *rpl = (char *)malloc(sizeof(char) * (1 + strlen(str)));
     char *begin = rpl;
     char c;
     while((c = *str++)) {
-        if (c == old) {
-            c = new;
+        if (c == oldchar) {
+            c = newchar;
         }
         *rpl++ = c;
     }
