@@ -204,6 +204,17 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     }
 
     pzip = &(zip->archive);
+    /*
+      .ZIP File Format Specification Version: 6.3.3
+
+      4.4.17.1 The name of the file, with optional relative path.
+      The path stored MUST not contain a drive or
+      device letter, or a leading slash.  All slashes
+      MUST be forward slashes '/' as opposed to
+      backwards slashes '\' for compatibility with Amiga
+      and UNIX file systems etc.  If input came from standard
+      input, there is no file name field.
+    */
     locname = strrpl(entryname, '\\', '/');
 
     if (zip->mode == 'r') {
