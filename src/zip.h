@@ -78,6 +78,22 @@ extern int zip_entry_open(struct zip_t *zip, const char *entryname);
 extern int zip_entry_close(struct zip_t *zip);
 
 /*
+  Returns local name of the current zip entry.
+  The function allocates sufficient memory for the name.
+
+  Args:
+    zip: zip archive handler.
+    name: output string with name of the entry.
+
+  Note:
+    - remember to release memory allocated for the name.
+
+  Returns:
+    The return code - 0 on success, negative number (< 0) on error.
+*/
+extern int zip_entry_name(struct zip_t *zip, char **name);
+
+/*
   Compresses an input buffer for the current zip entry.
 
   Args:
@@ -152,7 +168,7 @@ extern int zip_entry_extract(struct zip_t *zip,
                              void *arg);
 
 /*
-  Returns the number of entries in the zip archive.
+  Returns the number of all entries (files and directories) in the zip archive.
 
   Args:
     zip: zip archive handler.

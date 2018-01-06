@@ -379,6 +379,16 @@ cleanup:
     return status;
 }
 
+int zip_entry_name(struct zip_t *zip, char **name) {
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    *name = STRCLONE(zip->entry.name);
+    return (*name) ? 0 : -1;
+}
+
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
     mz_uint level;
     mz_zip_archive *pzip = NULL;

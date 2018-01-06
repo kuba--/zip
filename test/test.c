@@ -117,12 +117,24 @@ static void test_total_entries(void) {
     assert(n == total_entries);
 }
 
+static void test_entry_name(void) {
+    char *entryname = NULL;
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    assert(zip_entry_name(zip, &entryname) < 0);
+    assert(entryname == NULL);
+
+    zip_close(zip);
+}
+
 int main(int argc, char *argv[]) {
     test_write();
     test_append();
     test_read();
     test_extract();
     test_total_entries();
+    test_entry_name();
 
     return remove(ZIPNAME);
 }
