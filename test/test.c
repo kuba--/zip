@@ -9,12 +9,15 @@
 #define TESTDATA1 "Some test data 1...\0"
 #define TESTDATA2 "Some test data 2...\0"
 
+static int total_entries = 0;
+
 static void test_write(void) {
     struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     assert(zip != NULL);
 
     assert(0 == zip_entry_open(zip, "test/test-1.txt"));
     assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+    ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     zip_close(zip);
@@ -26,6 +29,15 @@ static void test_append(void) {
 
     assert(0 == zip_entry_open(zip, "test\\test-2.txt"));
     assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+    ++total_entries;
+    assert(0 == zip_entry_close(zip));
+
+    assert(0 == zip_entry_open(zip, "test\\empty/"));
+    ++total_entries;
+    assert(0 == zip_entry_close(zip));
+
+    assert(0 == zip_entry_open(zip, "empty/"));
+    ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     zip_close(zip);
@@ -95,11 +107,22 @@ static void test_extract(void) {
     zip_close(zip);
 }
 
+static void test_total_entries(void) {
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    int n = zip_total_entries(zip);
+    zip_close(zip);
+
+    assert(n == total_entries);
+}
+
 int main(int argc, char *argv[]) {
     test_write();
     test_append();
     test_read();
     test_extract();
+    test_total_entries();
 
     return remove(ZIPNAME);
 }

@@ -47,7 +47,7 @@ struct zip_t;
 extern struct zip_t *zip_open(const char *zipname, int level, char mode);
 
 /*
-  Closes zip archive, releases resources - always finalize.
+  Closes the zip archive, releases resources - always finalize.
 
   Args:
     zip: zip archive handler.
@@ -133,9 +133,9 @@ extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 extern int zip_entry_fread(struct zip_t *zip, const char *filename);
 
 /*
-   Extract the current zip entry using a callback function (on_extract).
+  Extracts the current zip entry using a callback function (on_extract).
 
-   Args:
+  Args:
     zip: zip archive handler.
     on_extract: callback function.
     arg: opaque pointer (optional argument,
@@ -150,6 +150,18 @@ extern int zip_entry_extract(struct zip_t *zip,
                                                   const void *data,
                                                   size_t size),
                              void *arg);
+
+/*
+  Returns the number of entries in the zip archive.
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The return code - the number of entries on success,
+    negative number (< 0) on error.
+*/
+extern int zip_total_entries(struct zip_t *zip);
 
 /*
   Creates a new archive and puts files into a single zip archive.

@@ -520,6 +520,15 @@ int zip_entry_extract(struct zip_t *zip,
                : -1;
 }
 
+int zip_total_entries(struct zip_t *zip) {
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    return zip->archive.m_total_files;
+}
+
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
     int status = 0;
     size_t i;

@@ -137,3 +137,78 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
     zip_close(zip);
 ```
 
+# Bindings
+* Compile zip library as a dynamic library.
+```shell
+    $ mkdir build
+    $ cd build
+    $ cmake -DBUILD_SHARED_LIBS=true ..
+    $ make
+```
+
+### Ruby (ffi)
+* Install _ffi_ gem.
+```shell
+    $ gem install ffi
+```
+
+* Bind in your module.
+```ruby
+require 'ffi'
+
+module Zip
+  extend FFI::Library
+  ffi_lib "./libzip.#{::FFI::Platform::LIBSUFFIX}"
+
+  attach_function :zip_open, [:string, :int, :char], :pointer
+  attach_function :zip_close, [:pointer], :void
+
+  attach_function :zip_entry_open, [:pointer, :string], :int
+  attach_function :zip_entry_close, [:pointer], :void
+  attach_function :zip_entry_write, [:pointer, :string, :int], :int
+end
+
+ptr = Zip.zip_open("/tmp/ruby.zip", 6, "w".bytes()[0])
+
+status = Zip.zip_entry_open(ptr, "test")
+
+content = "test content"
+status = Zip.zip_entry_write(ptr, content, content.size())
+
+Zip.zip_entry_close(ptr)
+Zip.zip_close(ptr)
+```
+
+### Python (cffi)
+* Install _cffi_ package
+```shell
+    $ pip install cffi
+```
+
+* Bind in your package.
+```python
+import ctypes.util
+from cffi import FFI
+
+ffi = FFI()
+ffi.cdef("""
+    struct zip_t *zip_open(const char *zipname, int level, char mode);
+    void zip_close(struct zip_t *zip);
+
+    int zip_entry_open(struct zip_t *zip, const char *entryname);
+    int zip_entry_close(struct zip_t *zip);
+    int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
+""")
+
+Zip = ffi.dlopen(ctypes.util.find_library("zip"))
+
+ptr = Zip.zip_open("/tmp/python.zip", 6, 'w')
+
+status = Zip.zip_entry_open(ptr, "test")
+
+content = "test content"
+status = Zip.zip_entry_write(ptr, content, len(content))
+
+Zip.zip_entry_close(ptr)
+Zip.zip_close(ptr)
+```
