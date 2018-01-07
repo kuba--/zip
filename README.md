@@ -146,6 +146,37 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
     $ make
 ```
 
+### Go (cgo)
+```go
+package main
+
+/*
+#cgo CFLAGS: -I../src
+#cgo LDFLAGS: -L. -lzip
+#include <zip.h>
+#include <string.h>
+*/
+import "C"
+import "unsafe"
+
+func main() {
+	path := C.CString("/tmp/go.zip")
+	zip := C.zip_open(path, 6, 'w')
+
+	entryname := C.CString("test")
+	C.zip_entry_open(zip, entryname)
+
+	content := "test content"
+	buf := unsafe.Pointer(C.CString(content))
+	bufsize := C.size_t(len(content))
+	C.zip_entry_write(zip, buf, bufsize)
+
+	C.zip_entry_close(zip)
+
+	C.zip_close(zip)
+}
+```
+
 ### Ruby (ffi)
 * Install _ffi_ gem.
 ```shell
