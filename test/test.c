@@ -17,6 +17,8 @@ static void test_write(void) {
 
     assert(0 == zip_entry_open(zip, "test/test-1.txt"));
     assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+    assert(total_entries == zip_entry_index(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
@@ -28,15 +30,21 @@ static void test_append(void) {
     assert(zip != NULL);
 
     assert(0 == zip_entry_open(zip, "test\\test-2.txt"));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+    assert(total_entries == zip_entry_index(zip));
     assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "test\\empty/"));
+    assert(0 == strcmp(zip_entry_name(zip), "test/empty/"));
+    assert(total_entries == zip_entry_index(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "empty/"));
+    assert(0 == strcmp(zip_entry_name(zip), "empty/"));
+    assert(total_entries == zip_entry_index(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
@@ -117,12 +125,48 @@ static void test_total_entries(void) {
     assert(n == total_entries);
 }
 
+static void test_entry_name(void) {
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    assert(zip_entry_name(zip) == NULL);
+
+    assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
+    assert(NULL != zip_entry_name(zip));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+    assert(0 == zip_entry_close(zip));
+
+    assert(0 == zip_entry_open(zip, "test/test-2.txt"));
+    assert(NULL != zip_entry_name(zip));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+    assert(0 == zip_entry_close(zip));
+
+    zip_close(zip);
+}
+
+static void test_entry_index(void) {
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
+    assert(0 == zip_entry_index(zip));
+    assert(0 == zip_entry_close(zip));
+
+    assert(0 == zip_entry_open(zip, "test/test-2.txt"));
+    assert(1 == zip_entry_index(zip));
+    assert(0 == zip_entry_close(zip));
+
+    zip_close(zip);
+}
+
 int main(int argc, char *argv[]) {
     test_write();
     test_append();
     test_read();
     test_extract();
     test_total_entries();
+    test_entry_name();
+    test_entry_index();
 
     return remove(ZIPNAME);
 }
