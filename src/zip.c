@@ -82,8 +82,8 @@ static int mkpath(const char *path) {
     return 0;
 }
 
-static char *strrpl(const char *str, char oldchar, char newchar) {
-    char *rpl = (char *)malloc(sizeof(char) * (1 + strlen(str)));
+static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
+    char *rpl = (char *)malloc(sizeof(char) * (1 + n));
     char *begin = rpl;
     char c;
     while((c = *str++)) {
@@ -189,7 +189,6 @@ void zip_close(struct zip_t *zip) {
 }
 
 int zip_entry_open(struct zip_t *zip, const char *entryname) {
-    char *locname = NULL;
     size_t entrylen = 0;
     mz_zip_archive *pzip = NULL;
     mz_uint num_alignment_padding_bytes, level;
@@ -203,7 +202,6 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
         return -1;
     }
 
-    pzip = &(zip->archive);
     /*
       .ZIP File Format Specification Version: 6.3.3
 
@@ -215,21 +213,22 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
       and UNIX file systems etc.  If input came from standard
       input, there is no file name field.
     */
-    locname = strrpl(entryname, '\\', '/');
-
-    if (zip->mode == 'r') {
-        zip->entry.index = mz_zip_reader_locate_file(pzip, locname, NULL, 0);
-        CLEANUP(locname);
-        return (zip->entry.index < 0) ? -1 : 0;
-    }
-
-    zip->entry.index = zip->archive.m_total_files;
-    zip->entry.name = locname;
+    zip->entry.name = strrpl(entryname, entrylen, '\\', '/');
     if (!zip->entry.name) {
         // Cannot parse zip entry name
         return -1;
     }
 
+    pzip = &(zip->archive);
+    if (zip->mode == 'r') {
+        zip->entry.index = mz_zip_reader_locate_file(pzip, zip->entry.name, NULL, 0);
+        if (zip->entry.index < 0) {
+            goto cleanup;
+        }
+        return 0;
+    }
+
+    zip->entry.index = zip->archive.m_total_files;
     zip->entry.comp_size = 0;
     zip->entry.uncomp_size = 0;
     zip->entry.uncomp_crc32 = MZ_CRC32_INIT;
@@ -244,11 +243,11 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
     if (!pzip->m_pState || (pzip->m_zip_mode != MZ_ZIP_MODE_WRITING)) {
         // Wrong zip mode
-        return -1;
+        goto cleanup;
     }
     if (zip->level & MZ_ZIP_FLAG_COMPRESSED_DATA) {
         // Wrong zip compression level
-        return -1;
+        goto cleanup;
     }
     // no zip64 support yet
     if ((pzip->m_total_files == 0xFFFF) ||
@@ -256,13 +255,13 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
           MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
           entrylen) > 0xFFFFFFFF)) {
         // No zip64 support yet
-        return -1;
+        goto cleanup;
     }
     if (!mz_zip_writer_write_zeros(
             pzip, zip->entry.offset,
             num_alignment_padding_bytes + sizeof(zip->entry.header))) {
         // Cannot memset zip entry header
-        return -1;
+        goto cleanup;
     }
 
     zip->entry.header_offset += num_alignment_padding_bytes;
@@ -276,7 +275,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, zip->entry.name,
                        entrylen) != entrylen) {
         // Cannot write data to zip entry
-        return -1;
+        goto cleanup;
     }
 
     zip->entry.offset += entrylen;
@@ -292,11 +291,15 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
                            level, -15, MZ_DEFAULT_STRATEGY)) !=
             TDEFL_STATUS_OKAY) {
             // Cannot initialize the zip compressor
-            return -1;
+            goto cleanup;
         }
     }
 
     return 0;
+
+    cleanup:
+        CLEANUP(zip->entry.name);
+        return -1;
 }
 
 int zip_entry_close(struct zip_t *zip) {
@@ -311,11 +314,12 @@ int zip_entry_close(struct zip_t *zip) {
 
     if (!zip) {
         // zip_t handler is not initialized
-        return -1;
+        goto cleanup;
     }
 
     if (zip->mode == 'r') {
-        return 0;
+        status = 0;
+        goto cleanup;
     }
 
     pzip = &(zip->archive);
@@ -379,14 +383,22 @@ cleanup:
     return status;
 }
 
-int zip_entry_name(struct zip_t *zip, char **name) {
+const char *zip_entry_name(struct zip_t *zip) {
+    if (!zip) {
+        // zip_t handler is not initialized
+        return NULL;
+    }
+
+    return zip->entry.name;
+}
+
+int zip_entry_index(struct zip_t *zip) {
     if (!zip) {
         // zip_t handler is not initialized
         return -1;
     }
 
-    *name = STRCLONE(zip->entry.name);
-    return (*name) ? 0 : -1;
+    return zip->entry.index;
 }
 
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {

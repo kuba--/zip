@@ -55,7 +55,7 @@ extern struct zip_t *zip_open(const char *zipname, int level, char mode);
 extern void zip_close(struct zip_t *zip);
 
 /*
-  Opens a new entry for writing in a zip archive.
+  Opens a new entry for writing in the zip archive.
 
   Args:
     zip: zip archive handler.
@@ -78,20 +78,32 @@ extern int zip_entry_open(struct zip_t *zip, const char *entryname);
 extern int zip_entry_close(struct zip_t *zip);
 
 /*
-  Returns local name of the current zip entry.
-  The function allocates sufficient memory for the name.
+  Returns a local name of the current zip entry.
+  The main difference between user's entry name and local entry name
+  is optional relative path.
+  Following .ZIP File Format Specification - the path stored MUST not contain
+  a drive or device letter, or a leading slash.
+  All slashes MUST be forward slashes '/' as opposed to backwards slashes '\'
+  for compatibility with Amiga and UNIX file systems etc.
 
   Args:
     zip: zip archive handler.
-    name: output string with name of the entry.
-
-  Note:
-    - remember to release memory allocated for the name.
 
   Returns:
-    The return code - 0 on success, negative number (< 0) on error.
+    The pointer to the current zip entry name, or NULL on error.
 */
-extern int zip_entry_name(struct zip_t *zip, char **name);
+extern const char *zip_entry_name(struct zip_t *zip);
+
+/*
+  Returns an index of the current zip entry.
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The index on success, negative number (< 0) on error.
+*/
+extern int zip_entry_index(struct zip_t *zip);
 
 /*
   Compresses an input buffer for the current zip entry.
