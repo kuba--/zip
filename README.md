@@ -154,7 +154,6 @@ package main
 #cgo CFLAGS: -I../src
 #cgo LDFLAGS: -L. -lzip
 #include <zip.h>
-#include <string.h>
 */
 import "C"
 import "unsafe"
