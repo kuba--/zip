@@ -159,6 +159,44 @@ static void test_entry_index(void) {
     zip_close(zip);
 }
 
+static void test_entry_openbyindex(void) {
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    assert(0 == zip_entry_openbyindex(zip, 1));
+    assert(1 == zip_entry_index(zip));
+
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+    assert(0 == zip_entry_close(zip));
+
+    assert(0 == zip_entry_openbyindex(zip, 0));
+    assert(0 == zip_entry_index(zip));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+    assert(0 == zip_entry_close(zip));
+
+    zip_close(zip);
+}
+
+static void test_list_entries(void) {
+    struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+    assert(zip != NULL);
+
+    int i = 0, n = zip_total_entries(zip);
+    for (; i < n; ++i) {
+        assert(0 == zip_entry_openbyindex(zip, i));
+        fprintf(stdout, "[%d]: %s", i, zip_entry_name(zip));
+        if (zip_entry_isdir(zip)) {
+            fprintf(stdout, " (DIR)");
+        }
+        fprintf(stdout, "\n");
+        assert(0 == zip_entry_close(zip));
+    }
+
+    zip_close(zip);
+}
+
+
+
 int main(int argc, char *argv[]) {
     test_write();
     test_append();
@@ -167,6 +205,8 @@ int main(int argc, char *argv[]) {
     test_total_entries();
     test_entry_name();
     test_entry_index();
+    test_entry_openbyindex();
+    test_list_entries();
 
     return remove(ZIPNAME);
 }

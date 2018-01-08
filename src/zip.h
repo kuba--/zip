@@ -55,7 +55,10 @@ extern struct zip_t *zip_open(const char *zipname, int level, char mode);
 extern void zip_close(struct zip_t *zip);
 
 /*
-  Opens a new entry for writing in the zip archive.
+  Opens an entry by name in the zip archive.
+  For zip archive opened in 'w' or 'a' mode the function will append
+  a new entry. In readonly mode the function tries to locate the entry
+  in global dictionary.
 
   Args:
     zip: zip archive handler.
@@ -65,6 +68,19 @@ extern void zip_close(struct zip_t *zip);
     The return code - 0 on success, negative number (< 0) on error.
 */
 extern int zip_entry_open(struct zip_t *zip, const char *entryname);
+
+/*
+  Opens a new entry by index in the zip archive.
+  This function is only valid if zip archive was opened in 'r' (readonly) mode.
+
+  Args:
+    zip: zip archive handler.
+    index: index in local dictionary.
+
+  Returns:
+    The return code - 0 on success, negative number (< 0) on error.
+*/
+extern int zip_entry_openbyindex(struct zip_t *zip, int index);
 
 /*
   Closes a zip entry, flushes buffer and releases resources.
@@ -104,6 +120,17 @@ extern const char *zip_entry_name(struct zip_t *zip);
     The index on success, negative number (< 0) on error.
 */
 extern int zip_entry_index(struct zip_t *zip);
+
+/*
+  Determines if the current zip entry is a directory entry.
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The return code - 1 (true), 0 (false), negative number (< 0) on error.
+*/
+extern int zip_entry_isdir(struct zip_t *zip);
 
 /*
   Compresses an input buffer for the current zip entry.
