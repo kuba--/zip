@@ -728,3 +728,24 @@ out:
 
     return status;
 }
+
+int zip_entries_count(struct zip_t *zip)
+{
+    if (zip) {
+        return zip->archive.m_total_files;
+    }
+    return -1;
+}
+
+int zip_entry_name(struct zip_t *zip, int index, char *buf, size_t bufsize)
+{
+    if (zip) {
+        return mz_zip_reader_get_filename(&(zip->archive), index, buf, bufsize);
+    }
+    return -1;
+}
+
+int zip_get_index(struct zip_t *zip, const char *entryname, const char *comment, int flag)
+{
+    return mz_zip_reader_locate_file(&(zip->archive), entryname, comment, flag);
+}

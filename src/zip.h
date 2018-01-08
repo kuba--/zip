@@ -253,6 +253,46 @@ extern int zip_extract(const char *zipname, const char *dir,
                        int (*on_extract_entry)(const char *filename, void *arg),
                        void *arg);
 
+/*
+  Returns count of entries of a zip entry
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The return code - size on success, negative number (< 0) on error on error.
+*/
+extern int zip_entries_count(struct zip_t *zip);
+
+/*
+  Returns filename of a entry
+
+  Args:
+    zip: zip archive handler.
+    index: entry index
+    buf: output buffer.
+    bufsize: output buffer size (in bytes).
+
+  Returns:
+    The return code - 0 on success, negative number (< 0) on error.
+*/
+extern int zip_entry_name(struct zip_t *zip, int index, char *buf, size_t bufsize);
+
+/*
+  Returns index of a entry
+
+  Args:
+    zip: zip archive handler.
+    entryname: an entry name in local dictionary.
+    comment: an entry comment
+    flag: MZ_ZIP_FLAG_CASE_SENSITIVE or MZ_ZIP_FLAG_IGNORE_PATH
+
+  Returns:
+    The return code - 0 on success, negative number (< 0) on error.
+*/
+extern int zip_get_index(struct zip_t *zip, const char *entryname, const char *comment, int flag);
+
+
 #ifdef __cplusplus
 }
 #endif
