@@ -83,16 +83,16 @@ static int mkpath(const char *path) {
 }
 
 static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
-    char *rpl = (char *)malloc(sizeof(char) * (1 + n));
+    char *rpl = (char *)calloc((1 + n), sizeof(char));
     char *begin = rpl;
     char c;
-    while((c = *str++)) {
+    size_t i;
+    for(i = 0; (i < n) && (c = *str++); ++i) {
         if (c == oldchar) {
             c = newchar;
         }
         *rpl++ = c;
     }
-    *rpl = '\0';
 
     return begin;
 }
@@ -115,7 +115,6 @@ struct zip_t {
     mz_zip_archive archive;
     mz_uint level;
     struct zip_entry_t entry;
-    char mode;
 };
 
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
@@ -136,7 +135,6 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
     if (!zip) goto cleanup;
 
     zip->level = level;
-    zip->mode = mode;
     switch (mode) {
         case 'w':
             // Create a new archive.
@@ -155,13 +153,11 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
                 // zip_archive reader
                 goto cleanup;
             }
-
             if (mode == 'a' &&
                 !mz_zip_writer_init_from_reader(&(zip->archive), zipname)) {
                 mz_zip_reader_end(&(zip->archive));
                 goto cleanup;
             }
-
             break;
 
         default:
@@ -220,7 +216,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     }
 
     pzip = &(zip->archive);
-    if (zip->mode == 'r') {
+    if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
         zip->entry.index = mz_zip_reader_locate_file(pzip, zip->entry.name, NULL, 0);
         if (zip->entry.index < 0) {
             goto cleanup;
@@ -302,6 +298,58 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
         return -1;
 }
 
+int zip_entry_openbyindex(struct zip_t *zip, int index) {
+    mz_zip_archive *pZip = NULL;
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    pZip = &(zip->archive);
+    if (pZip->m_zip_mode != MZ_ZIP_MODE_READING) {
+        // open by index requires readonly mode
+        return -1;
+    }
+
+    if (index < 0 || index >= pZip->m_total_files) {
+        // index out of range
+        return -1;
+    }
+
+    const mz_uint8 *pHeader = &MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, index));
+    if (!pHeader) {
+        // cannot find header in central directory
+        return -1;
+    }
+
+    mz_uint namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
+    const char *pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
+    if (!pFilename) {
+        // entry name is NULL
+        return -1;
+    }
+
+    /*
+      .ZIP File Format Specification Version: 6.3.3
+
+      4.4.17.1 The name of the file, with optional relative path.
+      The path stored MUST not contain a drive or
+      device letter, or a leading slash.  All slashes
+      MUST be forward slashes '/' as opposed to
+      backwards slashes '\' for compatibility with Amiga
+      and UNIX file systems etc.  If input came from standard
+      input, there is no file name field.
+    */
+    zip->entry.name = strrpl(pFilename, namelen, '\\', '/');
+    if (!zip->entry.name) {
+        // local entry name is NULL
+        return -1;
+    }
+    zip->entry.index = index;
+
+    return 0;
+}
+
 int zip_entry_close(struct zip_t *zip) {
     mz_zip_archive *pzip = NULL;
     mz_uint level;
@@ -317,12 +365,12 @@ int zip_entry_close(struct zip_t *zip) {
         goto cleanup;
     }
 
-    if (zip->mode == 'r') {
+    pzip = &(zip->archive);
+    if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
         status = 0;
         goto cleanup;
     }
 
-    pzip = &(zip->archive);
     level = zip->level & 0xF;
     if (level) {
         done = tdefl_compress_buffer(&(zip->entry.comp), "", 0, TDEFL_FINISH);
@@ -401,6 +449,20 @@ int zip_entry_index(struct zip_t *zip) {
     return zip->entry.index;
 }
 
+int zip_entry_isdir(struct zip_t *zip) {
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    if (zip->entry.index < 0) {
+        // zip entry is not opened
+        return -1;
+    }
+
+    return (int)mz_zip_reader_is_file_a_directory(&zip->archive, (mz_uint)zip->entry.index);
+}
+
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
     mz_uint level;
     mz_zip_archive *pzip = NULL;
@@ -477,12 +539,12 @@ int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
         return -1;
     }
 
-    if (zip->mode != 'r' || zip->entry.index < 0) {
+    pzip = &(zip->archive);
+    if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
         // the entry is not found or we do not have read access
         return -1;
     }
 
-    pzip = &(zip->archive);
     idx = (mz_uint)zip->entry.index;
     if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
         // the entry is a directory
@@ -502,12 +564,12 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
         return -1;
     }
 
-    if (zip->mode != 'r' || zip->entry.index < 0) {
+    pzip = &(zip->archive);
+    if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
         // the entry is not found or we do not have read access
         return -1;
     }
 
-    pzip = &(zip->archive);
     idx = (mz_uint)zip->entry.index;
     if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
         // the entry is a directory
@@ -529,17 +591,14 @@ int zip_entry_extract(struct zip_t *zip,
         return -1;
     }
 
-    if (zip->mode != 'r' || zip->entry.index < 0) {
+    pzip = &(zip->archive);
+    if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
         // the entry is not found or we do not have read access
         return -1;
     }
 
-    pzip = &(zip->archive);
     idx = (mz_uint)zip->entry.index;
-
-    return (mz_zip_reader_extract_to_callback(pzip, idx, on_extract, arg, 0))
-               ? 0
-               : -1;
+    return (mz_zip_reader_extract_to_callback(pzip, idx, on_extract, arg, 0)) ? 0 : -1;
 }
 
 int zip_total_entries(struct zip_t *zip) {
