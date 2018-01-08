@@ -137,6 +137,21 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
     zip_close(zip);
 ```
 
+* List of all zip entries
+```c
+    struct zip_t *zip = zip_open("foo.zip", 0, 'r');
+    int i, n = zip_total_entries(zip);
+    for (i = 0; i < n; ++i) {
+        zip_entry_openbyindex(zip, i);
+        {
+            const char *name = zip_entry_name(zip);
+            int isdir = zip_entry_isdir(zip);
+        }
+        zip_entry_close(zip);
+    }
+    zip_close(zip);
+```
+
 # Bindings
 * Compile zip library as a dynamic library.
 ```shell
