@@ -305,7 +305,6 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
         return -1;
     }
 
-
     pZip = &(zip->archive);
     if (pZip->m_zip_mode != MZ_ZIP_MODE_READING) {
         // open by index requires readonly mode
@@ -371,7 +370,6 @@ int zip_entry_close(struct zip_t *zip) {
         status = 0;
         goto cleanup;
     }
-
 
     level = zip->level & 0xF;
     if (level) {
