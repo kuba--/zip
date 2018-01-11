@@ -195,8 +195,6 @@ static void test_list_entries(void) {
     zip_close(zip);
 }
 
-
-
 int main(int argc, char *argv[]) {
     test_write();
     test_append();
