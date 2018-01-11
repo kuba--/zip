@@ -198,7 +198,7 @@ static void test_list_entries(void) {
 
 
 int main(int argc, char *argv[]) {
-    test_write();
+    // test_write();
     // test_append();
     // test_read();
     // test_extract();
@@ -208,5 +208,6 @@ int main(int argc, char *argv[]) {
     // test_entry_openbyindex();
     // test_list_entries();
 
-    return remove(ZIPNAME);
+    // return remove(ZIPNAME);
+    return 0;
 }
