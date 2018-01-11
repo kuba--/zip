@@ -311,7 +311,7 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
         return -1;
     }
 
-    if (index < 0 || index >= pZip->m_total_files) {
+    if (index < 0 || (mz_uint)index >= pZip->m_total_files) {
         // index out of range
         return -1;
     }
