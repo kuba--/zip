@@ -7,4 +7,4 @@ compiler:
 script:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug .. && make && make test
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On .. && make && ctest -V
