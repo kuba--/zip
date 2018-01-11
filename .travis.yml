@@ -7,4 +7,4 @@ compiler:
 script:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On .. && make && ctest -V
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On .. && make && LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -V
