@@ -8,4 +8,4 @@ env:
   - ANALYZE=true
 # Build steps
 script:
-  - .travis.sh
+  - sh .travis.sh
