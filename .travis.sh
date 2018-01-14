@@ -7,7 +7,7 @@ mkdir build
 cd build
 if [ $ANALYZE = "true" ]; then
     if [ "$CC" = "clang" ]; then
-        scan-build -h
+        # scan-build -h
         scan-build cmake -G "Unix Makefiles" ..
         scan-build -enable-checker security.FloatLoopCounter \
           -enable-checker security.insecureAPI.UncheckedReturn \

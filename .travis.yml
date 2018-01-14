@@ -6,3 +6,6 @@ compiler:
 env:
   - ANALYZE=false
   - ANALYZE=true
+# Build steps
+script:
+  - .travis.sh
