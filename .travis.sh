@@ -5,15 +5,13 @@
 
 mkdir build
 cd build
-if [ $ANALYZE = "true" ]; then
-    if [ "$CC" = "clang" ]; then
-        # scan-build -h
-        scan-build cmake -G "Unix Makefiles" ..
-        scan-build -enable-checker security.FloatLoopCounter \
-          -enable-checker security.insecureAPI.UncheckedReturn \
-          --status-bugs -v \
-          make -j 8
-    fi
+if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
+    # scan-build -h
+    scan-build cmake -G "Unix Makefiles" ..
+    scan-build -enable-checker security.FloatLoopCounter \
+        -enable-checker security.insecureAPI.UncheckedReturn \
+        --status-bugs -v \
+        make -j 8
 else
     cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On ..
     make
