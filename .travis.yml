@@ -3,10 +3,9 @@ language: c
 compiler:
   - clang
   - gcc
+env:
+  - ANALYZE=false
+  - ANALYZE=true
 # Build steps
 script:
-  - mkdir build
-  - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On ..
-  - make
-  - ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -V
+  - sh .travis.sh
