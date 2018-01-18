@@ -258,10 +258,8 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-# Ring 
-
+### Ring 
 The language comes with RingZip based on this library
-
 ```ring
 load "ziplib.ring"
 
@@ -276,4 +274,3 @@ new Zip {
         close()
 }
 ```
-
