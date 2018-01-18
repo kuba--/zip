@@ -257,3 +257,23 @@ status = Zip.zip_entry_write(ptr, content, len(content))
 Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
+
+# Ring 
+
+The language comes with RingZip based on this library
+
+```ring
+load "ziplib.ring"
+
+new Zip {
+        setFileName("myfile.zip")
+        open("w")
+        newEntry() {
+                open("test.c")
+                writefile("test.c")
+                close()
+        }
+        close()
+}
+```
+
