@@ -153,7 +153,7 @@ It was the reason, why I decided to write zip module on top of the miniz. It req
 ```
 
 # Bindings
-* Compile zip library as a dynamic library.
+Compile zip library as a dynamic library.
 ```shell
     $ mkdir build
     $ cd build
@@ -192,12 +192,12 @@ func main() {
 ```
 
 ### Ruby (ffi)
-* Install _ffi_ gem.
+Install _ffi_ gem.
 ```shell
     $ gem install ffi
 ```
 
-* Bind in your module.
+Bind in your module.
 ```ruby
 require 'ffi'
 
@@ -225,12 +225,12 @@ Zip.zip_close(ptr)
 ```
 
 ### Python (cffi)
-* Install _cffi_ package
+Install _cffi_ package
 ```shell
     $ pip install cffi
 ```
 
-* Bind in your package.
+Bind in your package.
 ```python
 import ctypes.util
 from cffi import FFI
