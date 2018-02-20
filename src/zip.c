@@ -324,10 +324,6 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
 
     mz_uint namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
     const char *pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
-    if (!pFilename) {
-        // entry name is NULL
-        return -1;
-    }
 
     /*
       .ZIP File Format Specification Version: 6.3.3
