@@ -83,10 +83,14 @@ static int mkpath(const char *path) {
 }
 
 static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
-    char *rpl = (char *)calloc((1 + n), sizeof(char));
-    char *begin = rpl;
     char c;
     size_t i;
+    char *rpl = (char *)calloc((1 + n), sizeof(char));
+    char *begin = rpl;
+    if (!rpl) {
+        return NULL;
+    }
+
     for(i = 0; (i < n) && (c = *str++); ++i) {
         if (c == oldchar) {
             c = newchar;
