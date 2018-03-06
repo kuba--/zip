@@ -198,25 +198,6 @@ extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
 /*
-  Extracts the current zip entry into a memory buffer 
-  using no memory allocation.
-
-  Args:
-    zip: zip archive handler.
-    buf: preallocated output buffer.
-    bufsize: buffer size (in bytes).
-
-  Note:
-    - ensure supplied output buffer is large enough.
-    - zip_entry_size returns uncompressed size for the current zip entry.
-
-  Returns:
-    The return code - 0 on success, negative number (< 0) on error (e.g. bufsize
-    is not large enought).
-*/
-extern int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize);
-
-/*
   Extracts the current zip entry into output file.
 
   Args:
