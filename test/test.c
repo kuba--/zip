@@ -98,15 +98,6 @@ static void test_read(void) {
     assert(0 == zip_entry_crc32(zip));
     assert(0 == zip_entry_close(zip));
 
-    bufsize = strlen(TESTDATA2);
-    buf = calloc(sizeof(char), 1+ bufsize);
-    assert(0 == zip_entry_open(zip, "test/test-2.txt"));
-    assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));    
-    assert(0 == zip_entry_close(zip));
-    free(buf);
-    buf = NULL;
-    bufsize = 0;
-
     zip_close(zip);
 }
 
