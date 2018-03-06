@@ -192,6 +192,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     size_t entrylen = 0;
     mz_zip_archive *pzip = NULL;
     mz_uint num_alignment_padding_bytes, level;
+    mz_zip_archive_file_stat stats;
 
     if (!zip || !entryname) {
         return -1;
@@ -225,6 +226,18 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
         if (zip->entry.index < 0) {
             goto cleanup;
         }
+
+        if (!mz_zip_reader_file_stat(pzip, zip->entry.index, &stats)) {
+            goto cleanup;
+        }
+
+        zip->entry.comp_size = stats.m_comp_size;
+        zip->entry.uncomp_size = stats.m_uncomp_size;
+        zip->entry.uncomp_crc32 = stats.m_crc32;
+        zip->entry.offset = stats.m_central_dir_ofs;
+        zip->entry.header_offset = stats.m_local_header_ofs;
+        zip->entry.method = stats.m_method;
+
         return 0;
     }
 
@@ -461,6 +474,14 @@ int zip_entry_isdir(struct zip_t *zip) {
     }
 
     return (int)mz_zip_reader_is_file_a_directory(&zip->archive, (mz_uint)zip->entry.index);
+}
+
+unsigned long long zip_entry_size(struct zip_t *zip) {
+    return zip->entry.uncomp_size;
+}
+
+unsigned int zip_entry_crc32(struct zip_t *zip) {
+    return zip->entry.uncomp_crc32;    
 }
 
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
