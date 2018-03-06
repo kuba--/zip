@@ -198,8 +198,7 @@ extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
 /*
-  Extracts the current zip entry into a memory buffer 
-  using no memory allocation.
+  Extracts the current zip entry into a memory buffer using no memory allocation.
 
   Args:
     zip: zip archive handler.
