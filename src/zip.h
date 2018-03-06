@@ -133,6 +133,28 @@ extern int zip_entry_index(struct zip_t *zip);
 extern int zip_entry_isdir(struct zip_t *zip);
 
 /*
+  Returns an uncompressed size of the current zip entry.
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The uncompressed size in bytes.
+*/
+extern unsigned long long zip_entry_size(struct zip_t *zip);
+
+/*
+  Returns CRC-32 checksum of the current zip entry.
+
+  Args:
+    zip: zip archive handler.
+
+  Returns:
+    The CRC-32 checksum.
+*/
+extern unsigned int zip_entry_crc32(struct zip_t *zip);
+
+/*
   Compresses an input buffer for the current zip entry.
 
   Args:
