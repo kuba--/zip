@@ -576,6 +576,29 @@ int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
     return (*buf) ? 0 : -1;
 }
 
+int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
+    mz_zip_archive *pzip = NULL;
+    mz_uint idx;
+
+    if (!zip) {
+        // zip_t handler is not initialized
+        return -1;
+    }
+
+    pzip = &(zip->archive);
+    if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
+        // the entry is not found or we do not have read access
+        return -1;
+    }
+
+    idx = (mz_uint)zip->entry.index;
+    if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, idx, buf, bufsize, 0, NULL, 0)) {
+        return -1;
+    }
+
+    return 0;
+}
+
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
     mz_zip_archive *pzip = NULL;
     mz_uint idx;
