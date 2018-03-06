@@ -7,7 +7,9 @@
 
 #define ZIPNAME "test.zip"
 #define TESTDATA1 "Some test data 1...\0"
+#define CRC32DATA1 2220805626
 #define TESTDATA2 "Some test data 2...\0"
+#define CRC32DATA2 2532008468
 
 static int total_entries = 0;
 
@@ -19,6 +21,8 @@ static void test_write(void) {
     assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
     assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
     assert(total_entries == zip_entry_index(zip));
+    assert(strlen(TESTDATA1) == zip_entry_size(zip));
+    assert(CRC32DATA1 == zip_entry_crc32(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
@@ -33,17 +37,26 @@ static void test_append(void) {
     assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
     assert(total_entries == zip_entry_index(zip));
     assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+    assert(strlen(TESTDATA2) == zip_entry_size(zip));
+    assert(CRC32DATA2 == zip_entry_crc32(zip));
+
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "test\\empty/"));
     assert(0 == strcmp(zip_entry_name(zip), "test/empty/"));
+    assert(0 == zip_entry_size(zip));
+    assert(0 == zip_entry_crc32(zip));
+
     assert(total_entries == zip_entry_index(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "empty/"));
     assert(0 == strcmp(zip_entry_name(zip), "empty/"));
+    assert(0 == zip_entry_size(zip));
+    assert(0 == zip_entry_crc32(zip));
+
     assert(total_entries == zip_entry_index(zip));
     ++total_entries;
     assert(0 == zip_entry_close(zip));
@@ -58,6 +71,8 @@ static void test_read(void) {
     assert(zip != NULL);
 
     assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
+    assert(strlen(TESTDATA1) == zip_entry_size(zip));
+    assert(CRC32DATA1 == zip_entry_crc32(zip));
     assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
     assert(bufsize == strlen(TESTDATA1));
     assert(0 == strncmp(buf, TESTDATA1, bufsize));
@@ -67,6 +82,8 @@ static void test_read(void) {
     bufsize = 0;
 
     assert(0 == zip_entry_open(zip, "test/test-2.txt"));
+    assert(strlen(TESTDATA2) == zip_entry_size(zip));
+    assert(CRC32DATA2 == zip_entry_crc32(zip));    
     assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
     assert(bufsize == strlen(TESTDATA2));
     assert(0 == strncmp(buf, TESTDATA2, bufsize));
@@ -74,6 +91,12 @@ static void test_read(void) {
     free(buf);
     buf = NULL;
     bufsize = 0;
+
+    assert(0 == zip_entry_open(zip, "test\\empty/"));
+    assert(0 == strcmp(zip_entry_name(zip), "test/empty/"));
+    assert(0 == zip_entry_size(zip));
+    assert(0 == zip_entry_crc32(zip));
+    assert(0 == zip_entry_close(zip));
 
     zip_close(zip);
 }
