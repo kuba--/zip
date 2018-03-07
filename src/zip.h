@@ -203,11 +203,13 @@ extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
   Args:
     zip: zip archive handler.
     buf: preallocated output buffer.
-    bufsize: buffer size (in bytes).
+    bufsize: output buffer size (in bytes).
 
   Note:
     - ensure supplied output buffer is large enough.
-    - zip_entry_size returns uncompressed size for the current zip entry.
+    - zip_entry_size function (returns uncompressed size for the current entry)
+      can be handy to estimate how big buffer is needed.
+    - for large entries, please take a look at zip_entry_extract function.
 
   Returns:
     The return code - 0 on success, negative number (< 0) on error (e.g. bufsize
