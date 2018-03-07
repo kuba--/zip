@@ -65,7 +65,7 @@ static void test_append(void) {
 }
 
 static void test_read(void) {
-    char *buf = NULL;
+    unsigned char *buf = NULL;
     size_t bufsize;
     struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
     assert(zip != NULL);
@@ -98,6 +98,26 @@ static void test_read(void) {
     assert(0 == zip_entry_crc32(zip));
     assert(0 == zip_entry_close(zip));
 
+    bufsize = strlen(TESTDATA2);
+    buf = calloc(sizeof(unsigned char), 1 + bufsize);
+    assert(0 == zip_entry_open(zip, "test/test-2.txt"));
+    assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
+    assert(0 == strncmp(buf, TESTDATA2, bufsize));
+    assert(0 == zip_entry_close(zip));    
+    free(buf);
+    buf = NULL;
+    bufsize = 0;
+
+    bufsize = strlen(TESTDATA1);
+    buf = calloc(sizeof(unsigned char), 1 + bufsize);
+    assert(0 == zip_entry_open(zip, "test/test-1.txt"));
+    assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
+    assert(0 == strncmp(buf, TESTDATA1, bufsize));
+    assert(0 == zip_entry_close(zip));    
+    free(buf);
+    buf = NULL;
+    bufsize = 0;
+    
     zip_close(zip);
 }
 
