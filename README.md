@@ -90,6 +90,27 @@ zip_close(zip);
 free(buf);
 ```
 
+* Extract a zip entry into memory (no internal allocation).
+```c
+void *buf;
+size_t bufsize;
+
+struct zip_t *zip = zip_open("foo.zip", 0, 'r');
+{
+    zip_entry_open(zip, "foo-1.txt");
+    {
+        bufsize = zip_entry_size(zip);
+        buf = calloc(sizeof(unsigned char), 1+bufsize);
+
+        zip_entry_noallocread(zip, buf, bufsize);
+    }
+    zip_entry_close(zip);
+}
+zip_close(zip);
+
+free(buf);
+```
+
 * Extract a zip entry into memory using callback.
 ```c
 struct buffer_t {
