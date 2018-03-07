@@ -65,7 +65,7 @@ static void test_append(void) {
 }
 
 static void test_read(void) {
-    char *buf = NULL;
+    unsigned char *buf = NULL;
     size_t bufsize;
     struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
     assert(zip != NULL);
