@@ -213,7 +213,7 @@ extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
   Returns:
     The return code - 0 on success, negative number (< 0) on error (e.g. bufsize
-    is not large enought).
+    is not large enough).
 */
 extern int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize);
 
