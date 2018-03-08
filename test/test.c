@@ -99,7 +99,7 @@ static void test_read(void) {
     assert(0 == zip_entry_close(zip));
 
     bufsize = strlen(TESTDATA2);
-    buf = calloc(sizeof(unsigned char), 1 + bufsize);
+    buf = calloc(sizeof(char), bufsize);
     assert(0 == zip_entry_open(zip, "test/test-2.txt"));
     assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
     assert(0 == strncmp(buf, TESTDATA2, bufsize));
@@ -109,7 +109,7 @@ static void test_read(void) {
     bufsize = 0;
 
     bufsize = strlen(TESTDATA1);
-    buf = calloc(sizeof(unsigned char), 1 + bufsize);
+    buf = calloc(sizeof(char), bufsize);
     assert(0 == zip_entry_open(zip, "test/test-1.txt"));
     assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
     assert(0 == strncmp(buf, TESTDATA1, bufsize));
