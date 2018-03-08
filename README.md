@@ -100,7 +100,7 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
     zip_entry_open(zip, "foo-1.txt");
     {
         bufsize = zip_entry_size(zip);
-        buf = calloc(sizeof(unsigned char), 1+bufsize);
+        buf = calloc(sizeof(unsigned char), bufsize);
 
         zip_entry_noallocread(zip, (void *)buf, bufsize);
     }

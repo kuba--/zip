@@ -65,7 +65,7 @@ static void test_append(void) {
 }
 
 static void test_read(void) {
-    unsigned char *buf = NULL;
+    char *buf = NULL;
     size_t bufsize;
     struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
     assert(zip != NULL);
@@ -177,11 +177,20 @@ static void test_entry_name(void) {
     assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
     assert(NULL != zip_entry_name(zip));
     assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+    assert(strlen(TESTDATA1) == zip_entry_size(zip));
+    assert(CRC32DATA1 == zip_entry_crc32(zip));
+    assert(0 == zip_entry_index(zip));
+
+
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "test/test-2.txt"));
     assert(NULL != zip_entry_name(zip));
     assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+    assert(strlen(TESTDATA2) == zip_entry_size(zip));
+    assert(CRC32DATA2 == zip_entry_crc32(zip));
+    assert(1 == zip_entry_index(zip));
+
     assert(0 == zip_entry_close(zip));
 
     zip_close(zip);
@@ -193,10 +202,16 @@ static void test_entry_index(void) {
 
     assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
     assert(0 == zip_entry_index(zip));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+    assert(strlen(TESTDATA1) == zip_entry_size(zip));
+    assert(CRC32DATA1 == zip_entry_crc32(zip));
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_open(zip, "test/test-2.txt"));
     assert(1 == zip_entry_index(zip));
+    assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+    assert(strlen(TESTDATA2) == zip_entry_size(zip));
+    assert(CRC32DATA2 == zip_entry_crc32(zip));
     assert(0 == zip_entry_close(zip));
 
     zip_close(zip);
@@ -208,12 +223,15 @@ static void test_entry_openbyindex(void) {
 
     assert(0 == zip_entry_openbyindex(zip, 1));
     assert(1 == zip_entry_index(zip));
-
+    assert(strlen(TESTDATA2) == zip_entry_size(zip));
+    assert(CRC32DATA2 == zip_entry_crc32(zip));
     assert(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
     assert(0 == zip_entry_close(zip));
 
     assert(0 == zip_entry_openbyindex(zip, 0));
     assert(0 == zip_entry_index(zip));
+    assert(strlen(TESTDATA1) == zip_entry_size(zip));
+    assert(CRC32DATA1 == zip_entry_crc32(zip));    
     assert(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
     assert(0 == zip_entry_close(zip));
 
