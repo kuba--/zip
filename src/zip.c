@@ -317,6 +317,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
     mz_zip_archive *pZip = NULL;
+    mz_zip_archive_file_stat stats;
     if (!zip) {
         // zip_t handler is not initialized
         return -1;
@@ -358,7 +359,18 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
         // local entry name is NULL
         return -1;
     }
+
+    if (!mz_zip_reader_file_stat(pZip, index, &stats)) {
+        return -1;
+    }
+
     zip->entry.index = index;
+    zip->entry.comp_size = stats.m_comp_size;
+    zip->entry.uncomp_size = stats.m_uncomp_size;
+    zip->entry.uncomp_crc32 = stats.m_crc32;
+    zip->entry.offset = stats.m_central_dir_ofs;
+    zip->entry.header_offset = stats.m_local_header_ofs;
+    zip->entry.method = stats.m_method;
 
     return 0;
 }
