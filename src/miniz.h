@@ -1954,8 +1954,8 @@ static void tdefl_start_dynamic_block(tdefl_compressor *d)
   for (num_lit_codes = 286; num_lit_codes > 257; num_lit_codes--) if (d->m_huff_code_sizes[0][num_lit_codes - 1]) break;
   for (num_dist_codes = 30; num_dist_codes > 1; num_dist_codes--) if (d->m_huff_code_sizes[1][num_dist_codes - 1]) break;
 
-  memcpy(code_sizes_to_pack, &d->m_huff_code_sizes[0][0], num_lit_codes);
-  memcpy(code_sizes_to_pack + num_lit_codes, &d->m_huff_code_sizes[1][0], num_dist_codes);
+  memcpy(code_sizes_to_pack, &d->m_huff_code_sizes[0][0], sizeof(mz_uint8) * num_lit_codes);
+  memcpy(code_sizes_to_pack + num_lit_codes, &d->m_huff_code_sizes[1][0], sizeof(mz_uint8) * num_dist_codes);
   total_code_sizes_to_pack = num_lit_codes + num_dist_codes; num_packed_code_sizes = 0; rle_z_count = 0; rle_repeat_count = 0;
 
   memset(&d->m_huff_count[2][0], 0, sizeof(d->m_huff_count[2][0]) * TDEFL_MAX_HUFF_SYMBOLS_2);
