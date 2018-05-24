@@ -5,7 +5,7 @@ This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library
 
 [win-badge]: https://img.shields.io/appveyor/ci/kuba--/zip/master.svg?label=windows "AppVeyor build status"
 [win-link]:  https://ci.appveyor.com/project/kuba--/zip "AppVeyor build status"
-[osx-linux-badge]: https://img.shields.io/travis/kuba--/zip/master.svg?label=linux/osx "Travis CI build status"
+[osx-linux-badge]: https://travis-ci.org/kuba--/zip.svg?branch=master&label=linux/osx "Travis CI build status"
 [osx-linux-link]:  https://travis-ci.org/kuba--/zip "Travis CI build status"
 
 # The Idea
