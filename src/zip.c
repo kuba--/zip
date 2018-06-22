@@ -8,7 +8,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 #include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -20,7 +19,7 @@
 
 #  define MKDIR(DIRNAME) _mkdir(DIRNAME)
 #  define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
-#  define HAS_DEVICE(P)                                                          \
+#  define HAS_DEVICE(P)                                                        \
     ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && \
      (P)[1] == ':')
 #  define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
@@ -30,6 +29,7 @@
 
 #  define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #  define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
+
 #endif
 
 #include "xzip.h"
@@ -321,9 +321,9 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
     mz_zip_archive *pZip = NULL;
     mz_zip_archive_file_stat stats;
-	mz_uint namelen;
-	const mz_uint8 *pHeader;
-	const char *pFilename;
+    mz_uint namelen;
+    const mz_uint8 *pHeader;
+    const char *pFilename;
 
     if (!zip) {
         // zip_t handler is not initialized
@@ -389,11 +389,11 @@ int zip_entry_close(struct zip_t *zip) {
     time_t t;
     mz_uint16 dos_time, dos_date;
     int status = -1;
-    
+
 #if defined(_MSC_VER)
-	struct tm tmb, *tm = (struct tm*)&tmb;
+    struct tm tmb, *tm = (struct tm*)&tmb;
 #else
-    struct *tm;
+    struct tm *tm;
 #endif
 
     if (!zip) {
