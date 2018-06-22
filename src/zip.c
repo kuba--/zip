@@ -8,9 +8,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
- Lite fix about build in _MSC_VER (PS)
-*/
 
 #include <errno.h>
 #include <sys/stat.h>
@@ -19,6 +16,9 @@
 #if defined _WIN32 || defined __WIN32__ || defined _MSC_VER
 /* Win32, DOS */
 #include <direct.h>
+
+#include "miniz.h"
+#include "zip.h"
 
 #define MKDIR(DIRNAME) _mkdir(DIRNAME)
 #define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
@@ -48,9 +48,6 @@
             ptr = NULL;        \
         }                      \
     } while (0)
-
-#include "miniz.h"
-#include "zip.h"
 
 static char *basename(const char *name) {
     char const *p;
@@ -322,9 +319,9 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
     mz_zip_archive *pZip = NULL;
     mz_zip_archive_file_stat stats;
+	mz_uint namelen;
 	const mz_uint8 *pHeader;
 	const char *pFilename;
-	mz_uint namelen;
 
     if (!zip) {
         // zip_t handler is not initialized
@@ -342,8 +339,7 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
         return -1;
     }
 
-    if (!(pHeader = &MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, index))))
-    {
+    if (!(pHeader = &MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, index)))) {
         // cannot find header in central directory
         return -1;
     }
@@ -389,9 +385,14 @@ int zip_entry_close(struct zip_t *zip) {
     tdefl_status done;
     mz_uint16 entrylen;
     time_t t;
-    struct tm tmb, *tm = (struct tm*)&tmb;
     mz_uint16 dos_time, dos_date;
     int status = -1;
+    
+#if defined(_MSC_VER)
+	struct tm tmb, *tm = (struct tm*)&tmb;
+#else
+    struct *tm;
+#endif
 
     if (!zip) {
         // zip_t handler is not initialized
@@ -424,8 +425,8 @@ int zip_entry_close(struct zip_t *zip) {
 #else
     tm = localtime(&t);
 #endif
-
-    dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
+	
+	dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
     dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
                            ((tm->tm_mon + 1) << 5) + tm->tm_mday);
@@ -560,9 +561,9 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     }
 
 	#ifdef _MSC_VER
-    if (!fopen_s(&stream, filename, "rb"))
+		if (!fopen_s(&stream, filename, "rb"))
 	#else
-	if (!(stream = fopen(filename, "rb")))
+		if (!(stream = fopen(filename, "rb")))
 	#endif
 	{
         // Cannot open filename
@@ -756,7 +757,7 @@ int zip_extract(const char *zipname, const char *dir,
     }
 
 #if defined _MSC_VER
-	strcpy_s(path, (MAX_PATH + 1), dir);
+	strcpy_s(path, MAX_PATH, dir);
 #else
 	strcpy(path, dir);
 #endif
@@ -778,14 +779,12 @@ int zip_extract(const char *zipname, const char *dir,
             // Cannot get information about zip archive;
             goto out;
         }
-
 #if defined _MSC_VER
 	    strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename, MAX_PATH - dirlen);
 #else
 	    strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
 #endif
-
-		if (mkpath(path) < 0) {
+        if (mkpath(path) < 0) {
             // Cannot make a path
             goto out;
         }
