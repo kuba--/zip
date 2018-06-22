@@ -32,8 +32,8 @@
 
 #endif
 
-#include "xzip.h"
-#include "xminiz.h"
+#include "zip.h"
+#include "miniz.h"
 
 #ifndef FILESYSTEM_PREFIX_LEN
 #  define FILESYSTEM_PREFIX_LEN(P) 0
