@@ -13,8 +13,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if defined _WIN32 || defined __WIN32__ || defined _MSC_VER
-/* Win32, DOS */
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER)
+/* Win32, DOS, MSVC, MSVS */
 #  include <direct.h>
 
 #  define MKDIR(DIRNAME) _mkdir(DIRNAME)
@@ -390,7 +390,7 @@ int zip_entry_close(struct zip_t *zip) {
     mz_uint16 dos_time, dos_date;
     int status = -1;
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__)
     struct tm tmb, *tm = (struct tm*)&tmb;
 #else
     struct tm *tm;
@@ -423,14 +423,16 @@ int zip_entry_close(struct zip_t *zip) {
     t = time(NULL);
 
 #if defined(_MSC_VER)
-	if (!localtime_s(tm, &t)) { goto cleanup; }
+    if (localtime_s(tm, &t)) { goto cleanup; }
+#elif defined(_WIN32) || defined(__WIN32__)
+    if (!localtime_s(tm, &t)) { goto cleanup; }
 #else
     tm = localtime(&t);
 #endif
 	
 	dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
-    dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
+	dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
                            ((tm->tm_mon + 1) << 5) + tm->tm_mday);
 
     // no zip64 support yet
@@ -758,7 +760,7 @@ int zip_extract(const char *zipname, const char *dir,
         return -1;
     }
 
-#if defined _MSC_VER
+#if defined(_MSC_VER)
 	strcpy_s(path, MAX_PATH, dir);
 #else
 	strcpy(path, dir);
@@ -766,7 +768,7 @@ int zip_extract(const char *zipname, const char *dir,
 
     if (!ISSLASH(path[dirlen - 1]))
 	{
-#if defined _WIN32 || defined __WIN32__
+#if defined(_WIN32) || defined(__WIN32__)
         path[dirlen] = '\\';
 #else
         path[dirlen] = '/';
@@ -781,7 +783,7 @@ int zip_extract(const char *zipname, const char *dir,
             // Cannot get information about zip archive;
             goto out;
         }
-#if defined _MSC_VER
+#if defined(_MSC_VER)
 	    strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename, MAX_PATH - dirlen);
 #else
 	    strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
