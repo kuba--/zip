@@ -9,36 +9,38 @@
  */
 
 
+#include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <time.h>
 
 #if defined _WIN32 || defined __WIN32__ || defined _MSC_VER
 /* Win32, DOS */
-#include <direct.h>
+#  include <direct.h>
 
-#include "miniz.h"
-#include "zip.h"
-
-#define MKDIR(DIRNAME) _mkdir(DIRNAME)
-#define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
-#define HAS_DEVICE(P)                                                          \
+#  define MKDIR(DIRNAME) _mkdir(DIRNAME)
+#  define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
+#  define HAS_DEVICE(P)                                                          \
     ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && \
      (P)[1] == ':')
-#define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
-#define ISSLASH(C) ((C) == '/' || (C) == '\\')
+#  define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
+#  define ISSLASH(C) ((C) == '/' || (C) == '\\')
 
 #else
-#define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
-#define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
+
+#  define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
+#  define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 #endif
 
+#include "xzip.h"
+#include "xminiz.h"
+
 #ifndef FILESYSTEM_PREFIX_LEN
-#define FILESYSTEM_PREFIX_LEN(P) 0
+#  define FILESYSTEM_PREFIX_LEN(P) 0
 #endif
 
 #ifndef ISSLASH
-#define ISSLASH(C) ((C) == '/')
+#  define ISSLASH(C) ((C) == '/')
 #endif
 
 #define CLEANUP(ptr)           \
