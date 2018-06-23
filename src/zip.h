@@ -198,7 +198,8 @@ extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
 /*
-  Extracts the current zip entry into a memory buffer using no memory allocation.
+  Extracts the current zip entry into a memory buffer using no memory
+  allocation.
 
   Args:
     zip: zip archive handler.
@@ -241,12 +242,11 @@ extern int zip_entry_fread(struct zip_t *zip, const char *filename);
    Returns:
     The return code - 0 on success, negative number (< 0) on error.
  */
-extern int zip_entry_extract(struct zip_t *zip,
-                             size_t (*on_extract)(void *arg,
-                                                  unsigned long long offset,
-                                                  const void *data,
-                                                  size_t size),
-                             void *arg);
+extern int
+zip_entry_extract(struct zip_t *zip,
+                  size_t (*on_extract)(void *arg, unsigned long long offset,
+                                       const void *data, size_t size),
+                  void *arg);
 
 /*
   Returns the number of all entries (files and directories) in the zip archive.
