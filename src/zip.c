@@ -8,36 +8,39 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "zip.h"
-#include "miniz.h"
-
+#include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <time.h>
 
-#if defined _WIN32 || defined __WIN32__
-/* Win32, DOS */
-#include <direct.h>
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER)
+/* Win32, DOS, MSVC, MSVS */
+#  include <direct.h>
 
-#define MKDIR(DIRNAME) _mkdir(DIRNAME)
-#define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
-#define HAS_DEVICE(P)                                                          \
+#  define MKDIR(DIRNAME) _mkdir(DIRNAME)
+#  define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
+#  define HAS_DEVICE(P)                                                        \
     ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) && \
      (P)[1] == ':')
-#define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
-#define ISSLASH(C) ((C) == '/' || (C) == '\\')
+#  define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
+#  define ISSLASH(C) ((C) == '/' || (C) == '\\')
 
 #else
-#define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
-#define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
+
+#  define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
+#  define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
+
 #endif
 
+#include "zip.h"
+#include "miniz.h"
+
 #ifndef FILESYSTEM_PREFIX_LEN
-#define FILESYSTEM_PREFIX_LEN(P) 0
+#  define FILESYSTEM_PREFIX_LEN(P) 0
 #endif
 
 #ifndef ISSLASH
-#define ISSLASH(C) ((C) == '/')
+#  define ISSLASH(C) ((C) == '/')
 #endif
 
 #define CLEANUP(ptr)           \
@@ -318,6 +321,10 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
     mz_zip_archive *pZip = NULL;
     mz_zip_archive_file_stat stats;
+    mz_uint namelen;
+    const mz_uint8 *pHeader;
+    const char *pFilename;
+
     if (!zip) {
         // zip_t handler is not initialized
         return -1;
@@ -334,14 +341,13 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
         return -1;
     }
 
-    const mz_uint8 *pHeader = &MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, index));
-    if (!pHeader) {
+    if (!(pHeader = &MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir, mz_uint8, MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets, mz_uint32, index)))) {
         // cannot find header in central directory
         return -1;
     }
 
-    mz_uint namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
-    const char *pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
+    namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
+    pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
 
     /*
       .ZIP File Format Specification Version: 6.3.3
@@ -381,9 +387,14 @@ int zip_entry_close(struct zip_t *zip) {
     tdefl_status done;
     mz_uint16 entrylen;
     time_t t;
-    struct tm *tm;
     mz_uint16 dos_time, dos_date;
     int status = -1;
+
+#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__)
+    struct tm tmb, *tm = (struct tm*)&tmb;
+#else
+    struct tm *tm;
+#endif
 
     if (!zip) {
         // zip_t handler is not initialized
@@ -410,10 +421,18 @@ int zip_entry_close(struct zip_t *zip) {
 
     entrylen = (mz_uint16)strlen(zip->entry.name);
     t = time(NULL);
+
+#if defined(_MSC_VER)
+    if (localtime_s(tm, &t)) { goto cleanup; }
+#elif defined(_WIN32) || defined(__WIN32__)
+    if (!localtime_s(tm, &t)) { goto cleanup; }
+#else
     tm = localtime(&t);
-    dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
+#endif
+	
+	dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
-    dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
+	dos_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
                            ((tm->tm_mon + 1) << 5) + tm->tm_mday);
 
     // no zip64 support yet
@@ -545,8 +564,12 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
         return -1;
     }
 
-    stream = fopen(filename, "rb");
-    if (!stream) {
+	#ifdef _MSC_VER
+		if (!fopen_s(&stream, filename, "rb"))
+	#else
+		if (!(stream = fopen(filename, "rb")))
+	#endif
+	{
         // Cannot open filename
         return -1;
     }
@@ -737,9 +760,15 @@ int zip_extract(const char *zipname, const char *dir,
         return -1;
     }
 
-    strcpy(path, dir);
-    if (!ISSLASH(path[dirlen - 1])) {
-#if defined _WIN32 || defined __WIN32__
+#if defined(_MSC_VER)
+	strcpy_s(path, MAX_PATH, dir);
+#else
+	strcpy(path, dir);
+#endif
+
+    if (!ISSLASH(path[dirlen - 1]))
+	{
+#if defined(_WIN32) || defined(__WIN32__)
         path[dirlen] = '\\';
 #else
         path[dirlen] = '/';
@@ -754,7 +783,11 @@ int zip_extract(const char *zipname, const char *dir,
             // Cannot get information about zip archive;
             goto out;
         }
-        strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+#if defined(_MSC_VER)
+	    strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename, MAX_PATH - dirlen);
+#else
+	    strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+#endif
         if (mkpath(path) < 0) {
             // Cannot make a path
             goto out;
