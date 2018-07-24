@@ -36,3 +36,11 @@
 # Temporary
 *.swp
 .DS_Store
+
+# CMake
+CMakeScripts
+*.cmake
+
+# Xcode
+*.build
+*.xcodeproj
