@@ -11,12 +11,12 @@ endif (MSVC)
 
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
-add_library(${CMAKE_PROJECT_NAME} ${SRC})
+add_library(${PROJECT_NAME} ${SRC})
 
 # test
 enable_testing()
 add_subdirectory(test)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 find_package(Sanitizers)
-add_sanitizers(${CMAKE_PROJECT_NAME} test.exe)
+add_sanitizers(${PROJECT_NAME} test.exe)
