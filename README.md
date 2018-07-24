@@ -1,12 +1,12 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-[![Windows][win-badge]][win-link] [![OS X][osx-linux-badge]][osx-linux-link]
+[![Windows](https://img.shields.io/appveyor/ci/kuba--/zip/master.svg?style=for-the-badge&label=windows%20build)](https://ci.appveyor.com/project/kuba--/zip)
+[![Linux](https://img.shields.io/travis/kuba--/zip/master.svg?style=for-the-badge&label=linux%2fosx%20build)](https://travis-ci.org/kuba--/zip)
+[![GitHub tag](https://img.shields.io/github/tag/kuba--/zip.svg?style=for-the-badge)](https://github.com/kuba--/zip/releases)
 
-[win-badge]: https://ci.appveyor.com/api/projects/status/bph8dr3jacgmjv32/branch/master?svg=true&label=windows "AppVeyor build status"
-[win-link]:  https://ci.appveyor.com/project/kuba--/zip "AppVeyor build status"
-[osx-linux-badge]: https://travis-ci.org/kuba--/zip.svg?branch=master&label=linux/osx "Travis CI build status"
-[osx-linux-link]:  https://travis-ci.org/kuba--/zip "Travis CI build status"
+[![GitHub contributors](https://img.shields.io/github/contributors/kuba--/zip.svg?style=for-the-badge)](https://github.com/kuba--/zip/graphs/contributors)
+
 
 # The Idea
 <img src="zip.png" name="zip" />
