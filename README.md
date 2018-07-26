@@ -1,10 +1,10 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-[![Windows](https://img.shields.io/appveyor/ci/kuba--/zip/master.svg?style=for-the-badge&label=windows%20build)](https://ci.appveyor.com/project/kuba--/zip)
-[![Linux](https://img.shields.io/travis/kuba--/zip/master.svg?style=for-the-badge&label=linux%2fosx%20build)](https://travis-ci.org/kuba--/zip)
-[![GitHub tag](https://img.shields.io/github/tag/kuba--/zip.svg?style=for-the-badge)](https://github.com/kuba--/zip/releases)
-[![GitHub contributors](https://img.shields.io/github/contributors/kuba--/zip.svg?style=for-the-badge)](https://github.com/kuba--/zip/graphs/contributors)
+[![Windows](https://ci.appveyor.com/api/projects/status/bph8dr3jacgmjv32/branch/master?svg=true&label=windows)](https://ci.appveyor.com/project/kuba--/zip)
+[![Linux](https://travis-ci.org/kuba--/zip.svg?branch=master&label=linux%2fosx)](https://travis-ci.org/kuba--/zip)
+[![Version](https://badge.fury.io/gh/kuba--%2Fzip.svg)](https://github.com/kuba--/zip/releases)
+
 
 
 # The Idea
