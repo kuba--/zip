@@ -12,6 +12,7 @@ endif (MSVC)
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
 add_library(${PROJECT_NAME} ${SRC})
+target_include_directories(${PROJECT_NAME} INTERFACE src)
 
 # test
 enable_testing()
