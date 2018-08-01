@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER)
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) || defined(__MINGW64__)
 /* Win32, DOS, MSVC, MSVS */
 #include <direct.h>
 
@@ -394,7 +394,7 @@ int zip_entry_close(struct zip_t *zip) {
   mz_uint16 dos_time, dos_date;
   int status = -1;
 
-#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__)
+#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__) || defined(__MINGW64__)
   struct tm tmb, *tm = (struct tm *)&tmb;
 #else
   struct tm *tm;
@@ -426,7 +426,7 @@ int zip_entry_close(struct zip_t *zip) {
   entrylen = (mz_uint16)strlen(zip->entry.name);
   t = time(NULL);
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW64__)
   if (localtime_s(tm, &t)) {
     goto cleanup;
   }
@@ -572,7 +572,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return -1;
   }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__)
   if (!fopen_s(&stream, filename, "rb"))
 #else
   if (!(stream = fopen(filename, "rb")))
@@ -771,7 +771,7 @@ int zip_extract(const char *zipname, const char *dir,
     return -1;
   }
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW64__)
   strcpy_s(path, MAX_PATH, dir);
 #else
   strcpy(path, dir);
@@ -793,7 +793,7 @@ int zip_extract(const char *zipname, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW64__)
     strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename,
               MAX_PATH - dirlen);
 #else
