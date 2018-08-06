@@ -301,6 +301,18 @@
 #define fseeko64 fseeko
 #define fopen64 fopen
 #define freopen64 freopen
+
+// Darwin OSX
+#define MZ_PLATFORM 19
+#endif
+
+#ifndef MZ_PLATFORM
+#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
+#define MZ_PLATFORM 0
+#else
+// UNIX
+#define MZ_PLATFORM 3
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -862,7 +874,8 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
 // with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION.
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                const char *pSrc_filename, const void *pComment,
-                               mz_uint16 comment_size, mz_uint level_and_flags);
+                               mz_uint16 comment_size, mz_uint level_and_flags,
+                               mz_uint32 ext_attributes);
 #endif
 
 // Adds a file to an archive by fully cloning the data from another archive.
@@ -4037,6 +4050,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 #include <stdio.h>
 #include <sys/stat.h>
 
+
 #if defined(_MSC_VER) || defined(__MINGW64__)
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   FILE *pFile = NULL;
@@ -5332,7 +5346,8 @@ mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index,
   mz_zip_archive_file_stat file_stat;
   MZ_FILE *pFile;
   if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
-    return MZ_FALSE;
+      return MZ_FALSE;
+
   pFile = MZ_FOPEN(pDst_filename, "wb");
   if (!pFile)
     return MZ_FALSE;
@@ -5344,6 +5359,7 @@ mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index,
   if (status)
     mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
 #endif
+
   return status;
 }
 #endif // #ifndef MINIZ_NO_STDIO
@@ -5634,8 +5650,12 @@ static mz_bool mz_zip_writer_create_central_dir_header(
     mz_uint16 bit_flags, mz_uint16 dos_time, mz_uint16 dos_date,
     mz_uint64 local_header_ofs, mz_uint32 ext_attributes) {
   (void)pZip;
+  mz_uint16 version_made_by = 10 * MZ_VER_MAJOR + MZ_VER_MINOR;
+  version_made_by |= (MZ_PLATFORM << 8);
+
   memset(pDst, 0, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE);
   MZ_WRITE_LE32(pDst + MZ_ZIP_CDH_SIG_OFS, MZ_ZIP_CENTRAL_DIR_HEADER_SIG);
+  MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_MADE_BY_OFS, version_made_by);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_NEEDED_OFS, method ? 20 : 0);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_BIT_FLAG_OFS, bit_flags);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_METHOD_OFS, method);
@@ -5740,8 +5760,9 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
                                  mz_uint16 comment_size,
                                  mz_uint level_and_flags, mz_uint64 uncomp_size,
                                  mz_uint32 uncomp_crc32) {
+  mz_uint32 ext_attributes = 0;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
-  mz_uint level, ext_attributes = 0, num_alignment_padding_bytes;
+  mz_uint level, num_alignment_padding_bytes;
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
@@ -5916,9 +5937,10 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                const char *pSrc_filename, const void *pComment,
                                mz_uint16 comment_size,
-                               mz_uint level_and_flags) {
+                               mz_uint level_and_flags,
+                               mz_uint32 ext_attributes) {
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
-  mz_uint16 method = 0, dos_time = 0, dos_date = 0, ext_attributes = 0;
+  mz_uint16 method = 0, dos_time = 0, dos_date = 0;
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs, uncomp_size = 0,
                                                         comp_size = 0;
   size_t archive_name_size;

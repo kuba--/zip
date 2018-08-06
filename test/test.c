@@ -4,12 +4,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define ZIPNAME "test.zip"
 #define TESTDATA1 "Some test data 1...\0"
 #define CRC32DATA1 2220805626
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
+
+#define RFILE "4.txt"
+#define RMODE 0100444
+
+#define WFILE "6.txt"
+#define WMODE 0100666
+
+#define XFILE "7.txt"
+#define XMODE 0100777
 
 static int total_entries = 0;
 
@@ -255,7 +265,50 @@ static void test_list_entries(void) {
   zip_close(zip);
 }
 
+static void test_file_permissions(void) {
+  #if defined(_MSC_VER)
+  #else
+
+  struct stat file_stats;
+  const char *filenames[] = {RFILE, WFILE, XFILE};
+  FILE *f4 = fopen(RFILE, "w"), *f6 = fopen(WFILE, "w"),
+       *f7 = fopen(XFILE, "w");
+  fclose(f4);
+  fclose(f6);
+  fclose(f7);
+  chmod(RFILE, RMODE);
+  chmod(WFILE, WMODE);
+  chmod(XFILE, XMODE);
+
+  remove(ZIPNAME);
+
+  assert(0 == zip_create(ZIPNAME, filenames, 3));
+
+  remove(RFILE);
+  remove(WFILE);
+  remove(XFILE);
+
+  assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
+
+  assert(0 == stat(RFILE, &file_stats));
+  assert(RMODE == file_stats.st_mode);
+
+  assert(0 == stat(WFILE, &file_stats));
+  assert(WMODE == file_stats.st_mode);
+
+  assert(0 == stat(XFILE, &file_stats));
+  assert(XMODE == file_stats.st_mode);
+
+  remove(RFILE);
+  remove(WFILE);
+  remove(XFILE);
+  remove(ZIPNAME);
+  #endif
+}
+
 int main(int argc, char *argv[]) {
+  remove(ZIPNAME);
+
   test_write();
   test_append();
   test_read();
@@ -265,6 +318,8 @@ int main(int argc, char *argv[]) {
   test_entry_index();
   test_entry_openbyindex();
   test_list_entries();
+  test_file_permissions();
 
-  return remove(ZIPNAME);
+  remove(ZIPNAME);
+  return 0;
 }
