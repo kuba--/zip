@@ -266,8 +266,8 @@ static void test_list_entries(void) {
 }
 
 static void test_file_permissions(void) {
-  #if defined(_MSC_VER)
-  #else
+#if defined(_MSC_VER)
+#else
 
   struct stat file_stats;
   const char *filenames[] = {RFILE, WFILE, XFILE};
@@ -303,7 +303,7 @@ static void test_file_permissions(void) {
   remove(WFILE);
   remove(XFILE);
   remove(ZIPNAME);
-  #endif
+#endif
 }
 
 int main(int argc, char *argv[]) {

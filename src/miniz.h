@@ -4050,7 +4050,6 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 #include <stdio.h>
 #include <sys/stat.h>
 
-
 #if defined(_MSC_VER) || defined(__MINGW64__)
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   FILE *pFile = NULL;
@@ -5346,7 +5345,7 @@ mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index,
   mz_zip_archive_file_stat file_stat;
   MZ_FILE *pFile;
   if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
-      return MZ_FALSE;
+    return MZ_FALSE;
 
   pFile = MZ_FOPEN(pDst_filename, "wb");
   if (!pFile)
@@ -5936,8 +5935,7 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
 #ifndef MINIZ_NO_STDIO
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                const char *pSrc_filename, const void *pComment,
-                               mz_uint16 comment_size,
-                               mz_uint level_and_flags,
+                               mz_uint16 comment_size, mz_uint level_and_flags,
                                mz_uint32 ext_attributes) {
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
