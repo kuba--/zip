@@ -12,7 +12,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW64__)
 /* Win32, DOS, MSVC, MSVS */
 #include <direct.h>
 
@@ -117,6 +118,7 @@ struct zip_entry_t {
   mz_uint16 method;
   mz_zip_writer_add_state state;
   tdefl_compressor comp;
+  mz_uint32 external_attr;
 };
 
 struct zip_t {
@@ -244,6 +246,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     zip->entry.offset = stats.m_central_dir_ofs;
     zip->entry.header_offset = stats.m_local_header_ofs;
     zip->entry.method = stats.m_method;
+    zip->entry.external_attr = stats.m_external_attr;
 
     return 0;
   }
@@ -256,6 +259,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   zip->entry.header_offset = zip->archive.m_archive_size;
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
   zip->entry.method = 0;
+  zip->entry.external_attr = 0;
 
   num_alignment_padding_bytes =
       mz_zip_writer_compute_padding_needed_for_file_alignment(pzip);
@@ -381,6 +385,7 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
   zip->entry.offset = stats.m_central_dir_ofs;
   zip->entry.header_offset = stats.m_local_header_ofs;
   zip->entry.method = stats.m_method;
+  zip->entry.external_attr = stats.m_external_attr;
 
   return 0;
 }
@@ -394,7 +399,8 @@ int zip_entry_close(struct zip_t *zip) {
   mz_uint16 dos_time, dos_date;
   int status = -1;
 
-#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__) || defined(__MINGW64__)
+#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__) ||              \
+    defined(__MINGW64__)
   struct tm tmb, *tm = (struct tm *)&tmb;
 #else
   struct tm *tm;
@@ -468,7 +474,7 @@ int zip_entry_close(struct zip_t *zip) {
           pzip, zip->entry.name, entrylen, NULL, 0, "", 0,
           zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
           zip->entry.method, 0, dos_time, dos_date, zip->entry.header_offset,
-          0)) {
+          zip->entry.external_attr)) {
     // Cannot write to zip central dir
     goto cleanup;
   }
@@ -566,11 +572,23 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   size_t n = 0;
   FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
+  struct MZ_FILE_STAT_STRUCT file_stat = {0};
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
+
+  if (MZ_FILE_STAT(filename, &file_stat) != 0) {
+    // problem getting information - check errno
+    return -1;
+  }
+
+  if ((file_stat.st_mode & 0200) == 0) {
+    // MS-DOS read-only attribute
+    zip->entry.external_attr |= 0x01;
+  }
+  zip->entry.external_attr |= ((file_stat.st_mode & 0xFFFF) << 16);
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
   if (!fopen_s(&stream, filename, "rb"))
@@ -646,6 +664,8 @@ int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
+  mz_uint32 xattr = 0;
+  mz_zip_archive_file_stat info = {0};
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -664,7 +684,26 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
     return -1;
   }
 
-  return (mz_zip_reader_extract_to_file(pzip, idx, filename, 0)) ? 0 : -1;
+  if (!mz_zip_reader_extract_to_file(pzip, idx, filename, 0)) {
+    return -1;
+  }
+
+#if defined(_MSC_VER)
+#else
+  if (!mz_zip_reader_file_stat(pzip, idx, &info)) {
+    // Cannot get information about zip archive;
+    return -1;
+  }
+
+  xattr = (info.m_external_attr >> 16) & 0xFFFF;
+  if (xattr > 0) {
+    if (chmod(filename, xattr) < 0) {
+      return -1;
+    }
+  }
+#endif
+
+  return 0;
 }
 
 int zip_entry_extract(struct zip_t *zip,
@@ -704,6 +743,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int status = 0;
   size_t i;
   mz_zip_archive zip_archive;
+  struct MZ_FILE_STAT_STRUCT file_stat = {0};
+  mz_uint32 ext_attributes = 0;
 
   if (!zipname || strlen(zipname) < 1) {
     // zip_t archive name is empty or NULL
@@ -728,8 +769,20 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       break;
     }
 
+    if (MZ_FILE_STAT(name, &file_stat) != 0) {
+      // problem getting information - check errno
+      return -1;
+    }
+
+    if ((file_stat.st_mode & 0200) == 0) {
+      // MS-DOS read-only attribute
+      ext_attributes |= 0x01;
+    }
+    ext_attributes |= ((file_stat.st_mode & 0xFFFF) << 16);
+
     if (!mz_zip_writer_add_file(&zip_archive, basename(name), name, "", 0,
-                                ZIP_DEFAULT_COMPRESSION_LEVEL)) {
+                                ZIP_DEFAULT_COMPRESSION_LEVEL,
+                                ext_attributes)) {
       // Cannot add file to zip_archive
       status = -1;
       break;
@@ -747,8 +800,9 @@ int zip_extract(const char *zipname, const char *dir,
   mz_uint i, n;
   char path[MAX_PATH + 1] = {0};
   mz_zip_archive zip_archive;
-  mz_zip_archive_file_stat info;
+  mz_zip_archive_file_stat info = {0};
   size_t dirlen = 0;
+  mz_uint32 xattr = 0;
 
   if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
     // Cannot memset zip archive
@@ -810,6 +864,16 @@ int zip_extract(const char *zipname, const char *dir,
         goto out;
       }
     }
+
+#if defined(_MSC_VER)
+#else
+    xattr = (info.m_external_attr >> 16) & 0xFFFF;
+    if (xattr > 0) {
+      if (chmod(path, xattr) < 0) {
+        goto out;
+      }
+    }
+#endif
 
     if (on_extract) {
       if (on_extract(path, arg) < 0) {
