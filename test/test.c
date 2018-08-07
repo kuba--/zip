@@ -6,19 +6,19 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#define ZIPNAME "test.zip"
+#define ZIPNAME "test.zip\0"
 #define TESTDATA1 "Some test data 1...\0"
 #define CRC32DATA1 2220805626
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
 
-#define RFILE "4.txt"
+#define RFILE "4.txt\0"
 #define RMODE 0100444
 
-#define WFILE "6.txt"
+#define WFILE "6.txt\0"
 #define WMODE 0100666
 
-#define XFILE "7.txt"
+#define XFILE "7.txt\0"
 #define XMODE 0100777
 
 static int total_entries = 0;
@@ -265,6 +265,34 @@ static void test_list_entries(void) {
   zip_close(zip);
 }
 
+static void test_fwrite(void) {
+  const char *filename = WFILE;
+  FILE *stream = NULL;
+  struct zip_t *zip = NULL;
+#if defined(_MSC_VER)
+  if (0 != fopen_s(&stream, filename, "w+"))
+#else
+  if (!(stream = fopen(filename, "w+")))
+#endif
+  {
+    // Cannot open filename
+    fprintf(stdout, "Cannot open filename\n");
+    assert(0 == -1);
+  }
+  fwrite(TESTDATA1, sizeof(char), strlen(TESTDATA1), stream);
+  assert(0 == fclose(stream));
+
+  zip = zip_open(ZIPNAME, 9, 'w');
+  assert(zip != NULL);
+  assert(0 == zip_entry_open(zip, WFILE));
+  assert(0 == zip_entry_fwrite(zip, WFILE));
+  assert(0 == zip_entry_close(zip));
+
+  zip_close(zip);
+  remove(WFILE);
+  remove(ZIPNAME);
+}
+
 static void test_file_permissions(void) {
 #if defined(_MSC_VER)
 #else
@@ -318,6 +346,7 @@ int main(int argc, char *argv[]) {
   test_entry_index();
   test_entry_openbyindex();
   test_list_entries();
+  test_fwrite();
   test_file_permissions();
 
   remove(ZIPNAME);

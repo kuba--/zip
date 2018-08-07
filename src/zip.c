@@ -591,7 +591,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   zip->entry.external_attr |= ((file_stat.st_mode & 0xFFFF) << 16);
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
-  if (!fopen_s(&stream, filename, "rb"))
+  if (fopen_s(&stream, filename, "rb"))
 #else
   if (!(stream = fopen(filename, "rb")))
 #endif
