@@ -26,7 +26,7 @@ struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 {
     zip_entry_open(zip, "foo-1.txt");
     {
-        char *buf = "Some data here...";
+        const char *buf = "Some data here...\0";
         zip_entry_write(zip, buf, strlen(buf));
     }
     zip_entry_close(zip);
@@ -49,7 +49,7 @@ struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
 {
     zip_entry_open(zip, "foo-3.txt");
     {
-        char *buf = "Append some data here...";
+        const char *buf = "Append some data here...\0";
         zip_entry_write(zip, buf, strlen(buf));
     }
     zip_entry_close(zip);
