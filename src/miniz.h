@@ -4134,8 +4134,13 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
+#if _FILE_OFFSET_BITS == 64 || _POSIX_C_SOURCE >= 200112L
 #define MZ_FTELL64 ftello
 #define MZ_FSEEK64 fseeko
+#else
+#define MZ_FTELL64 ftell
+#define MZ_FSEEK64 fseek
+#endif
 #define MZ_FILE_STAT_STRUCT stat
 #define MZ_FILE_STAT stat
 #define MZ_FFLUSH fflush
