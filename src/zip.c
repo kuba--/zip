@@ -524,11 +524,11 @@ int zip_entry_isdir(struct zip_t *zip) {
 }
 
 unsigned long long zip_entry_size(struct zip_t *zip) {
-  return zip->entry.uncomp_size;
+  return zip ? zip->entry.uncomp_size : 0;
 }
 
 unsigned int zip_entry_crc32(struct zip_t *zip) {
-  return zip->entry.uncomp_crc32;
+  return zip ? zip->entry.uncomp_crc32 : 0;
 }
 
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
