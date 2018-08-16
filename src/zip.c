@@ -484,7 +484,9 @@ int zip_entry_close(struct zip_t *zip) {
   status = 0;
 
 cleanup:
-  CLEANUP(zip->entry.name);
+  if (zip) {
+    CLEANUP(zip->entry.name);
+  }
   return status;
 }
 
