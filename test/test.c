@@ -21,6 +21,8 @@
 #define XFILE "7.txt\0"
 #define XMODE 0100777
 
+#define UNUSED(x) (void)x
+
 static int total_entries = 0;
 
 static void test_write(void) {
@@ -138,6 +140,8 @@ struct buffer_t {
 
 static size_t on_extract(void *arg, unsigned long long offset, const void *data,
                          size_t size) {
+  UNUSED(offset);
+
   struct buffer_t *buf = (struct buffer_t *)arg;
   buf->data = realloc(buf->data, buf->size + size + 1);
   assert(NULL != buf->data);
@@ -335,6 +339,9 @@ static void test_file_permissions(void) {
 }
 
 int main(int argc, char *argv[]) {
+  UNUSED(argc);
+  UNUSED(argv);
+
   remove(ZIPNAME);
 
   test_write();
