@@ -108,7 +108,7 @@ static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
 
 struct zip_entry_t {
   int index;
-  const char *name;
+  char *name;
   mz_uint64 uncomp_size;
   mz_uint64 comp_size;
   mz_uint32 uncomp_crc32;
