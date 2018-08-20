@@ -13,6 +13,7 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
         -enable-checker security.insecureAPI.UncheckedReturn \
         --status-bugs -v \
         make -j 8
+        make -j 8 test
 else
     cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On ..
     make
@@ -20,7 +21,6 @@ else
 fi
 
 # upload code coverage
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make -j 8 test
+ls -la
 find . -name "*.gcno" -exec "gcov" '{}' \;
 bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
