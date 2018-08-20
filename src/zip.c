@@ -312,7 +312,8 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     if (tdefl_init(&(zip->entry.comp), mz_zip_writer_add_put_buf_callback,
                    &(zip->entry.state),
                    (int)tdefl_create_comp_flags_from_zip_params(
-                       (int)level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY) {
+                       (int)level, -15, MZ_DEFAULT_STRATEGY)) !=
+        TDEFL_STATUS_OKAY) {
       // Cannot initialize the zip compressor
       goto cleanup;
     }
@@ -440,7 +441,7 @@ int zip_entry_close(struct zip_t *zip) {
   tm = localtime(&t);
 #endif
   if (!tm) {
-     goto cleanup;
+    goto cleanup;
   }
 
   dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +

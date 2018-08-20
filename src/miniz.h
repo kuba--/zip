@@ -3217,12 +3217,8 @@ tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist,
     p = s;
     probe_len = 32;
     do {
-    } while (
-        (*(++p) == *(++q)) &&
-        (*(++p) == *(++q)) &&
-        (*(++p) == *(++q)) &&
-        (*(++p) == *(++q)) &&
-        (--probe_len > 0));
+    } while ((*(++p) == *(++q)) && (*(++p) == *(++q)) && (*(++p) == *(++q)) &&
+             (*(++p) == *(++q)) && (--probe_len > 0));
     if (!probe_len) {
       *pMatch_dist = dist;
       *pMatch_len = MZ_MIN(max_match_len, TDEFL_MAX_MATCH_LEN);
@@ -3335,18 +3331,20 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d) {
 
       if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <=
            dict_size) &&
-          ((mz_uint32)(*(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK)) |
-           (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 1)) << 8) |
-           (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 2)) << 16)) == first_trigram)) {
+          ((mz_uint32)(
+               *(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK)) |
+               (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 1))
+                << 8) |
+               (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 2))
+                << 16)) == first_trigram)) {
         const mz_uint16 *p = (const mz_uint16 *)pCur_dict;
-        const mz_uint16 *q = (const mz_uint16 *)(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK));
+        const mz_uint16 *q =
+            (const mz_uint16 *)(d->m_dict +
+                                (probe_pos & TDEFL_LZ_DICT_SIZE_MASK));
         mz_uint32 probe_len = 32;
         do {
-        } while ((*(++p) == *(++q)) &&
-                 (*(++p) == *(++q)) &&
-                 (*(++p) == *(++q)) &&
-                 (*(++p) == *(++q)) &&
-                 (--probe_len > 0));
+        } while ((*(++p) == *(++q)) && (*(++p) == *(++q)) &&
+                 (*(++p) == *(++q)) && (*(++p) == *(++q)) && (--probe_len > 0));
         cur_match_len = ((mz_uint)(p - (const mz_uint16 *)pCur_dict) * 2) +
                         (mz_uint)(*(const mz_uint8 *)p == *(const mz_uint8 *)q);
         if (!probe_len)
