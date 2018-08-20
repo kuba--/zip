@@ -435,18 +435,13 @@ int zip_entry_close(struct zip_t *zip) {
   t = time(NULL);
 
 #ifdef __STDC_LIB_EXT1__
-  #if defined(_MSC_VER) || defined(__MINGW32__)
-    if (localtime_s(tm, &t)) {
-      goto cleanup;
-    }
-  #else
-    if (!localtime_s(tm, &t)) {
-      goto cleanup;
-    }
-  #endif
+  tm = localtime_s(tm, &t)
 #else
   tm = localtime(&t);
 #endif
+  if (!tm) {
+     goto cleanup;
+  }
 
   dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                          ((tm->tm_sec) >> 1));
