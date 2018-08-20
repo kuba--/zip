@@ -12,7 +12,7 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
         make -j 8
 
     make test
-    find . -name '*.gcno' -exec "$gcov_tool" {} \;
+    find . -name '*.gcno' -exec "gcov" {} \; -print
     bash <(curl -s https://codecov.io/bash) || \
         echo "Codecov did not collect coverage reports"
 else
