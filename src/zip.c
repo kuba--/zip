@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
@@ -51,7 +52,7 @@
     }                                                                          \
   } while (0)
 
-static char *basename(const char *name) {
+static const char *basename(const char *name) {
   char const *p;
   char const *base = name += FILESYSTEM_PREFIX_LEN(name);
   int all_slashes = 1;
@@ -67,7 +68,7 @@ static char *basename(const char *name) {
   if (*base == '\0' && ISSLASH(*name) && all_slashes)
     --base;
 
-  return (char *)base;
+  return base;
 }
 
 static int mkpath(const char *path) {
@@ -108,7 +109,7 @@ static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
 
 struct zip_entry_t {
   int index;
-  const char *name;
+  char *name;
   mz_uint64 uncomp_size;
   mz_uint64 comp_size;
   mz_uint32 uncomp_crc32;
@@ -146,7 +147,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
   if (!zip)
     goto cleanup;
 
-  zip->level = level;
+  zip->level = (mz_uint)level;
   switch (mode) {
   case 'w':
     // Create a new archive.
@@ -160,7 +161,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
   case 'a':
     if (!mz_zip_reader_init_file(
             &(zip->archive), zipname,
-            level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
       goto cleanup;
@@ -236,7 +237,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
       goto cleanup;
     }
 
-    if (!mz_zip_reader_file_stat(pzip, zip->entry.index, &stats)) {
+    if (!mz_zip_reader_file_stat(pzip, (mz_uint)zip->entry.index, &stats)) {
       goto cleanup;
     }
 
@@ -251,7 +252,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     return 0;
   }
 
-  zip->entry.index = zip->archive.m_total_files;
+  zip->entry.index = (int)zip->archive.m_total_files;
   zip->entry.comp_size = 0;
   zip->entry.uncomp_size = 0;
   zip->entry.uncomp_crc32 = MZ_CRC32_INIT;
@@ -309,8 +310,8 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
     if (tdefl_init(&(zip->entry.comp), mz_zip_writer_add_put_buf_callback,
                    &(zip->entry.state),
-                   tdefl_create_comp_flags_from_zip_params(
-                       level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY) {
+                   (int)tdefl_create_comp_flags_from_zip_params(
+                       (int)level, -15, MZ_DEFAULT_STRATEGY)) != TDEFL_STATUS_OKAY) {
       // Cannot initialize the zip compressor
       goto cleanup;
     }
@@ -374,7 +375,7 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
     return -1;
   }
 
-  if (!mz_zip_reader_file_stat(pZip, index, &stats)) {
+  if (!mz_zip_reader_file_stat(pZip, (mz_uint)index, &stats)) {
     return -1;
   }
 
@@ -574,13 +575,14 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   size_t n = 0;
   FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
-  struct MZ_FILE_STAT_STRUCT file_stat = {0};
+  struct MZ_FILE_STAT_STRUCT file_stat;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
+  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
   if (MZ_FILE_STAT(filename, &file_stat) != 0) {
     // problem getting information - check errno
     return -1;
@@ -590,7 +592,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     // MS-DOS read-only attribute
     zip->entry.external_attr |= 0x01;
   }
-  zip->entry.external_attr |= ((file_stat.st_mode & 0xFFFF) << 16);
+  zip->entry.external_attr |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
   if (fopen_s(&stream, filename, "rb"))
@@ -667,13 +669,14 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
   mz_uint32 xattr = 0;
-  mz_zip_archive_file_stat info = {0};
+  mz_zip_archive_file_stat info;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
+  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
   pzip = &(zip->archive);
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
@@ -699,7 +702,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
 
   xattr = (info.m_external_attr >> 16) & 0xFFFF;
   if (xattr > 0) {
-    if (chmod(filename, xattr) < 0) {
+    if (chmod(filename, (mode_t)xattr) < 0) {
       return -1;
     }
   }
@@ -738,14 +741,14 @@ int zip_total_entries(struct zip_t *zip) {
     return -1;
   }
 
-  return zip->archive.m_total_files;
+  return (int)zip->archive.m_total_files;
 }
 
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int status = 0;
   size_t i;
   mz_zip_archive zip_archive;
-  struct MZ_FILE_STAT_STRUCT file_stat = {0};
+  struct MZ_FILE_STAT_STRUCT file_stat;
   mz_uint32 ext_attributes = 0;
 
   if (!zipname || strlen(zipname) < 1) {
@@ -764,6 +767,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
     return -1;
   }
 
+  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
+
   for (i = 0; i < len; ++i) {
     const char *name = filenames[i];
     if (!name) {
@@ -780,7 +785,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       // MS-DOS read-only attribute
       ext_attributes |= 0x01;
     }
-    ext_attributes |= ((file_stat.st_mode & 0xFFFF) << 16);
+    ext_attributes |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
 
     if (!mz_zip_writer_add_file(&zip_archive, basename(name), name, "", 0,
                                 ZIP_DEFAULT_COMPRESSION_LEVEL,
@@ -802,7 +807,7 @@ int zip_extract(const char *zipname, const char *dir,
   mz_uint i, n;
   char path[MAX_PATH + 1] = {0};
   mz_zip_archive zip_archive;
-  mz_zip_archive_file_stat info = {0};
+  mz_zip_archive_file_stat info;
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 
@@ -826,6 +831,8 @@ int zip_extract(const char *zipname, const char *dir,
     // Cannot initialize zip_archive reader
     return -1;
   }
+
+  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
   strcpy_s(path, MAX_PATH, dir);
@@ -871,7 +878,7 @@ int zip_extract(const char *zipname, const char *dir,
 #else
     xattr = (info.m_external_attr >> 16) & 0xFFFF;
     if (xattr > 0) {
-      if (chmod(path, xattr) < 0) {
+      if (chmod(path, (mode_t)xattr) < 0) {
         goto out;
       }
     }
