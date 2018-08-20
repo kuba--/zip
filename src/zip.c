@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
