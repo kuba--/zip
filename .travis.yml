@@ -1,4 +1,9 @@
 language: c
+addons:
+  apt:
+    packages: &1
+    - lcov
+    - valgrind
 # Compiler selection
 compiler:
   - clang
@@ -9,3 +14,5 @@ env:
 # Build steps
 script:
   - ./.travis.sh
+after_success:
+  - ./.codecov.sh
