@@ -3,7 +3,6 @@ addons:
   apt:
     packages: &1
     - lcov
-    - valgrind
 # Compiler selection
 compiler:
   - clang
