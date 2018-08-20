@@ -1,7 +1,6 @@
 #!/bin/bash
 
 function codecov() {
-local dir
     local dir=$(git rev-parse --show-toplevel)
     cd "$dir" || exit 1
 
