@@ -298,47 +298,82 @@ static void test_fwrite(void) {
   remove(ZIPNAME);
 }
 
-static void test_file_permissions(void) {
+static void test_exe_permissions(void) {
 #if defined(_WIN32) || defined(__WIN32__)
 #else
-
   struct stat file_stats;
-  const char *filenames[] = {RFILE, WFILE, XFILE};
-  FILE *f4 = fopen(RFILE, "w"),
-       *f6 = fopen(WFILE, "w"),
-       *f7 = fopen(XFILE, "w");
-  fclose(f4);
-  fclose(f6);
-  fclose(f7);
-  chmod(RFILE, RMODE);
-  chmod(WFILE, WMODE);
+  const char *filenames[] = {XFILE};
+  FILE  *f = fopen(XFILE, "w");
+  fclose(f);
   chmod(XFILE, XMODE);
 
   remove(ZIPNAME);
 
-  assert(0 == zip_create(ZIPNAME, filenames, 3));
+  assert(0 == zip_create(ZIPNAME, filenames, 1));
+
+  remove(XFILE);
+
+  assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
+
+  assert(0 == stat(XFILE, &file_stats));
+  assert(XMODE == file_stats.st_mode);
+
+  remove(XFILE);
+  remove(ZIPNAME);
+#endif
+}
+
+static void test_read_permissions(void) {
+#if defined(_MSC_VER)
+#else
+
+  struct stat file_stats;
+  const char *filenames[] = {RFILE};
+  FILE *f = fopen(RFILE, "w");
+  fclose(f);
+  chmod(RFILE, RMODE);
+
+  remove(ZIPNAME);
+
+  assert(0 == zip_create(ZIPNAME, filenames, 1));
 
   // chmod from 444 to 666 to be able delete the file on windows
   chmod(RFILE, WMODE);
   remove(RFILE);
-  remove(WFILE);
-  remove(XFILE);
 
   assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
 
   assert(0 == stat(RFILE, &file_stats));
   assert(RMODE == file_stats.st_mode);
 
+  chmod(RFILE, WMODE);
+  remove(RFILE);
+  remove(ZIPNAME);
+#endif
+}
+
+static void test_write_permissions(void) {
+#if defined(_MSC_VER)
+#else
+
+  struct stat file_stats;
+  const char *filenames[] = {WFILE};
+  FILE  *f = fopen(WFILE, "w");
+  fclose(f);
+  chmod(WFILE, WMODE);
+
+  remove(ZIPNAME);
+
+  assert(0 == zip_create(ZIPNAME, filenames, 1));
+
+  remove(WFILE);
+
+  assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
+
   assert(0 == stat(WFILE, &file_stats));
   assert(WMODE == file_stats.st_mode);
 
-  assert(0 == stat(XFILE, &file_stats));
-  assert(XMODE == file_stats.st_mode);
-
-  chmod(RFILE, WMODE);
-  remove(RFILE);
   remove(WFILE);
-  remove(XFILE);
   remove(ZIPNAME);
 #endif
 }
@@ -359,7 +394,9 @@ int main(int argc, char *argv[]) {
   test_entry_openbyindex();
   test_list_entries();
   test_fwrite();
-  test_file_permissions();
+  test_read_permissions();
+  test_write_permissions();
+  test_exe_permissions();
 
   remove(ZIPNAME);
   return 0;
