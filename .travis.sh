@@ -7,14 +7,15 @@ mkdir build
 cd build
 
 if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
-    find . -name '*.gcno' -exec "gcov" {} \;
-
     # scan-build -h
     scan-build cmake -G "Unix Makefiles" ..
     scan-build -enable-checker security.FloatLoopCounter \
         -enable-checker security.insecureAPI.UncheckedReturn \
         --status-bugs -v \
         make -j 8
+
+    ctest -VV
+    find . -name '*.gcno' -exec "gcov" {} \;
 else
     cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On ..
     make
