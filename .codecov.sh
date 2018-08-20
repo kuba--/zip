@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 function codecov() {
     local dir=$(git rev-parse --show-toplevel)
     cd "$dir" || exit 1
@@ -15,5 +15,4 @@ function codecov() {
     bash <(curl -s https://codecov.io/bash) || \
         echo "Codecov did not collect coverage reports"
 }
-
-codecov()
+codecov
