@@ -16,7 +16,7 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
 
     ctest -VV
     find . -name '*.gcno' -exec "gcov" {} \;
-    curl -s https://codecov.io/bash
+    bash <(curl -s https://codecov.io/bash)
 else
     cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On ..
     make
