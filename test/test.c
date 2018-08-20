@@ -299,12 +299,13 @@ static void test_fwrite(void) {
 }
 
 static void test_file_permissions(void) {
-#if defined(_MSC_VER)
+#if defined(_WIN32) || defined(__WIN32__)
 #else
 
   struct stat file_stats;
   const char *filenames[] = {RFILE, WFILE, XFILE};
-  FILE *f4 = fopen(RFILE, "w"), *f6 = fopen(WFILE, "w"),
+  FILE *f4 = fopen(RFILE, "w"),
+       *f6 = fopen(WFILE, "w"),
        *f7 = fopen(XFILE, "w");
   fclose(f4);
   fclose(f6);
@@ -317,6 +318,8 @@ static void test_file_permissions(void) {
 
   assert(0 == zip_create(ZIPNAME, filenames, 3));
 
+  // chmod from 444 to 666 to be able delete the file on windows
+  chmod(RFILE, WMODE);
   remove(RFILE);
   remove(WFILE);
   remove(XFILE);
@@ -332,6 +335,7 @@ static void test_file_permissions(void) {
   assert(0 == stat(XFILE, &file_stats));
   assert(XMODE == file_stats.st_mode);
 
+  chmod(RFILE, WMODE);
   remove(RFILE);
   remove(WFILE);
   remove(XFILE);
