@@ -574,7 +574,10 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   size_t n = 0;
   FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
   struct MZ_FILE_STAT_STRUCT file_stat = {0};
+#pragma clang diagnostic pop
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -667,7 +670,10 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
   mz_uint32 xattr = 0;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
   mz_zip_archive_file_stat info = {0};
+#pragma clang diagnostic pop
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -745,7 +751,10 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int status = 0;
   size_t i;
   mz_zip_archive zip_archive;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
   struct MZ_FILE_STAT_STRUCT file_stat = {0};
+#pragma clang diagnostic push
   mz_uint32 ext_attributes = 0;
 
   if (!zipname || strlen(zipname) < 1) {
@@ -802,7 +811,10 @@ int zip_extract(const char *zipname, const char *dir,
   mz_uint i, n;
   char path[MAX_PATH + 1] = {0};
   mz_zip_archive zip_archive;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
   mz_zip_archive_file_stat info = {0};
+#pragma clang diagnostic pop
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 

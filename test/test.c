@@ -154,7 +154,10 @@ static size_t on_extract(void *arg, unsigned long long offset, const void *data,
 }
 
 static void test_extract(void) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
   struct buffer_t buf = {0};
+#pragma clang diagnostic pop
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   assert(zip != NULL);
