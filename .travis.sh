@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Build script for travis-ci.org builds.
 #
@@ -12,7 +12,9 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
         make -j 8
 
     ctest -VV
-    find . -name '*.gcno' -exec "gcov" {} \;
+    find . -name '*.gcno' -exec "$gcov_tool" {} \;
+    bash <(curl -s https://codecov.io/bash) || \
+        echo "Codecov did not collect coverage reports"
 else
     cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On
     make
