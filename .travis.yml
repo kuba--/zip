@@ -8,4 +8,6 @@ env:
   - ANALYZE=true
 # Build steps
 script:
-  - ./.travis.sh
+  - sh .travis.sh
+after_success:
+  - cd build && bash <(curl -s https://codecov.io/bash)
