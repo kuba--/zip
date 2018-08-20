@@ -435,7 +435,7 @@ int zip_entry_close(struct zip_t *zip) {
   t = time(NULL);
 
 #ifdef __STDC_LIB_EXT1__
-  tm = localtime_s(tm, &t)
+  tm = localtime_s(&t, tm);
 #else
   tm = localtime(&t);
 #endif
