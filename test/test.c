@@ -154,10 +154,11 @@ static size_t on_extract(void *arg, unsigned long long offset, const void *data,
 }
 
 static void test_extract(void) {
-  struct buffer_t buf = {0};
+  struct buffer_t buf;
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   assert(zip != NULL);
+  memset((void *)&buf, 0, sizeof(struct buffer_t));
 
   assert(0 == zip_entry_open(zip, "test/test-1.txt"));
   assert(0 == zip_entry_extract(zip, on_extract, &buf));

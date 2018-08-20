@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
@@ -574,13 +575,14 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   size_t n = 0;
   FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
-  struct MZ_FILE_STAT_STRUCT file_stat = {0};
+  struct MZ_FILE_STAT_STRUCT file_stat;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
+  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
   if (MZ_FILE_STAT(filename, &file_stat) != 0) {
     // problem getting information - check errno
     return -1;
@@ -667,13 +669,14 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
   mz_uint32 xattr = 0;
-  mz_zip_archive_file_stat info = {0};
+  mz_zip_archive_file_stat info;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
+  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
   pzip = &(zip->archive);
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
@@ -745,7 +748,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int status = 0;
   size_t i;
   mz_zip_archive zip_archive;
-  struct MZ_FILE_STAT_STRUCT file_stat = {0};
+  struct MZ_FILE_STAT_STRUCT file_stat;
   mz_uint32 ext_attributes = 0;
 
   if (!zipname || strlen(zipname) < 1) {
@@ -763,6 +766,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
     // Cannot initialize zip_archive writer
     return -1;
   }
+
+  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
 
   for (i = 0; i < len; ++i) {
     const char *name = filenames[i];
@@ -802,7 +807,7 @@ int zip_extract(const char *zipname, const char *dir,
   mz_uint i, n;
   char path[MAX_PATH + 1] = {0};
   mz_zip_archive zip_archive;
-  mz_zip_archive_file_stat info = {0};
+  mz_zip_archive_file_stat info;
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 
@@ -826,6 +831,8 @@ int zip_extract(const char *zipname, const char *dir,
     // Cannot initialize zip_archive reader
     return -1;
   }
+
+  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
   strcpy_s(path, MAX_PATH, dir);
