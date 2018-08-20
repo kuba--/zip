@@ -9,5 +9,3 @@ env:
 # Build steps
 script:
   - sh .travis.sh
-after_success:
-  - bash <(curl -s https://codecov.io/bash) ./build
