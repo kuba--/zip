@@ -5,7 +5,12 @@
 
 mkdir build
 cd build
+
 if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
+    find . -name '*.gcno' -exec "gcov" {} \;
+    bash <(curl -s https://codecov.io/bash) || \
+        echo "Codecov did not collect coverage reports"
+
     # scan-build -h
     scan-build cmake -G "Unix Makefiles" ..
     scan-build -enable-checker security.FloatLoopCounter \
