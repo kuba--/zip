@@ -4,7 +4,7 @@ This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library
 [![Windows](https://ci.appveyor.com/api/projects/status/bph8dr3jacgmjv32/branch/master?svg=true&label=windows)](https://ci.appveyor.com/project/kuba--/zip)
 [![Linux](https://travis-ci.org/kuba--/zip.svg?branch=master&label=linux%2fosx)](https://travis-ci.org/kuba--/zip)
 [![Version](https://badge.fury.io/gh/kuba--%2Fzip.svg)](https://github.com/kuba--/zip/releases)
-
+[![Codecov](https://codecov.io/gh/kuba--/zip/branch/master/graph/badge.svg)](https://codecov.io/gh/kuba--/zip)
 
 
 # The Idea
