@@ -303,7 +303,7 @@ static void test_exe_permissions(void) {
 #else
   struct stat file_stats;
   const char *filenames[] = {XFILE};
-  FILE  *f = fopen(XFILE, "w");
+  FILE *f = fopen(XFILE, "w");
   fclose(f);
   chmod(XFILE, XMODE);
 
@@ -358,7 +358,7 @@ static void test_write_permissions(void) {
 
   struct stat file_stats;
   const char *filenames[] = {WFILE};
-  FILE  *f = fopen(WFILE, "w");
+  FILE *f = fopen(WFILE, "w");
   fclose(f);
   chmod(WFILE, WMODE);
 
