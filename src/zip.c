@@ -7,6 +7,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+#define __STDC_WANT_LIB_EXT1__ 1
 
 #include <errno.h>
 #include <sys/stat.h>
@@ -433,17 +434,14 @@ int zip_entry_close(struct zip_t *zip) {
   entrylen = (mz_uint16)strlen(zip->entry.name);
   t = time(NULL);
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
-  if (localtime_s(tm, &t)) {
-    goto cleanup;
-  }
-#elif defined(_WIN32) || defined(__WIN32__)
-  if (!localtime_s(tm, &t)) {
-    goto cleanup;
-  }
+#ifdef __STDC_LIB_EXT1__
+  tm = localtime_s(tm, &t)
 #else
   tm = localtime(&t);
 #endif
+  if (!tm) {
+     goto cleanup;
+  }
 
   dos_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                          ((tm->tm_sec) >> 1));
