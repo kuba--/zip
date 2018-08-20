@@ -3178,7 +3178,7 @@ static int tdefl_flush_block(tdefl_compressor *d, int flush) {
 }
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES
-#define TDEFL_READ_UNALIGNED_WORD(p) *(const mz_uint16 *)(p)
+#define TDEFL_READ_UNALIGNED_WORD(p) ((p)[0] | (p)[1] << 8)
 static MZ_FORCEINLINE void
 tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist,
                  mz_uint max_match_len, mz_uint *pMatch_dist,
@@ -3189,7 +3189,7 @@ tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist,
   mz_uint num_probes_left = d->m_max_probes[match_len >= 32];
   const mz_uint16 *s = (const mz_uint16 *)(d->m_dict + pos), *p, *q;
   mz_uint16 c01 = TDEFL_READ_UNALIGNED_WORD(&d->m_dict[pos + match_len - 1]),
-            s01 = TDEFL_READ_UNALIGNED_WORD(s);
+            s01 = *s;
   MZ_ASSERT(max_match_len <= TDEFL_MAX_MATCH_LEN);
   if (max_match_len <= match_len)
     return;
@@ -3212,16 +3212,16 @@ tdefl_find_match(tdefl_compressor *d, mz_uint lookahead_pos, mz_uint max_dist,
     if (!dist)
       break;
     q = (const mz_uint16 *)(d->m_dict + probe_pos);
-    if (TDEFL_READ_UNALIGNED_WORD(q) != s01)
+    if (*q != s01)
       continue;
     p = s;
     probe_len = 32;
     do {
     } while (
-        (TDEFL_READ_UNALIGNED_WORD(++p) == TDEFL_READ_UNALIGNED_WORD(++q)) &&
-        (TDEFL_READ_UNALIGNED_WORD(++p) == TDEFL_READ_UNALIGNED_WORD(++q)) &&
-        (TDEFL_READ_UNALIGNED_WORD(++p) == TDEFL_READ_UNALIGNED_WORD(++q)) &&
-        (TDEFL_READ_UNALIGNED_WORD(++p) == TDEFL_READ_UNALIGNED_WORD(++q)) &&
+        (*(++p) == *(++q)) &&
+        (*(++p) == *(++q)) &&
+        (*(++p) == *(++q)) &&
+        (*(++p) == *(++q)) &&
         (--probe_len > 0));
     if (!probe_len) {
       *pMatch_dist = dist;
@@ -3335,21 +3335,17 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d) {
 
       if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <=
            dict_size) &&
-          ((*(const mz_uint32 *)(d->m_dict +
-                                 (probe_pos &= TDEFL_LZ_DICT_SIZE_MASK)) &
-            0xFFFFFF) == first_trigram)) {
+          ((mz_uint32)(*(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK)) |
+           (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 1)) << 8) |
+           (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 2)) << 16)) == first_trigram)) {
         const mz_uint16 *p = (const mz_uint16 *)pCur_dict;
-        const mz_uint16 *q = (const mz_uint16 *)(d->m_dict + probe_pos);
+        const mz_uint16 *q = (const mz_uint16 *)(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK));
         mz_uint32 probe_len = 32;
         do {
-        } while ((TDEFL_READ_UNALIGNED_WORD(++p) ==
-                  TDEFL_READ_UNALIGNED_WORD(++q)) &&
-                 (TDEFL_READ_UNALIGNED_WORD(++p) ==
-                  TDEFL_READ_UNALIGNED_WORD(++q)) &&
-                 (TDEFL_READ_UNALIGNED_WORD(++p) ==
-                  TDEFL_READ_UNALIGNED_WORD(++q)) &&
-                 (TDEFL_READ_UNALIGNED_WORD(++p) ==
-                  TDEFL_READ_UNALIGNED_WORD(++q)) &&
+        } while ((*(++p) == *(++q)) &&
+                 (*(++p) == *(++q)) &&
+                 (*(++p) == *(++q)) &&
+                 (*(++p) == *(++q)) &&
                  (--probe_len > 0));
         cur_match_len = ((mz_uint)(p - (const mz_uint16 *)pCur_dict) * 2) +
                         (mz_uint)(*(const mz_uint8 *)p == *(const mz_uint8 *)q);
