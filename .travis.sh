@@ -11,7 +11,7 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
         --status-bugs -v \
         make -j 8
 
-    ctest -VV
+    make test
     find . -name '*.gcno' -exec "$gcov_tool" {} \;
     bash <(curl -s https://codecov.io/bash) || \
         echo "Codecov did not collect coverage reports"
