@@ -15,7 +15,8 @@ script:
   - ./.travis.sh
 after_success:
     # Creating report
-  - cd ${TRAVIS_BUILD_DIR}
-  - gcov ./test/CMakeFiles/test.exe.dir/__/src/zip.c.gcno
+  - cmake -DENABLE_COVERAGE=ON
+  - make
+  - make test
    # Uploading report to CodeCov
-  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - bash <(curl -s https://codecov.io/bash)
