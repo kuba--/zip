@@ -16,6 +16,6 @@ script:
 after_success:
     # Creating report
   - cd ${TRAVIS_BUILD_DIR}
-  - gcov -gcno=./test/CMakeFiles/test.exe.dir/__/src/zip.c.gcno
+  - gcov ./test/CMakeFiles/test.exe.dir/__/src/zip.c.gcno
    # Uploading report to CodeCov
   - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
