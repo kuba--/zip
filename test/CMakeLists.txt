@@ -13,5 +13,7 @@ endif ()
 # test
 include_directories(../src)
 add_executable(test.exe test.c ../src/zip.c)
+add_executable(test_miniz.exe test_miniz.c)
 
 add_test(NAME test COMMAND test.exe)
+add_test(NAME test_miniz COMMAND test_miniz.exe)
