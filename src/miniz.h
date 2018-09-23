@@ -4306,8 +4306,9 @@ static time_t mz_zip_dos_to_time_t(int dos_time, int dos_date) {
   return mktime(&tm);
 }
 
-static void mz_zip_time_to_dos_time(time_t time, mz_uint16 *pDOS_time,
-                                    mz_uint16 *pDOS_date) {
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
+static void mz_zip_time_t_to_dos_time(time_t time, mz_uint16 *pDOS_time,
+                                      mz_uint16 *pDOS_date) {
 #ifdef _MSC_VER
   struct tm tm_struct;
   struct tm *tm = &tm_struct;
@@ -4319,42 +4320,44 @@ static void mz_zip_time_to_dos_time(time_t time, mz_uint16 *pDOS_time,
   }
 #else
   struct tm *tm = localtime(&time);
-#endif
+#endif /* #ifdef _MSC_VER */
+
   *pDOS_time = (mz_uint16)(((tm->tm_hour) << 11) + ((tm->tm_min) << 5) +
                            ((tm->tm_sec) >> 1));
   *pDOS_date = (mz_uint16)(((tm->tm_year + 1900 - 1980) << 9) +
                            ((tm->tm_mon + 1) << 5) + tm->tm_mday);
 }
-#endif
+#endif /* MINIZ_NO_ARCHIVE_WRITING_APIS */
 
 #ifndef MINIZ_NO_STDIO
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 static mz_bool mz_zip_get_file_modified_time(const char *pFilename,
-                                             mz_uint16 *pDOS_time,
-                                             mz_uint16 *pDOS_date) {
-#ifdef MINIZ_NO_TIME
-  (void)pFilename;
-  *pDOS_date = *pDOS_time = 0;
-#else
+                                             time_t *pTime) {
   struct MZ_FILE_STAT_STRUCT file_stat;
-  // On Linux with x86 glibc, this call will fail on large files (>= 0x80000000
-  // bytes) unless you compiled with _LARGEFILE64_SOURCE. Argh.
+
+  /* On Linux with x86 glibc, this call will fail on large files (I think >=
+   * 0x80000000 bytes) unless you compiled with _LARGEFILE64_SOURCE. Argh. */
   if (MZ_FILE_STAT(pFilename, &file_stat) != 0)
     return MZ_FALSE;
-  mz_zip_time_to_dos_time(file_stat.st_mtime, pDOS_time, pDOS_date);
-#endif // #ifdef MINIZ_NO_TIME
+
+  *pTime = file_stat.st_mtime;
+
   return MZ_TRUE;
 }
+#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS*/
 
-#ifndef MINIZ_NO_TIME
 static mz_bool mz_zip_set_file_times(const char *pFilename, time_t access_time,
                                      time_t modified_time) {
   struct utimbuf t;
+
+  memset(&t, 0, sizeof(t));
   t.actime = access_time;
   t.modtime = modified_time;
+
   return !utime(pFilename, &t);
 }
-#endif // #ifndef MINIZ_NO_TIME
-#endif // #ifndef MINIZ_NO_STDIO
+#endif /* #ifndef MINIZ_NO_STDIO */
+#endif /* #ifndef MINIZ_NO_TIME */
 
 static mz_bool mz_zip_reader_init_internal(mz_zip_archive *pZip,
                                            mz_uint32 flags) {
@@ -5354,8 +5357,9 @@ mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index,
   if (MZ_FCLOSE(pFile) == EOF)
     return MZ_FALSE;
 #ifndef MINIZ_NO_TIME
-  if (status)
+  if (status) {
     mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
+  }
 #endif
 
   return status;
@@ -5795,7 +5799,7 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
   {
     time_t cur_time;
     time(&cur_time);
-    mz_zip_time_to_dos_time(cur_time, &dos_time, &dos_date);
+    mz_zip_time_t_to_dos_time(cur_time, &dos_time, &dos_date);
   }
 #endif // #ifndef MINIZ_NO_TIME
 
@@ -5938,6 +5942,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                mz_uint32 ext_attributes) {
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
+  time_t file_modified_time;
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs, uncomp_size = 0,
                                                         comp_size = 0;
   size_t archive_name_size;
@@ -5974,8 +5979,10 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
         comment_size + archive_name_size) > 0xFFFFFFFF))
     return MZ_FALSE;
 
-  if (!mz_zip_get_file_modified_time(pSrc_filename, &dos_time, &dos_date))
+  memset(&file_modified_time, 0, sizeof(file_modified_time));
+  if (!mz_zip_get_file_modified_time(pSrc_filename, &file_modified_time))
     return MZ_FALSE;
+  mz_zip_time_t_to_dos_time(file_modified_time, &dos_time, &dos_date);
 
   pSrc_file = MZ_FOPEN(pSrc_filename, "rb");
   if (!pSrc_file)
