@@ -6,6 +6,14 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
+#define MZ_FILE_STAT_STRUCT _stat
+#define MZ_FILE_STAT _stat
+#else
+#define MZ_FILE_STAT_STRUCT stat
+#define MZ_FILE_STAT stat
+#endif
+
 #define ZIPNAME "test.zip\0"
 #define TESTDATA1 "Some test data 1...\0"
 #define CRC32DATA1 2220805626
@@ -301,7 +309,7 @@ static void test_fwrite(void) {
 static void test_exe_permissions(void) {
 #if defined(_WIN32) || defined(__WIN32__)
 #else
-  struct stat file_stats;
+  struct MZ_FILE_STAT_STRUCT file_stats;
   const char *filenames[] = {XFILE};
   FILE *f = fopen(XFILE, "w");
   fclose(f);
@@ -315,7 +323,7 @@ static void test_exe_permissions(void) {
 
   assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
 
-  assert(0 == stat(XFILE, &file_stats));
+  assert(0 == MZ_FILE_STAT(XFILE, &file_stats));
   assert(XMODE == file_stats.st_mode);
 
   remove(XFILE);
@@ -327,7 +335,7 @@ static void test_read_permissions(void) {
 #if defined(_MSC_VER)
 #else
 
-  struct stat file_stats;
+  struct MZ_FILE_STAT_STRUCT file_stats;
   const char *filenames[] = {RFILE};
   FILE *f = fopen(RFILE, "w");
   fclose(f);
@@ -343,7 +351,7 @@ static void test_read_permissions(void) {
 
   assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
 
-  assert(0 == stat(RFILE, &file_stats));
+  assert(0 == MZ_FILE_STAT(RFILE, &file_stats));
   assert(RMODE == file_stats.st_mode);
 
   chmod(RFILE, WMODE);
@@ -356,7 +364,7 @@ static void test_write_permissions(void) {
 #if defined(_MSC_VER)
 #else
 
-  struct stat file_stats;
+  struct MZ_FILE_STAT_STRUCT file_stats;
   const char *filenames[] = {WFILE};
   FILE *f = fopen(WFILE, "w");
   fclose(f);
@@ -370,12 +378,53 @@ static void test_write_permissions(void) {
 
   assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
 
-  assert(0 == stat(WFILE, &file_stats));
+  assert(0 == MZ_FILE_STAT(WFILE, &file_stats));
   assert(WMODE == file_stats.st_mode);
 
   remove(WFILE);
   remove(ZIPNAME);
 #endif
+}
+
+static void test_mtime(void) {
+  struct MZ_FILE_STAT_STRUCT file_stat1, file_stat2;
+
+  const char *filename = WFILE;
+  FILE *stream = NULL;
+  struct zip_t *zip = NULL;
+#if defined(_MSC_VER)
+  if (0 != fopen_s(&stream, filename, "w+"))
+#else
+  if (!(stream = fopen(filename, "w+")))
+#endif
+  {
+    // Cannot open filename
+    fprintf(stdout, "Cannot open filename\n");
+    assert(0 == -1);
+  }
+  fwrite(TESTDATA1, sizeof(char), strlen(TESTDATA1), stream);
+  assert(0 == fclose(stream));
+
+  memset(&file_stat1, 0, sizeof(file_stat1));
+  memset(&file_stat2, 0, sizeof(file_stat2));
+  zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  assert(zip != NULL);
+  assert(0 == zip_entry_open(zip, filename));
+  assert(0 == zip_entry_fwrite(zip, filename));
+  assert(0 == zip_entry_close(zip));
+  zip_close(zip);
+
+  assert(0 == MZ_FILE_STAT(filename, &file_stat1));
+
+  remove(filename);
+  assert(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
+  assert(0 == MZ_FILE_STAT(filename, &file_stat2));
+  fprintf(stdout, "file_stat1.st_mtime: %lu\n", file_stat1.st_mtime);
+  fprintf(stdout, "file_stat2.st_mtime: %lu\n", file_stat2.st_mtime);
+  assert(labs(file_stat1.st_mtime - file_stat2.st_mtime) <= 1);
+
+  remove(filename);
+  remove(ZIPNAME);
 }
 
 int main(int argc, char *argv[]) {
@@ -397,6 +446,7 @@ int main(int argc, char *argv[]) {
   test_read_permissions();
   test_write_permissions();
   test_exe_permissions();
+  test_mtime();
 
   remove(ZIPNAME);
   return 0;
