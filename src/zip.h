@@ -13,6 +13,7 @@
 #define ZIP_H
 
 #include <string.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,11 @@ extern "C" {
 #endif
 
 #define ZIP_DEFAULT_COMPRESSION_LEVEL 6
+
+#ifndef _SSIZE_T
+typedef long ssize_t;
+#define _SSIZE_T
+#endif
 
 /*
   This data structure is used throughout the library to represent zip archive
@@ -207,16 +213,16 @@ extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
     bufsize: output buffer size (in bytes).
 
   Note:
-    - ensure supplied output buffer is large enough.
     - zip_entry_size function (returns uncompressed size for the current entry)
       can be handy to estimate how big buffer is needed.
     - for large entries, please take a look at zip_entry_extract function.
 
   Returns:
-    The return code - 0 on success, negative number (< 0) on error (e.g. bufsize
-    is not large enough).
+    If successful, the number of bytes actually read is returned.
+    Otherwise, a -1 is returned.
 */
-extern int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize);
+extern ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
+                                     size_t bufsize);
 
 /*
   Extracts the current zip entry into output file.

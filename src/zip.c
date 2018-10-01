@@ -11,7 +11,6 @@
 
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <time.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
@@ -624,28 +623,118 @@ int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
   return (*buf) ? 0 : -1;
 }
 
-int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
+ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
+  mz_uint32
+      local_header_u32[(MZ_ZIP_LOCAL_DIR_HEADER_SIZE + sizeof(mz_uint32) - 1) /
+                       sizeof(mz_uint32)];
+  mz_uint8 *pLocal_header = (mz_uint8 *)local_header_u32;
+  mz_uint64 cur_file_ofs, comp_remaining, out_buf_ofs = 0, read_buf_ofs = 0,
+                                          read_buf_avail;
+  mz_zip_archive_file_stat file_stat;
+  void *pRead_buf = NULL;
+  tinfl_decompressor inflator;
+  int status = TINFL_STATUS_DONE;
+  size_t in_buf_size, out_buf_size;
 
-  if (!zip) {
-    // zip_t handler is not initialized
+  if (!zip || (bufsize && (!buf))) {
+    // zip_t handler or buffer is not initialized
     return -1;
   }
-
   pzip = &(zip->archive);
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
     return -1;
   }
-
   idx = (mz_uint)zip->entry.index;
-  if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, idx, buf, bufsize, 0, NULL,
-                                             0)) {
+
+  if (!mz_zip_reader_file_stat(pzip, idx, &file_stat)) {
+    return -1;
+  }
+  // Empty file, or a directory (but not always a directory - I've seen odd zips
+  // with directories that have compressed data which inflates to 0 bytes)
+  if (!file_stat.m_comp_size) {
+    return 0;
+  }
+  // Entry is a subdirectory (I've seen old zips with dir entries which have
+  // compressed deflate data which inflates to 0 bytes, but these entries claim
+  // to uncompress to 512 bytes in the headers). I'm torn how to handle this
+  // case - should it fail instead?
+  if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
+    return 0;
+  }
+  // Encryption and patch files are not supported.
+  if (file_stat.m_bit_flag & (1 | 32)) {
+    return -1;
+  }
+  // This function only supports stored and deflate.
+  if ((file_stat.m_method != 0) && (file_stat.m_method != MZ_DEFLATED)) {
     return -1;
   }
 
-  return 0;
+  // Read and parse the local directory entry.
+  cur_file_ofs = file_stat.m_local_header_ofs;
+  if (pzip->m_pRead(pzip->m_pIO_opaque, cur_file_ofs, pLocal_header,
+                    MZ_ZIP_LOCAL_DIR_HEADER_SIZE) !=
+      MZ_ZIP_LOCAL_DIR_HEADER_SIZE) {
+    return -1;
+  }
+  if (MZ_READ_LE32(pLocal_header) != MZ_ZIP_LOCAL_DIR_HEADER_SIG) {
+    return -1;
+  }
+  cur_file_ofs += MZ_ZIP_LOCAL_DIR_HEADER_SIZE +
+                  MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_FILENAME_LEN_OFS) +
+                  MZ_READ_LE16(pLocal_header + MZ_ZIP_LDH_EXTRA_LEN_OFS);
+  if ((cur_file_ofs + file_stat.m_comp_size) > pzip->m_archive_size) {
+    return 0;
+  }
+
+  // Decompress the file either directly from memory or from a file input
+  // buffer.
+  tinfl_init(&inflator);
+
+  if (NULL == (pRead_buf = pzip->m_pAlloc(pzip->m_pAlloc_opaque, 1, 1)))
+    return -1;
+
+  read_buf_avail = 0;
+  comp_remaining = file_stat.m_comp_size;
+
+  do {
+    in_buf_size = 0;
+    out_buf_size = (size_t)(file_stat.m_uncomp_size - out_buf_ofs);
+
+    if (!read_buf_avail) {
+      read_buf_avail = MZ_MIN(1, comp_remaining);
+      if (pzip->m_pRead(pzip->m_pIO_opaque, cur_file_ofs, pRead_buf,
+                        (size_t)read_buf_avail) != read_buf_avail) {
+        status = TINFL_STATUS_FAILED;
+        break;
+      }
+      cur_file_ofs += read_buf_avail;
+      comp_remaining -= read_buf_avail;
+      read_buf_ofs = 0;
+    }
+    in_buf_size = (size_t)read_buf_avail;
+    status = tinfl_decompress(
+        &inflator, (mz_uint8 *)pRead_buf + read_buf_ofs, &in_buf_size,
+        (mz_uint8 *)buf, (mz_uint8 *)buf + out_buf_ofs, &out_buf_size,
+        TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF |
+            (comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0));
+
+    read_buf_avail -= in_buf_size;
+    read_buf_ofs += in_buf_size;
+    out_buf_ofs += out_buf_size;
+    if (out_buf_ofs >= bufsize) {
+      break;
+    }
+  } while (status == TINFL_STATUS_NEEDS_MORE_INPUT);
+
+  if (pRead_buf) {
+    pzip->m_pFree(pzip->m_pAlloc_opaque, pRead_buf);
+  }
+
+  return out_buf_ofs;
 }
 
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
