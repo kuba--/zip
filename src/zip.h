@@ -13,9 +13,15 @@
 #define ZIP_H
 
 #include <string.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifndef _SSIZE_T
+#define _SSIZE_T
+typedef long  ssize_t;  /* byte count or error */
 #endif
 
 #ifndef MAX_PATH
@@ -193,9 +199,10 @@ extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
     - for large entries, please take a look at zip_entry_extract function.
 
   Returns:
-    The return code - 0 on success, negative number (< 0) on error.
+    The return code - the number of bytes actually read on success.
+    Otherwise a -1 on error.
 */
-extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
+extern ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 
 /*
   Extracts the current zip entry into a memory buffer using no memory
@@ -213,10 +220,10 @@ extern int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
     - for large entries, please take a look at zip_entry_extract function.
 
   Returns:
-    The return code - 0 on success, negative number (< 0) on error (e.g. bufsize
-    is not large enough).
+    The return code - the number of bytes actually read on success.
+    Otherwise a -1 on error (e.g. bufsize is not large enough).
 */
-extern int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize);
+extern ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize);
 
 /*
   Extracts the current zip entry into output file.

@@ -11,7 +11,6 @@
 
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <time.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
@@ -599,9 +598,10 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   return status;
 }
 
-int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
+ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
+  size_t size = 0;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -620,13 +620,15 @@ int zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
     return -1;
   }
 
-  *buf = mz_zip_reader_extract_to_heap(pzip, idx, bufsize, 0);
-  return (*buf) ? 0 : -1;
+  *buf = mz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
+  if (*buf && bufsize) {
+    *bufsize = size;
+  }
+  return size;
 }
 
-int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
+ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   mz_zip_archive *pzip = NULL;
-  mz_uint idx;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -639,13 +641,12 @@ int zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
     return -1;
   }
 
-  idx = (mz_uint)zip->entry.index;
-  if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, idx, buf, bufsize, 0, NULL,
-                                             0)) {
+  if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, (mz_uint)zip->entry.index,
+  buf, bufsize, 0, NULL,  0)) {
     return -1;
   }
 
-  return 0;
+  return (ssize_t)zip->entry.uncomp_size;
 }
 
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
