@@ -86,15 +86,18 @@ static void test_append(void) {
 
 static void test_read(void) {
   char *buf = NULL;
-  size_t bufsize;
+  ssize_t bufsize;
+  size_t buftmp;
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   assert(zip != NULL);
 
   assert(0 == zip_entry_open(zip, "test\\test-1.txt"));
   assert(strlen(TESTDATA1) == zip_entry_size(zip));
   assert(CRC32DATA1 == zip_entry_crc32(zip));
-  assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
+
+  bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
   assert(bufsize == strlen(TESTDATA1));
+  assert((size_t)bufsize == buftmp);
   assert(0 == strncmp(buf, TESTDATA1, bufsize));
   assert(0 == zip_entry_close(zip));
   free(buf);
@@ -104,9 +107,10 @@ static void test_read(void) {
   assert(0 == zip_entry_open(zip, "test/test-2.txt"));
   assert(strlen(TESTDATA2) == zip_entry_size(zip));
   assert(CRC32DATA2 == zip_entry_crc32(zip));
-  assert(0 == zip_entry_read(zip, (void **)&buf, &bufsize));
-  assert(bufsize == strlen(TESTDATA2));
-  assert(0 == strncmp(buf, TESTDATA2, bufsize));
+
+  bufsize = zip_entry_read(zip, (void **)&buf, NULL);
+  assert((size_t)bufsize == strlen(TESTDATA2));
+  assert(0 == strncmp(buf, TESTDATA2, (size_t)bufsize));
   assert(0 == zip_entry_close(zip));
   free(buf);
   buf = NULL;
@@ -118,21 +122,25 @@ static void test_read(void) {
   assert(0 == zip_entry_crc32(zip));
   assert(0 == zip_entry_close(zip));
 
-  bufsize = strlen(TESTDATA2);
-  buf = calloc(sizeof(char), bufsize);
+  buftmp = strlen(TESTDATA2);
+  buf = calloc(buftmp, sizeof(char));
   assert(0 == zip_entry_open(zip, "test/test-2.txt"));
-  assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
-  assert(0 == strncmp(buf, TESTDATA2, bufsize));
+
+  bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
+  assert(buftmp == (size_t)bufsize);
+  assert(0 == strncmp(buf, TESTDATA2, buftmp));
   assert(0 == zip_entry_close(zip));
   free(buf);
   buf = NULL;
   bufsize = 0;
 
-  bufsize = strlen(TESTDATA1);
-  buf = calloc(sizeof(char), bufsize);
+  buftmp = strlen(TESTDATA1);
+  buf = calloc(buftmp, sizeof(char));
   assert(0 == zip_entry_open(zip, "test/test-1.txt"));
-  assert(0 == zip_entry_noallocread(zip, (void *)buf, bufsize));
-  assert(0 == strncmp(buf, TESTDATA1, bufsize));
+
+  bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
+  assert(buftmp == (size_t)bufsize);
+  assert(0 == strncmp(buf, TESTDATA1, buftmp));
   assert(0 == zip_entry_close(zip));
   free(buf);
   buf = NULL;
