@@ -20,7 +20,7 @@ add_library(${PROJECT_NAME} ${SRC})
 target_include_directories(${PROJECT_NAME} INTERFACE src)
 
 # test
-if (NOT KUBA_ZIP_DISABLE_TESTS)
+if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
   find_package(Sanitizers)
