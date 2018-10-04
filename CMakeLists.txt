@@ -27,3 +27,20 @@ if (NOT CMAKE_DISABLE_TESTING)
   add_sanitizers(${PROJECT_NAME} test.exe)
   add_sanitizers(${PROJECT_NAME} test_miniz.exe)
 endif()
+
+install(TARGETS ${PROJECT_NAME}
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        COMPONENT library)
+install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION include)
+
+# uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
+if(NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+        IMMEDIATE @ONLY)
+
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
+endif()
