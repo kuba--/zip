@@ -27,3 +27,9 @@ if (NOT CMAKE_DISABLE_TESTING)
   add_sanitizers(${PROJECT_NAME} test.exe)
   add_sanitizers(${PROJECT_NAME} test_miniz.exe)
 endif()
+
+install(TARGETS ${PROJECT_NAME}
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        COMPONENT library)
+install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION include/zip)
