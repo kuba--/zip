@@ -32,7 +32,7 @@ install(TARGETS ${PROJECT_NAME}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         COMPONENT library)
-install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION include/zip)
+install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION include)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
 if(NOT TARGET uninstall)
