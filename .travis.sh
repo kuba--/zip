@@ -11,7 +11,8 @@ if [ $ANALYZE = "true" ] && [ "$CC" = "clang" ]; then
         make -j 8 \
         make -j 8 test
 else
-    cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On
+    cmake -DCMAKE_BUILD_TYPE=Debug -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=_install
     make -j 8
+    make install
     ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -V
 fi

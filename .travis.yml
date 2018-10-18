@@ -18,6 +18,5 @@ after_success:
   - cmake -DENABLE_COVERAGE=ON
   - make
   - make test
-  - make install
   # Uploading report to CodeCov
   - bash <(curl -s https://codecov.io/bash)
