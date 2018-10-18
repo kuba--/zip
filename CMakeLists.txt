@@ -29,6 +29,7 @@ if (NOT CMAKE_DISABLE_TESTING)
 endif()
 
 install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION bin
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         COMPONENT library)
