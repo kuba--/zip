@@ -28,6 +28,8 @@
 
 #else
 
+#include <unistd.h> // needed for symlink()
+
 #define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
@@ -851,22 +853,38 @@ int zip_extract(const char *zipname, const char *dir,
       goto out;
     }
 
-    if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-      if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
-        // Cannot extract zip archive to file
+    if ((((info.m_version_made_by >> 8) == 3) || ((info.m_version_made_by >> 8) == 19)) // if zip is produced on Unix or macOS (3 and 19 from section 4.4.2.2 of zip standard)
+        && info.m_external_attr & (0x20 << 24)) { // and has sym link attribute (0x80 is file, 0x40 is directory)
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW32__)
+#else
+      char symlinkTo[MAX_PATH + 1] = {0};
+      if (info.m_uncomp_size > MAX_PATH || !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlinkTo, MAX_PATH, 0, NULL, 0)) {
         goto out;
       }
-    }
+      symlinkTo[info.m_uncomp_size] = '\0';
+      if (symlink(symlinkTo, path) != 0) {
+        goto out;
+      }
+#endif
+    } else {
+      if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+        if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
+          // Cannot extract zip archive to file
+          goto out;
+        }
+      }
 
 #if defined(_MSC_VER)
 #else
-    xattr = (info.m_external_attr >> 16) & 0xFFFF;
-    if (xattr > 0) {
-      if (chmod(path, (mode_t)xattr) < 0) {
-        goto out;
+      xattr = (info.m_external_attr >> 16) & 0xFFFF;
+      if (xattr > 0) {
+        if (chmod(path, (mode_t)xattr) < 0) {
+          goto out;
+        }
       }
-    }
 #endif
+    }
 
     if (on_extract) {
       if (on_extract(path, arg) < 0) {
