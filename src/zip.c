@@ -36,6 +36,10 @@
 #include "miniz.h"
 #include "zip.h"
 
+#ifndef HAS_DEVICE
+#define HAS_DEVICE(P) 0
+#endif
+
 #ifndef FILESYSTEM_PREFIX_LEN
 #define FILESYSTEM_PREFIX_LEN(P) 0
 #endif
@@ -75,10 +79,17 @@ static int mkpath(const char *path) {
   char const *p;
   char npath[MAX_PATH + 1];
   int len = 0;
+  int has_device = HAS_DEVICE(path);
 
   memset(npath, 0, MAX_PATH + 1);
-  for (p = path; *p && len < MAX_PATH; p++) {
-    if (ISSLASH(*p) && len > 0) {
+  if (has_device) {
+    // only on windows
+    npath[0] = path[0];
+    npath[1] = path[1];
+    len = 2;
+  }
+  for (p = path + len; *p && len < MAX_PATH; p++) {
+    if (ISSLASH(*p) && ((!has_device && len > 0) || (has_device && len > 2))) {
       if (MKDIR(npath) == -1)
         if (errno != EEXIST)
           return -1;
