@@ -556,7 +556,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   int status = 0;
   size_t n = 0;
   FILE *stream = NULL;
-  mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
+  mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE];
   struct MZ_FILE_STAT_STRUCT file_stat;
 
   if (!zip) {
@@ -564,6 +564,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return -1;
   }
 
+  memset(buf, 0, MZ_ZIP_MAX_IO_BUF_SIZE);
   memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
   if (MZ_FILE_STAT(filename, &file_stat) != 0) {
     // problem getting information - check errno
@@ -790,12 +791,13 @@ int zip_extract(const char *zipname, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg) {
   int status = -1;
   mz_uint i, n;
-  char path[MAX_PATH + 1] = {0};
+  char path[MAX_PATH + 1];
   mz_zip_archive zip_archive;
   mz_zip_archive_file_stat info;
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 
+  memset(path, 0, MAX_PATH + 1);
   if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
     // Cannot memset zip archive
     return -1;
