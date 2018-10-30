@@ -73,9 +73,10 @@ static const char *basename(const char *name) {
 
 static int mkpath(const char *path) {
   char const *p;
-  char npath[MAX_PATH + 1] = {0};
+  char npath[MAX_PATH + 1];
   int len = 0;
 
+  memset(npath, 0, MAX_PATH + 1);
   for (p = path; *p && len < MAX_PATH; p++) {
     if (ISSLASH(*p) && len > 0) {
       if (MKDIR(npath) == -1)
