@@ -39,6 +39,10 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
 #include "miniz.h"
 #include "zip.h"
 
+#ifndef HAS_DEVICE
+#define HAS_DEVICE(P) 0
+#endif
+
 #ifndef FILESYSTEM_PREFIX_LEN
 #define FILESYSTEM_PREFIX_LEN(P) 0
 #endif
@@ -76,11 +80,19 @@ static const char *basename(const char *name) {
 
 static int mkpath(const char *path) {
   char const *p;
-  char npath[MAX_PATH + 1] = {0};
+  char npath[MAX_PATH + 1];
   int len = 0;
+  int has_device = HAS_DEVICE(path);
 
-  for (p = path; *p && len < MAX_PATH; p++) {
-    if (ISSLASH(*p) && len > 0) {
+  memset(npath, 0, MAX_PATH + 1);
+  if (has_device) {
+    // only on windows
+    npath[0] = path[0];
+    npath[1] = path[1];
+    len = 2;
+  }
+  for (p = path + len; *p && len < MAX_PATH; p++) {
+    if (ISSLASH(*p) && ((!has_device && len > 0) || (has_device && len > 2))) {
       if (MKDIR(npath) == -1)
         if (errno != EEXIST)
           return -1;
@@ -558,7 +570,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   int status = 0;
   size_t n = 0;
   FILE *stream = NULL;
-  mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE] = {0};
+  mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE];
   struct MZ_FILE_STAT_STRUCT file_stat;
 
   if (!zip) {
@@ -566,6 +578,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return -1;
   }
 
+  memset(buf, 0, MZ_ZIP_MAX_IO_BUF_SIZE);
   memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
   if (MZ_FILE_STAT(filename, &file_stat) != 0) {
     // problem getting information - check errno
