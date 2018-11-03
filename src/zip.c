@@ -792,8 +792,8 @@ int zip_extract(const char *zipname, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg) {
   int status = -1;
   mz_uint i, n;
-  char path[MAX_PATH + 1] = {0};
-  char symlink_to[MAX_PATH + 1] = {0};
+  char path[MAX_PATH + 1];
+  char symlink_to[MAX_PATH + 1];
   mz_zip_archive zip_archive;
   mz_zip_archive_file_stat info;
   size_t dirlen = 0;
