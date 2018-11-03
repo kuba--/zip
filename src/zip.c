@@ -28,6 +28,9 @@
 
 #else
 
+#include <unistd.h> // needed for symlink() on BSD
+int symlink(const char *target, const char *linkpath); // needed on Linux
+
 #define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
@@ -803,12 +806,14 @@ int zip_extract(const char *zipname, const char *dir,
   int status = -1;
   mz_uint i, n;
   char path[MAX_PATH + 1];
+  char symlink_to[MAX_PATH + 1];
   mz_zip_archive zip_archive;
   mz_zip_archive_file_stat info;
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 
-  memset(path, 0, MAX_PATH + 1);
+  memset(path, 0, sizeof(path));
+  memset(symlink_to, 0, sizeof(symlink_to));
   if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
     // Cannot memset zip archive
     return -1;
@@ -865,22 +870,37 @@ int zip_extract(const char *zipname, const char *dir,
       goto out;
     }
 
-    if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-      if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
-        // Cannot extract zip archive to file
+    if ((((info.m_version_made_by >> 8) == 3) || ((info.m_version_made_by >> 8) == 19)) // if zip is produced on Unix or macOS (3 and 19 from section 4.4.2.2 of zip standard)
+        && info.m_external_attr & (0x20 << 24)) { // and has sym link attribute (0x80 is file, 0x40 is directory)
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW32__)
+#else      
+      if (info.m_uncomp_size > MAX_PATH || !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlink_to, MAX_PATH, 0, NULL, 0)) {
         goto out;
       }
-    }
+      symlink_to[info.m_uncomp_size] = '\0';
+      if (symlink(symlink_to, path) != 0) {
+        goto out;
+      }
+#endif
+    } else {
+      if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+        if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
+          // Cannot extract zip archive to file
+          goto out;
+        }
+      }
 
 #if defined(_MSC_VER)
 #else
-    xattr = (info.m_external_attr >> 16) & 0xFFFF;
-    if (xattr > 0) {
-      if (chmod(path, (mode_t)xattr) < 0) {
-        goto out;
+      xattr = (info.m_external_attr >> 16) & 0xFFFF;
+      if (xattr > 0) {
+        if (chmod(path, (mode_t)xattr) < 0) {
+          goto out;
+        }
       }
-    }
 #endif
+    }
 
     if (on_extract) {
       if (on_extract(path, arg) < 0) {
