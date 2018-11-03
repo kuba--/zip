@@ -793,11 +793,14 @@ int zip_extract(const char *zipname, const char *dir,
   int status = -1;
   mz_uint i, n;
   char path[MAX_PATH + 1] = {0};
+  char symlink_to[MAX_PATH + 1] = {0};
   mz_zip_archive zip_archive;
   mz_zip_archive_file_stat info;
   size_t dirlen = 0;
   mz_uint32 xattr = 0;
 
+  memset(path, 0, sizeof(path));
+  memset(symlink_to, 0, sizeof(symlink_to));
   if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
     // Cannot memset zip archive
     return -1;
@@ -858,13 +861,12 @@ int zip_extract(const char *zipname, const char *dir,
         && info.m_external_attr & (0x20 << 24)) { // and has sym link attribute (0x80 is file, 0x40 is directory)
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
-#else
-      char symlinkTo[MAX_PATH + 1] = {0};
-      if (info.m_uncomp_size > MAX_PATH || !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlinkTo, MAX_PATH, 0, NULL, 0)) {
+#else      
+      if (info.m_uncomp_size > MAX_PATH || !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlink_to, MAX_PATH, 0, NULL, 0)) {
         goto out;
       }
-      symlinkTo[info.m_uncomp_size] = '\0';
-      if (symlink(symlinkTo, path) != 0) {
+      symlink_to[info.m_uncomp_size] = '\0';
+      if (symlink(symlink_to, path) != 0) {
         goto out;
       }
 #endif
