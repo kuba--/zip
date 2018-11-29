@@ -59,7 +59,7 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
     }                                                                          \
   } while (0)
 
-static const char *basename(const char *name) {
+static const char *base_name(const char *name) {
   char const *p;
   char const *base = name += FILESYSTEM_PREFIX_LEN(name);
   int all_slashes = 1;
@@ -787,7 +787,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
     }
     ext_attributes |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
 
-    if (!mz_zip_writer_add_file(&zip_archive, basename(name), name, "", 0,
+    if (!mz_zip_writer_add_file(&zip_archive, base_name(name), name, "", 0,
                                 ZIP_DEFAULT_COMPRESSION_LEVEL,
                                 ext_attributes)) {
       // Cannot add file to zip_archive
