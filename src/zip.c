@@ -592,7 +592,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   zip->entry.external_attr |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
   zip->entry.m_time = file_stat.st_mtime;
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_MSC_VER)
   if (fopen_s(&stream, filename, "rb"))
 #else
   if (!(stream = fopen(filename, "rb")))
@@ -837,7 +837,7 @@ int zip_extract(const char *zipname, const char *dir,
 
   memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_MSC_VER)
   strcpy_s(path, MAX_PATH, dir);
 #else
   strcpy(path, dir);
@@ -859,7 +859,7 @@ int zip_extract(const char *zipname, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_MSC_VER)
     strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename,
               MAX_PATH - dirlen);
 #else
