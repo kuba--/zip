@@ -19,7 +19,8 @@
 extern "C" {
 #endif
 
-#if !defined(_SSIZE_T_DEFINED) && !defined(_SSIZE_T) && !defined(_SSIZE_T_)
+#if !defined(_SSIZE_T_DEFINED) && !defined(_SSIZE_T_DEFINED_) &&               \
+    !defined(_SSIZE_T) && !defined(_SSIZE_T_)
 #define _SSIZE_T
 typedef long  ssize_t;  /* byte count or error */
 #endif
