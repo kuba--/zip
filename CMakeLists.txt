@@ -24,8 +24,8 @@ if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
   find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME} test.exe)
-  add_sanitizers(${PROJECT_NAME} test_miniz.exe)
+  add_sanitizers(${PROJECT_NAME} test)
+  add_sanitizers(${PROJECT_NAME} test_miniz)
 endif()
 
 install(TARGETS ${PROJECT_NAME}

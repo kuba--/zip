@@ -12,8 +12,17 @@ endif ()
 
 # test
 include_directories(../src)
-add_executable(test.exe test.c ../src/zip.c)
-add_executable(test_miniz.exe test_miniz.c)
 
-add_test(NAME test COMMAND test.exe)
-add_test(NAME test_miniz COMMAND test_miniz.exe)
+set(test_out test.out)
+set(test_miniz_out test_miniz.out)
+
+if (WIN32)
+  set(test_out test.exe)
+  set(test_miniz_out test_miniz.exe)
+endif()
+
+add_executable(${test_out} test.c ../src/zip.c)
+add_executable(${test_miniz_out} test_miniz.c)
+
+add_test(NAME ${test_out} COMMAND test)
+add_test(NAME ${test_miniz_out} COMMAND test_miniz)
