@@ -24,5 +24,5 @@ endif()
 add_executable(${test_out} test.c ../src/zip.c)
 add_executable(${test_miniz_out} test_miniz.c)
 
-add_test(NAME ${test_out} COMMAND test)
-add_test(NAME ${test_miniz_out} COMMAND test_miniz)
+add_test(NAME ${test_out} COMMAND ${test_out})
+add_test(NAME ${test_miniz_out} COMMAND ${test_miniz_out})
