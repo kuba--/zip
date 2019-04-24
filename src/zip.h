@@ -193,6 +193,20 @@ extern int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
 extern int zip_entry_fwrite(struct zip_t *zip, const char *filename);
 
 /*
+  Compresses an input buffer for the current zip entry.
+
+  Args:
+    zip: zip archive handler.
+    buf: input buffer.
+    bufsize: input buffer size (in bytes).
+    sd_mode: file open mode. 0664 means user read/write, group read/write, all read.
+
+  Returns:
+    The return code - 0 on success, negative number (< 0) on error.
+*/
+extern int zip_entry_dwrite(struct zip_t *zip, const void *buf, size_t bufsize, int st_mode);
+
+/*
   Extracts the current zip entry into output buffer.
   The function allocates sufficient memory for a output buffer.
 

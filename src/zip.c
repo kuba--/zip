@@ -614,6 +614,11 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   return status;
 }
 
+int zip_entry_dwrite(struct zip_t *zip, const void *buf, size_t bufsize, int st_mode) {
+  zip->entry.external_attr = st_mode << 16;
+  return zip_entry_write(zip, buf, bufsize);
+}
+
 ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
