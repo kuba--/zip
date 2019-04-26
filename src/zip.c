@@ -277,7 +277,14 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   zip->entry.header_offset = zip->archive.m_archive_size;
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
   zip->entry.method = 0;
+
+  // UNIX or APPLE
+#if MZ_PLATFORM == 3 || MZ_PLATFORM == 19
+  // regular file with rw-r--r-- persmissions
+  zip->entry.external_attr = (mz_uint32)(0100644) << 16;
+#else
   zip->entry.external_attr = 0;
+#endif
 
   num_alignment_padding_bytes =
       mz_zip_writer_compute_padding_needed_for_file_alignment(pzip);
