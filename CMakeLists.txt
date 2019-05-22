@@ -1,12 +1,14 @@
-cmake_minimum_required(VERSION 2.8)
-project(zip)
-enable_language(C)
+cmake_minimum_required(VERSION 3.0)
+
+project(zip
+  LANGUAGES C
+  VERSION "0.1.15")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-set(ZIP_VERSION "0.1.15")
+option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
 
 if (MSVC)
-  # Use secure functions by defaualt and suppress warnings about "deprecated" functions
+  # Use secure functions by default and suppress warnings about "deprecated" functions
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
@@ -19,7 +21,10 @@ endif (MSVC)
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
 add_library(${PROJECT_NAME} ${SRC})
-target_include_directories(${PROJECT_NAME} INTERFACE src)
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:include>
+)
 
 # test
 if (NOT CMAKE_DISABLE_TESTING)

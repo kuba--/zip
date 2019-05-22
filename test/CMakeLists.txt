@@ -11,18 +11,13 @@ if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL
 endif ()
 
 # test
-include_directories(../src)
-
 set(test_out test.out)
 set(test_miniz_out test_miniz.out)
 
-if (WIN32)
-  set(test_out test.exe)
-  set(test_miniz_out test_miniz.exe)
-endif()
-
-add_executable(${test_out} test.c ../src/zip.c)
+add_executable(${test_out} test.c)
+target_link_libraries(${test_out} zip)
 add_executable(${test_miniz_out} test_miniz.c)
+target_link_libraries(${test_miniz_out} zip)
 
 add_test(NAME ${test_out} COMMAND ${test_out})
 add_test(NAME ${test_miniz_out} COMMAND ${test_miniz_out})
