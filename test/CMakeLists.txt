@@ -21,3 +21,6 @@ target_link_libraries(${test_miniz_out} zip)
 
 add_test(NAME ${test_out} COMMAND ${test_out})
 add_test(NAME ${test_miniz_out} COMMAND ${test_miniz_out})
+
+set(test_out ${test_out} PARENT_SCOPE)
+set(test_miniz_out ${test_miniz_out} PARENT_SCOPE)
