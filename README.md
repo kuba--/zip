@@ -5,7 +5,7 @@ This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library
 [![Linux](https://travis-ci.org/kuba--/zip.svg?branch=master&label=linux%2fosx)](https://travis-ci.org/kuba--/zip)
 [![Version](https://badge.fury.io/gh/kuba--%2Fzip.svg)](https://github.com/kuba--/zip/releases)
 [![Codecov](https://codecov.io/gh/kuba--/zip/branch/master/graph/badge.svg)](https://codecov.io/gh/kuba--/zip)
-
+[![Coverage Status](https://coveralls.io/repos/github/kuba--/zip/badge.svg?branch=master)](https://coveralls.io/github/kuba--/zip?branch=master)
 
 # The Idea
 <img src="zip.png" name="zip" />
