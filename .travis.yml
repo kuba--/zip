@@ -22,5 +22,5 @@ after_success:
   - cmake -DCOVERAGE=1
   - make
   - make test
-  - coveralls --root . -E ".*gtest.*" -E ".*CMakeFiles.*"
+  - coveralls --root . -E "_install" -E ".*CMakeFiles.*"
 
