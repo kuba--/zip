@@ -20,6 +20,10 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic")
+  if (COVERALLS)
+    include(Coveralls)
+    coveralls_turn_on_coverage()
+  endif()
 endif (MSVC)
 
 # zip
@@ -39,15 +43,14 @@ if (NOT CMAKE_DISABLE_TESTING)
 endif()
 
 # coveralls
-if (COVERALLS AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-    coveralls_turn_on_coverage()
+if (COVERALLS)
     set(COVERAGE_SRCS src/miniz.h src/zip.c)
 
     # Create the coveralls target.
     coveralls_setup(
         "${COVERAGE_SRCS}" # The source files.
         ON                 # If we should upload.
-        "${PROJECT_SOURCE_DIR}/CMakeModules/") # (Optional) Alternate project cmake module path.
+    )
 endif()
 
 ####
