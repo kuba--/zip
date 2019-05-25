@@ -6,11 +6,8 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
-option(COVERALLS "Generate coveralls data" OFF)
-if (COVERALLS)
-  include(Coveralls)
-endif()
 
+set(COVERAGE OFF CACHE BOOL "Coverage")
 if (MSVC)
   # Use secure functions by default and suppress warnings about "deprecated" functions
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
@@ -20,9 +17,9 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic")
-  if (COVERALLS)
-    include(Coveralls)
-    coveralls_turn_on_coverage()
+  if (COVERAGE)
+    target_compile_options(tests PRIVATE --coverage)
+    target_link_libraries(tests PRIVATE --coverage)
   endif()
 endif (MSVC)
 
@@ -40,17 +37,6 @@ if (NOT CMAKE_DISABLE_TESTING)
   add_subdirectory(test)
   find_package(Sanitizers)
   add_sanitizers(${PROJECT_NAME} ${test_out} ${test_miniz_out})
-endif()
-
-# coveralls
-if (COVERALLS)
-    set(COVERAGE_SRCS src/miniz.h src/zip.c)
-
-    # Create the coveralls target.
-    coveralls_setup(
-        "${COVERAGE_SRCS}" # The source files.
-        ON                 # If we should upload.
-    )
 endif()
 
 ####

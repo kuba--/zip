@@ -19,8 +19,8 @@ after_success:
   # Creating report
   - export COVERALLS_SERVICE_NAME=travis-ci
   - export COVERALLS_REPO_TOKEN=2giWzj8ePoGOf6H9QQxpV9jUH8I0vh8vv
-  - cmake -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake -DCOVERAGE=1
   - make
   - make test
-  - make coveralls
+  - coveralls --root . -E ".*gtest.*" -E ".*CMakeFiles.*"
 
