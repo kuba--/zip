@@ -8,6 +8,8 @@ compiler:
   - clang
   - gcc
 env:
+  - COVERALLS_SERVICE_NAME=travis-ci
+  - COVERALLS_REPO_TOKEN=2giWzj8ePoGOf6H9QQxpV9jUH8I0vh8vv
   - ANALYZE=false
   - ANALYZE=true
 # Build steps
@@ -17,9 +19,8 @@ script:
   - ./.travis.sh
 after_success:
   # Creating report
-  - cmake -DENABLE_COVERAGE=ON
+  - cmake -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug ..
   - make
   - make test
-  # Uploading report to CodeCov
-  - bash <(curl -s https://codecov.io/bash)
-  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+  - make coveralls
+
