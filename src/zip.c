@@ -222,6 +222,20 @@ void zip_close(struct zip_t *zip) {
   }
 }
 
+int zip_is64(struct zip_t *zip) {
+  if (!zip) {
+    // zip_t handler is not initialized
+    return -1;
+  }
+
+  if (!zip->archive.m_pState) {
+    // zip state is not initialized
+    return -1;
+  }
+
+  return (int)zip->archive.m_pState->m_zip64;
+}
+
 int zip_entry_open(struct zip_t *zip, const char *entryname) {
   size_t entrylen = 0;
   mz_zip_archive *pzip = NULL;
