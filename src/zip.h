@@ -91,6 +91,16 @@ extern struct zip_t *zip_open(const char *zipname, int level, char mode);
 extern void zip_close(struct zip_t *zip);
 
 /**
+ * Determines if the archive has a zip64 end of central directory headers.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the return code - 1 (true), 0 (false), negative number (< 0) on
+ *         error.
+ */
+extern int zip_is64(struct zip_t *zip);
+
+/**
  * Opens an entry by name in the zip archive.
  *
  * For zip archive opened in 'w' or 'a' mode the function will append
