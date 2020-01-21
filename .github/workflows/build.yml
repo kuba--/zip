@@ -34,7 +34,7 @@ jobs:
     - name: build
       run: cmake --build .
     - name: test
-      run: ctest   
+      run:  ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest   
 
 
   build-windows:      
@@ -43,8 +43,8 @@ jobs:
     - uses: actions/checkout@v1
       
     - name: configure
-      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
+      run: cmake -DCMAKE_BUILD_TYPE=Debug
     - name: build
-      run: cmake
+      run: cmake --build . --config %CMAKE_BUILD_TYPE%
     - name: test
       run: ctest  
