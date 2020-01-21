@@ -31,7 +31,7 @@ jobs:
     - name: configure
       run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
     - name: build
-      run: cmake --build . --config %CMAKE_BUILD_TYPE%
+      run: cmake --build .
     - name: test
       run:  ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest   
 
@@ -42,7 +42,7 @@ jobs:
     - uses: actions/checkout@v2
       
     - name: configure
-      run:  cmake  -G"Visual Studio 16 2019" -DCMAKE_BUILD_TYPE="Debug"
+      run:  cmake  -G"Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Debug
     - name: build
       run:  cmake --build .
     - name: test
