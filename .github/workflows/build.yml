@@ -1,6 +1,5 @@
 name: CI
 
-
 on: [push]
 
 env:
@@ -27,7 +26,7 @@ jobs:
   build-macos:      
     runs-on: macos-latest      
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       
     - name: configure
       run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
@@ -40,10 +39,10 @@ jobs:
   build-windows:      
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       
     - name: configure
-      run:  cmake  -G"Visual Studio 16 2019" -DCMAKE_BUILD_TYPE="Debug"        
+      run:  cmake  -G"Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE%        
     - name: build
       run:  cmake --build .        
     - name: test
