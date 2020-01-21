@@ -46,4 +46,4 @@ jobs:
     - name: Build
       run:  cmake --build . --config "Debug"
     - name: Test
-      run:  ctest --verbose -C "Debug"
+      run:  ctest -C "Debug"
