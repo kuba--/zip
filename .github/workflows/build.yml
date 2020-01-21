@@ -31,7 +31,7 @@ jobs:
     - name: configure
       run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
     - name: build
-      run: cmake --build .
+      run: cmake --build . --config %CMAKE_BUILD_TYPE%
     - name: test
       run:  ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest   
 
