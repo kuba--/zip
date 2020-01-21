@@ -43,8 +43,8 @@ jobs:
     - uses: actions/checkout@v1
       
     - name: configure
-      run: cmake -DCMAKE_BUILD_TYPE=Debug
+      run: cmake
     - name: build
-      run: cmake --build . --config %CMAKE_BUILD_TYPE%
+      run: cmake --build . --config %BUILD_TYPE%
     - name: test
       run: ctest  
