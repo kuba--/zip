@@ -44,19 +44,11 @@ jobs:
       
     - name: configure
       run: |
-        execute_process(
-          COMMAND "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-        )
-        execute_process(
-          COMMAND cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
-        )
+        COMMAND "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"        
+        COMMAND cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}        
     - name: build
       run: |
-        execute_process(
-          COMMAND cmake --build .
-        )
+        COMMAND cmake --build .        
     - name: test
       run: |
-        execute_process(
-          COMMAND ctest --verbose -C "Debug"
-        )
+        COMMAND ctest --verbose -C "Debug"
