@@ -44,15 +44,12 @@ jobs:
       
     - name: configure
       run: |
-        set(ENV{CC} cl)
-        set(ENV{CXX} cl)
         execute_process(
           COMMAND "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
         )
         execute_process(
           COMMAND cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
         )
-
     - name: build
       run: |
         execute_process(
