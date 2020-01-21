@@ -5,49 +5,46 @@ on: [push]
 
 env:
   BUILD_TYPE: Debug
+  INSTALL_PREFIX: _install
 
 jobs:
-  build:
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-        - {
-            name: "Windows Latest MSVC", artifact: "zip-windows-msvc.tar.xz",
-            os: windows-latest,
-            cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-          }
-        - {
-            name: "Windows Latest MinGW", artifact: "zip-windows-mingw.tar.xz",
-            os: windows-latest,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "Ubuntu Latest GCC", artifact: "zip-linux.tar.xz",
-            os: ubuntu-latest,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "macOS Latest Clang", artifact: "zip-macos.tar.xz",
-            os: macos-latest,
-            cc: "clang", cxx: "clang++"
-          }
-          
+  build-ubuntu:
+    runs-on: ubuntu-latest     
     steps:
     - uses: actions/checkout@v1
       
     - name: configure
-      run: cmake -DCMAKE_CXX_FLAGS="-Werror" -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=_install
-      
+      run: cmake -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
     - name: build
       run: cmake --build .
-      
     - name: test
       run: ctest
       
     - name: codecov
       run: bash <(curl -s https://codecov.io/bash)
+   
+   
+  build-macos:      
+    runs-on: macos-latest      
+    steps:
+    - uses: actions/checkout@v1
       
+    - name: configure
+      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
+    - name: build
+      run: cmake --build .
+    - name: test
+      run: ctest   
+
+
+  build-windows:      
+    runs-on: windows-latest       
+    steps:
+    - uses: actions/checkout@v1
+      
+    - name: configure
+      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
+    - name: build
+      run: cmake --build .
+    - name: test
+      run: ctest  
