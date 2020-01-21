@@ -19,7 +19,7 @@ static const char *s_pStr =
     "Good morning Dr. Chandra. This is Hal. I am ready for my first lesson."
     "Good morning Dr. Chandra. This is Hal. I am ready for my first lesson.";
 
-int main(int argc, char *argv[]) {
+int main() {
   uint step = 0;
   int cmp_status;
   uLong src_len = (uLong)strlen(s_pStr);
@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
   uint8 *pCmp, *pUncomp;
   size_t sz;
   uint total_succeeded = 0;
-  (void)argc, (void)argv;
 
   printf("miniz.c version: %s\n", MZ_VERSION);
 
@@ -123,5 +122,5 @@ int main(int argc, char *argv[]) {
   } while (argc >= 2);
 
   printf("Success.\n");
-  return EXIT_SUCCESS;
+  return 0;
 }
