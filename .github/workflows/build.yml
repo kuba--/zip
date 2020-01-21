@@ -44,11 +44,11 @@ jobs:
       
     - name: configure
       run: |
-        COMMAND "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"        
-        COMMAND cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}        
+        "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"        
+        cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}        
     - name: build
       run: |
-        COMMAND cmake --build .        
+        cmake --build .        
     - name: test
       run: |
-        COMMAND ctest --verbose -C "Debug"
+        ctest --verbose -C "Debug"
