@@ -1,7 +1,7 @@
 name: C/C++ CI
 
 
-on: [push, pull_request]
+on: [push]
 
 env:
   BUILD_TYPE: Debug
@@ -40,7 +40,7 @@ jobs:
     - uses: actions/checkout@v1
       
     - name: configure
-      run: cmake -DCMAKE_CXX_FLAGS="-Werror" -DENABLE_COVERAGE=ON  cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=_install
+      run: cmake -DCMAKE_CXX_FLAGS="-Werror" -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=_install
       
     - name: build
       run: cmake --build .
