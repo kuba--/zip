@@ -43,7 +43,7 @@ jobs:
     - uses: actions/checkout@v1
       
     - name: configure
-      run:  cmake  -G"Visual Studio 19" -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}        
+      run:  cmake  -G"Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}        
     - name: build
       run:  cmake --build .        
     - name: test
