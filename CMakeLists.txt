@@ -35,7 +35,7 @@ if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
   find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME} ${test_out} ${test_miniz_out})
+  add_sanitizers(${PROJECT_NAME} ${test_out})
 endif()
 
 ####
