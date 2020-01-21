@@ -38,13 +38,15 @@ jobs:
 
 
   build-windows:      
-    runs-on: windows-latest       
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, windows-2016]    
     steps:
     - uses: actions/checkout@v1
-      
     - name: configure
-      run: cmake
+      run: mkdir build && cd build && cmake ..
     - name: build
-      run: cmake --build . --config %BUILD_TYPE%
+      run: cmake --build build --config Debug
     - name: test
-      run: ctest  
+      run: cd build && ctest
