@@ -43,8 +43,8 @@ jobs:
     - uses: actions/checkout@v1
       
     - name: configure
-      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX}
+      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
     - name: build
-      run: cmake --build .
+      run: cmake
     - name: test
       run: ctest  
