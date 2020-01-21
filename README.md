@@ -1,7 +1,7 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C
 This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
 
-[![Build](https://github.com/kuba--/zip/workflows/build/badge.svg)
+[![Build](https://github.com/kuba--/zip/actions?query=workflow%3Abuild)](https://github.com/kuba--/zip/workflows/build/badge.svg)
 [![Version](https://badge.fury.io/gh/kuba--%2Fzip.svg)](https://github.com/kuba--/zip/releases)
 [![Codecov](https://codecov.io/gh/kuba--/zip/branch/master/graph/badge.svg)](https://codecov.io/gh/kuba--/zip)
 
