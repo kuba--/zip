@@ -2,10 +2,6 @@ name: build
 
 on: [push]
 
-env:
-  BUILD_TYPE: Debug
-  INSTALL_PREFIX: _install
-
 jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
@@ -13,7 +9,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Configure
-      run: cmake -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
+      run: cmake -DENABLE_COVERAGE=ON -DSANITIZE_ADDRESS=On .
     - name: Build
       run: cmake --build .
     - name: Test
@@ -29,14 +25,11 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Configure
-      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
-    - name: Scan
       run: |
         pip3 install scan-build
-        scan-build cmake -G "Unix Makefiles" .
-        scan-build -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs -v
+        scan-build cmake -G "Unix Makefiles" -DSANITIZE_ADDRESS=On .
     - name: Build
-      run: cmake --build .
+      run: scan-build -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs make -j 8
     - name: Test
       run:  ctest -VV
 
