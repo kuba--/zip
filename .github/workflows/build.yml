@@ -3,7 +3,7 @@ name: build
 on: [push]
 
 jobs:
-  build-ubuntu:
+  ubuntu:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -19,7 +19,7 @@ jobs:
       run: bash <(curl -s https://codecov.io/bash)
 
 
-  build-macos:
+  macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -34,13 +34,26 @@ jobs:
       run:  ctest -VV
 
 
-  build-windows:
+  windows:
     runs-on: windows-latest
+    name: ${{ matrix.config.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows Latest MSVC",
+            cc: "cl", cxx: "cl"
+          }
+        - {
+            name: "Windows Latest MinGW",
+            cc: "gcc", cxx: "g++"
+          }
     steps:
     - uses: actions/checkout@v2
 
     - name: Configure
-      run:  cmake  -G"Visual Studio 16 2019" .
+      run:  cmake  .
     - name: Build
       run:  cmake --build . --config "Debug"
     - name: Test
