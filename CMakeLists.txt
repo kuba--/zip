@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(zip
   LANGUAGES C
-  VERSION "0.1.16")
+  VERSION "0.1.17")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
