@@ -35,18 +35,20 @@ jobs:
 
 
   windows:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     name: ${{ matrix.config.name }}
     strategy:
       fail-fast: false
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC",
+            name: "windows-latest MSVC",
+            os: windows-latest,
             cc: "cl", cxx: "cl"
           }
         - {
-            name: "Windows Latest MinGW",
+            name: "windows-latest MinGW",
+            os: windows-latest,
             cc: "gcc", cxx: "g++"
           }
     steps:
