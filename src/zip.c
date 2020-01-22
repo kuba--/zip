@@ -808,7 +808,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
 
     if (MZ_FILE_STAT(name, &file_stat) != 0) {
       // problem getting information - check errno
-      return -1;
+      status = -1;
+      break;
     }
 
     if ((file_stat.st_mode & 0200) == 0) {

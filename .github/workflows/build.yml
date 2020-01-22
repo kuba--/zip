@@ -2,47 +2,45 @@ name: build
 
 on: [push]
 
-env:
-  BUILD_TYPE: Debug
-  INSTALL_PREFIX: _install
-
 jobs:
-  build-ubuntu:
-    runs-on: ubuntu-latest     
+  ubuntu:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
-      run: cmake -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
+      run: cmake -DENABLE_COVERAGE=ON -DSANITIZE_ADDRESS=On .
     - name: Build
       run: cmake --build .
     - name: Test
-      run: ctest -VV
-      
+      run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV
+
     - name: CodeCov
       run: bash <(curl -s https://codecov.io/bash)
-   
-   
-  build-macos:      
-    runs-on: macos-latest      
+
+
+  macos:
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
-      run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
+      run: |
+        pip3 install scan-build
+        scan-build cmake -DSANITIZE_ADDRESS=On .
     - name: Build
-      run: cmake --build .
+      run: scan-build -v --exclude test -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs cmake --build .
     - name: Test
-      run:  ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV  
+      run:  ctest -VV
 
 
-  build-windows:      
-    runs-on: windows-latest
+  windows:
+    runs-on: "windows-latest"
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
-      run:  cmake  -G"Visual Studio 16 2019" .
+      run:  cmake  .
     - name: Build
       run:  cmake --build . --config "Debug"
     - name: Test
