@@ -32,6 +32,7 @@ jobs:
       run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
     - name: Scan
       run: |
+        pip3 install scan-build
         scan-build cmake -G "Unix Makefiles" .
         scan-build -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs -v
     - name: Build
