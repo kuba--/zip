@@ -27,9 +27,9 @@ jobs:
     - name: Configure
       run: |
         pip3 install scan-build
-        scan-build cmake -G "Unix Makefiles" -DSANITIZE_ADDRESS=On .
+        scan-build cmake -DSANITIZE_ADDRESS=On .
     - name: Build
-      run: scan-build -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs make -j 8
+      run: scan-build -v --exclude test -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs cmake --build .
     - name: Test
       run:  ctest -VV
 
