@@ -8,39 +8,43 @@ env:
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-latest     
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
       run: cmake -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
     - name: Build
       run: cmake --build .
     - name: Test
-      run: ctest -VV
-      
+      run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV
+
     - name: CodeCov
       run: bash <(curl -s https://codecov.io/bash)
-   
-   
-  build-macos:      
-    runs-on: macos-latest      
+
+
+  build-macos:
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
       run: cmake -DCMAKE_BUILD_TYPE=$ENV{BUILD_TYPE} -DSANITIZE_ADDRESS=On -DCMAKE_INSTALL_PREFIX=$ENV{INSTALL_PREFIX} .
+    - name: Scan
+      run: |
+        scan-build cmake -G "Unix Makefiles" .
+        scan-build -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs -v
     - name: Build
       run: cmake --build .
     - name: Test
-      run:  ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV  
+      run:  ctest -VV
 
 
-  build-windows:      
+  build-windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Configure
       run:  cmake  -G"Visual Studio 16 2019" .
     - name: Build
