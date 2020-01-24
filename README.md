@@ -212,6 +212,53 @@ func main() {
 }
 ```
 
+### Rust (ffi)
+```rust
+extern crate libc;
+use std::ffi::CString;
+
+#[repr(C)]
+pub struct Zip {
+    _private: [u8; 0],
+}
+
+#[link(name = "zip")]
+extern "C" {
+    fn zip_open(path: *const libc::c_char, level: libc::c_int, mode: libc::c_char) -> *mut Zip;
+    fn zip_close(zip: *mut Zip) -> libc::c_void;
+
+    fn zip_entry_open(zip: *mut Zip, entryname: *const libc::c_char) -> libc::c_int;
+    fn zip_entry_close(zip: *mut Zip) -> libc::c_int;
+    fn zip_entry_write(
+        zip: *mut Zip,
+        buf: *const libc::c_void,
+        bufsize: libc::size_t,
+    ) -> libc::c_int;
+}
+
+fn main() {
+    let path = CString::new("/tmp/test.zip").unwrap();
+    let mode: libc::c_char = 'w' as libc::c_char;
+
+    let entryname = CString::new("test.txt").unwrap();
+    let content = "test content\0";
+
+    unsafe {
+        let zip: *mut Zip = zip_open(path.as_ptr(), 5, mode);
+        {
+            zip_entry_open(zip, entryname.as_ptr());
+            {
+                let buf = content.as_ptr() as *const libc::c_void;
+                let bufsize = content.len() as libc::size_t;
+                zip_entry_write(zip, buf, bufsize);
+            }
+            zip_entry_close(zip);
+        }
+        zip_close(zip);
+    }
+}
+```
+
 ### Ruby (ffi)
 Install _ffi_ gem.
 ```shell
