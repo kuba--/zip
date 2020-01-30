@@ -19,8 +19,6 @@ jobs:
       uses: codecov/codecov-action@v1.0.0
       with:
         token: ${{secrets.CODECOV_TOKEN}}
-        file: ./coverage.txt
-
 
   macos:
     runs-on: macos-latest
