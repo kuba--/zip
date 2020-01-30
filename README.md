@@ -3,7 +3,6 @@ This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library
 
 [![Build](https://github.com/kuba--/zip/workflows/build/badge.svg)](https://github.com/kuba--/zip/actions?query=workflow%3Abuild)
 [![Version](https://badge.fury.io/gh/kuba--%2Fzip.svg)](https://github.com/kuba--/zip/releases)
-[![Codecov](https://codecov.io/gh/kuba--/zip/branch/master/graph/badge.svg)](https://codecov.io/gh/kuba--/zip)
 
 
 # The Idea
