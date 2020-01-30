@@ -7,23 +7,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-
     - name: Configure
-      run: cmake -DENABLE_COVERAGE=ON -DSANITIZE_ADDRESS=On .
+      run: cmake -DSANITIZE_ADDRESS=On .
     - name: Build
       run: cmake --build .
     - name: Test
       run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV
 
-    - name: CodeCov
-      run: bash <(curl -s https://codecov.io/bash)
-
-
   macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-
     - name: Configure
       run: |
         pip3 install scan-build
@@ -38,7 +32,6 @@ jobs:
     runs-on: "windows-latest"
     steps:
     - uses: actions/checkout@v2
-
     - name: Configure
       run:  cmake  .
     - name: Build
