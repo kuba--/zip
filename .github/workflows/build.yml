@@ -16,9 +16,7 @@ jobs:
       run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV
 
     - name: CodeCov
-      uses: codecov/codecov-action@v1.0.0
-      with:
-        token: ${{secrets.CODECOV_TOKEN}}
+      run: bash <(curl -s https://codecov.io/bash)
 
   macos:
     runs-on: macos-latest
