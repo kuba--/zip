@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.4)
 
 project(zip
   LANGUAGES C
@@ -20,7 +20,21 @@ endif (MSVC)
 
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
-add_library(${PROJECT_NAME} ${SRC})
+
+# this is the "object library" target: compiles the sources only once
+add_library(OBJLIB OBJECT ${SRC})
+# shared libraries need PIC
+set_property(TARGET OBJLIB PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+# static and shared libraries built from the same object files
+if (BUILD_SHARED_LIBS)
+  add_library(${PROJECT_NAME} SHARED $<TARGET_OBJECTS:OBJLIB>)
+  include(GenerateExportHeader)
+  generate_export_header(${PROJECT_NAME})
+else()
+  add_library(${PROJECT_NAME} STATIC $<TARGET_OBJECTS:OBJLIB>)
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:include>
