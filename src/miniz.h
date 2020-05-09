@@ -5089,6 +5089,60 @@ mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip,
   return MZ_FALSE;
 }
 
+#ifndef ISSLASH
+#define ISSLASH(C) ((C) == '/' || (C) == '\\')
+#endif
+mz_bool normalize_filename(const char *filename, char* output, mz_uint32 max_output) {
+  mz_int16 slash_count = 0;
+  char* target = output;
+  const char* src = filename;
+
+  if (max_output <= 0) return MZ_FALSE;
+
+  while (*src != 0 && max_output > 1) {
+    // Skip double slash
+    if (ISSLASH(src[0]) && ISSLASH(src[1])) {
+      src += 1;
+      continue;
+    }
+    // Skip current directory
+    if ((src[0] == '.') && (src[1] == 0 || ISSLASH(src[1]))) {
+        if (src[1] == 0) {
+          src += 1;
+          break;
+        }
+        src += 2;
+        continue;
+    }
+    // Go back for parent directory
+    if ((src[0] == '.') && (src[1] != 0 && src[1] == '.') && (src[2] == 0 || ISSLASH(src[2]))) {
+      slash_count = 0;
+      while (target >= output) {
+        if (*target == '\\' || *target == '/') {
+          slash_count += 1;
+          if (slash_count == 2) break;
+        }
+        if (target == output) break;
+        target -= 1;
+        max_output += 1;
+      }
+      if (src[2] == 0) target += 1;
+      if (target == output) src += 1;
+      src += 2;
+      *target = 0;
+      continue;
+    }
+    *target = *src;
+
+    src += 1;
+    target += 1;
+    max_output -= 1;
+  }
+  *target = 0;
+
+  return MZ_TRUE;
+}
+
 mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index,
                                 mz_zip_archive_file_stat *pStat) {
   mz_uint n;
@@ -5121,6 +5175,7 @@ mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index,
   n = MZ_MIN(n, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE - 1);
   memcpy(pStat->m_filename, p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE, n);
   pStat->m_filename[n] = '\0';
+  normalize_filename(pStat->m_filename, pStat->m_filename, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
 
   n = MZ_READ_LE16(p + MZ_ZIP_CDH_COMMENT_LEN_OFS);
   n = MZ_MIN(n, MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE - 1);
