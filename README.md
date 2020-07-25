@@ -325,7 +325,7 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-### [Never](https://never-lang.readthedocs.io/)(ffi)
+### [Never](https://never-lang.readthedocs.io/) (ffi)
 ```never
 extern "libzip.so" func zip_open(zipname: string, level: int, mode: char) -> c_ptr
 extern "libzip.so" func zip_close(zip: c_ptr) -> void
