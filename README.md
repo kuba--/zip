@@ -181,7 +181,7 @@ $ cmake -DBUILD_SHARED_LIBS=true ..
 $ make
 ```
 
-### Go (cgo)
+### [Go](https://golang.org) (cgo)
 ```go
 package main
 
@@ -211,7 +211,7 @@ func main() {
 }
 ```
 
-### Rust (ffi)
+### [Rust](https://www.rust-lang.org) (ffi)
 ```rust
 extern crate libc;
 use std::ffi::CString;
@@ -236,7 +236,7 @@ extern "C" {
 }
 
 fn main() {
-    let path = CString::new("/tmp/test.zip").unwrap();
+    let path = CString::new("/tmp/rust.zip").unwrap();
     let mode: libc::c_char = 'w' as libc::c_char;
 
     let entryname = CString::new("test.txt").unwrap();
@@ -258,7 +258,7 @@ fn main() {
 }
 ```
 
-### Ruby (ffi)
+### [Ruby](http://www.ruby-lang.org) (ffi)
 Install _ffi_ gem.
 ```shell
 $ gem install ffi
@@ -291,7 +291,7 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-### Python (cffi)
+### [Python](https://www.python.org) (cffi)
 Install _cffi_ package
 ```shell
 $ pip install cffi
@@ -325,7 +325,36 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-### Ring
+### [Never](https://never-lang.readthedocs.io/)(ffi)
+```never
+extern "libzip.so" func zip_open(zipname: string, level: int, mode: char) -> c_ptr
+extern "libzip.so" func zip_close(zip: c_ptr) -> void
+
+extern "libzip.so" func zip_entry_open(zip: c_ptr, entryname: string) -> int
+extern "libzip.so" func zip_entry_close(zip: c_ptr) -> int
+extern "libzip.so" func zip_entry_write(zip: c_ptr, buf: string, bufsize: int) -> int
+extern "libzip.so" func zip_entry_fwrite(zip: c_ptr, filename: string) -> int
+
+func main() -> int
+{
+    let content = "Test content"
+    
+    let zip = zip_open("/tmp/never.zip", 6, 'w');
+    
+    zip_entry_open(zip, "test.file");
+    zip_entry_fwrite(zip, "/tmp/test.txt");
+    zip_entry_close(zip);
+
+    zip_entry_open(zip, "test.content");
+    zip_entry_write(zip, content, length(content));
+    zip_entry_close(zip);
+
+    zip_close(zip);
+    0
+}
+```
+
+### [Ring](http://ring-lang.net)
 The language comes with RingZip based on this library
 ```ring
 load "ziplib.ring"
