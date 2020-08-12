@@ -151,26 +151,6 @@ static void test_read(void) {
   zip_close(zip);
 }
 
-static void test_extract_stream(void) {
-  FILE *fp = NULL;
-  fp = fopen(ZIPNAME, "r+");
-  assert(fp != NULL);
- 
-  fseek(fp, 0L, SEEK_END);
-  size_t filesize = ftell(fp);
-  fseek(fp, 0L, SEEK_SET);
-
-  char zipstream[filesize];
-  size_t size = fread(zipstream, 1, filesize, fp);
-  assert(filesize == size);
-
-  zip_extract_stream(zipstream, size, ".", NULL, NULL);
-
-  fclose(fp);
-  remove(DIRTEST);
-  remove(DIREMPTY);
-}
-
 struct buffer_t {
   char *data;
   size_t size;
@@ -487,6 +467,35 @@ static void test_unix_permissions(void) {
 #endif
  }
 
+static void test_extract_stream(void) {
+  const char *filenames[] = {XFILE};
+  FILE *f = fopen(XFILE, "w");
+  fclose(f);
+  chmod(XFILE, XMODE);
+
+  remove(ZIPNAME);
+  assert(0 == zip_create(ZIPNAME, filenames, 1));
+  remove(XFILE);
+
+  FILE *fp = NULL;
+  fp = fopen(ZIPNAME, "r+");
+  assert(fp != NULL);
+ 
+  fseek(fp, 0L, SEEK_END);
+  size_t filesize = ftell(fp);
+  fseek(fp, 0L, SEEK_SET);
+
+  char zipstream[filesize];
+  size_t size = fread(zipstream, 1, filesize, fp);
+  assert(filesize == size);
+
+  assert(0 == zip_extract_stream(zipstream, size, ".", NULL, NULL));
+
+  fclose(fp);
+  remove(XFILE);
+  remove(ZIPNAME);
+}
+
 int main(int argc, char *argv[]) {
   UNUSED(argc);
   UNUSED(argv);
@@ -496,7 +505,6 @@ int main(int argc, char *argv[]) {
   test_write();
   test_append();
   test_read();
-  test_extract_stream();
   test_extract();
   test_total_entries();
   test_entry_name();
@@ -509,6 +517,7 @@ int main(int argc, char *argv[]) {
   test_exe_permissions();
   test_mtime();
   test_unix_permissions();
+  test_extract_stream();
 
   remove(ZIPNAME);
   return 0;
