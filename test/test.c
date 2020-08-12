@@ -20,6 +20,9 @@
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
 
+#define DIREMPTY "empty\0"
+#define DIRTEST "test\0"
+
 #define RFILE "4.txt\0"
 #define RMODE 0100444
 
@@ -146,6 +149,26 @@ static void test_read(void) {
   buf = NULL;
 
   zip_close(zip);
+}
+
+static void test_extract_stream(void) {
+  FILE *fp = NULL;
+  fp = fopen(ZIPNAME, "r+");
+  assert(fp != NULL);
+ 
+  fseek(fp, 0L, SEEK_END);
+  size_t filesize = ftell(fp);
+  fseek(fp, 0L, SEEK_SET);
+
+  char zipstream[filesize];
+  size_t size = fread(zipstream, 1, filesize, fp);
+  assert(filesize == size);
+
+  zip_extract_stream(zipstream, size, ".", NULL, NULL);
+
+  fclose(fp);
+  remove(DIRTEST);
+  remove(DIREMPTY);
 }
 
 struct buffer_t {
@@ -462,7 +485,7 @@ static void test_unix_permissions(void) {
   remove(RFILE);
   remove(ZIPNAME);
 #endif
-}
+ }
 
 int main(int argc, char *argv[]) {
   UNUSED(argc);
@@ -473,6 +496,7 @@ int main(int argc, char *argv[]) {
   test_write();
   test_append();
   test_read();
+  test_extract_stream();
   test_extract();
   test_total_entries();
   test_entry_name();
