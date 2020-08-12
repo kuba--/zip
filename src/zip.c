@@ -957,3 +957,129 @@ out:
 
   return status;
 }
+
+int zip_extract_stream(const char *zipstream, size_t size, const char *dir,
+                int (*on_extract)(const char *filename, void *arg), void *arg) {
+  int status = -1;
+  mz_uint i, n;
+  char path[MAX_PATH + 1];
+  char symlink_to[MAX_PATH + 1];
+  mz_zip_archive zip_archive;
+  mz_zip_archive_file_stat info;
+  size_t dirlen = 0;
+  mz_uint32 xattr = 0;
+
+  memset(path, 0, sizeof(path));
+  memset(symlink_to, 0, sizeof(symlink_to));
+  if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
+    // Cannot memset zip archive
+    return -1;
+  }
+
+  if (!zipstream || !dir) {
+    // Cannot parse zip archive name
+    return -1;
+  }
+
+  dirlen = strlen(dir);
+  if (dirlen + 1 > MAX_PATH) {
+    return -1;
+  }
+
+  // Now try to open the archive.
+  if (!mz_zip_reader_init_mem(&zip_archive, zipstream, size, 0)) {
+    // Cannot initialize zip_archive reader
+    return -1;
+  }
+
+  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
+
+#if defined(_MSC_VER)
+  strcpy_s(path, MAX_PATH, dir);
+#else
+  strcpy(path, dir);
+#endif
+
+  if (!ISSLASH(path[dirlen - 1])) {
+#if defined(_WIN32) || defined(__WIN32__)
+    path[dirlen] = '\\';
+#else
+    path[dirlen] = '/';
+#endif
+    ++dirlen;
+  }
+
+  // Get and print information about each file in the archive.
+  n = mz_zip_reader_get_num_files(&zip_archive);
+  for (i = 0; i < n; ++i) {
+    if (!mz_zip_reader_file_stat(&zip_archive, i, &info)) {
+      // Cannot get information about zip archive;
+      goto out;
+    }
+#if defined(_MSC_VER)
+    strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename,
+              MAX_PATH - dirlen);
+#else
+    strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+#endif
+    if (mkpath(path) < 0) {
+      // Cannot make a path
+      goto out;
+    }
+
+    if ((((info.m_version_made_by >> 8) == 3) ||
+         ((info.m_version_made_by >> 8) ==
+          19)) // if zip is produced on Unix or macOS (3 and 19 from
+               // section 4.4.2.2 of zip standard)
+        && info.m_external_attr &
+               (0x20 << 24)) { // and has sym link attribute (0x80 is file, 0x40
+                               // is directory)
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW32__)
+#else
+      if (info.m_uncomp_size > MAX_PATH ||
+          !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlink_to,
+                                                 MAX_PATH, 0, NULL, 0)) {
+        goto out;
+      }
+      symlink_to[info.m_uncomp_size] = '\0';
+      if (symlink(symlink_to, path) != 0) {
+        goto out;
+      }
+#endif
+    } else {
+      if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+        if (!mz_zip_reader_extract_to_file(&zip_archive, i, path, 0)) {
+          // Cannot extract zip archive to file
+          goto out;
+        }
+      }
+
+#if defined(_MSC_VER)
+#else
+      xattr = (info.m_external_attr >> 16) & 0xFFFF;
+      if (xattr > 0) {
+        if (chmod(path, (mode_t)xattr) < 0) {
+          goto out;
+        }
+      }
+#endif
+    }
+
+    if (on_extract) {
+      if (on_extract(path, arg) < 0) {
+        goto out;
+      }
+    }
+  }
+  status = 0;
+
+out:
+  // Close the archive, freeing any resources it was using
+  if (!mz_zip_reader_end(&zip_archive)) {
+    // Cannot end zip reader
+    status = -1;
+  }
+
+  return status;
+}
