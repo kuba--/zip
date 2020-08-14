@@ -20,9 +20,6 @@
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
 
-#define DIREMPTY "empty\0"
-#define DIRTEST "test\0"
-
 #define RFILE "4.txt\0"
 #define RMODE 0100444
 
@@ -468,14 +465,19 @@ static void test_unix_permissions(void) {
  }
 
 static void test_extract_stream(void) {
-  const char *filenames[] = {XFILE};
-  FILE *f = fopen(XFILE, "w");
-  fclose(f);
-  chmod(XFILE, XMODE);
 
   remove(ZIPNAME);
-  assert(0 == zip_create(ZIPNAME, filenames, 1));
-  remove(XFILE);
+
+  struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  assert(zip != NULL);
+
+  assert(0 == zip_entry_open(zip, RFILE));
+  assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  assert(0 == zip_entry_close(zip));
+
+  zip_close(zip);
+
+  remove(RFILE);
 
   FILE *fp = NULL;
   fp = fopen(ZIPNAME, "r+");
@@ -485,14 +487,15 @@ static void test_extract_stream(void) {
   size_t filesize = ftell(fp);
   fseek(fp, 0L, SEEK_SET);
 
-  char zipstream[filesize];
-  size_t size = fread(zipstream, 1, filesize, fp);
+  char stream[filesize];
+  memset(stream, 0, filesize);
+  size_t size = fread(stream, 1, filesize, fp);
   assert(filesize == size);
 
-  assert(0 == zip_extract_stream(zipstream, size, ".", NULL, NULL));
+  assert(0 == zip_extract_stream(stream, size, ".", NULL, NULL));
 
   fclose(fp);
-  remove(XFILE);
+  remove(RFILE);
   remove(ZIPNAME);
 }
 
