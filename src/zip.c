@@ -832,7 +832,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static int extract(mz_zip_archive *zip_archive, const char *dir,
+static inline int extract(mz_zip_archive *zip_archive, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg){
   int status = -1;
   mz_uint i, n;
@@ -942,7 +942,7 @@ out:
 
 }
 
-static mz_zip_archive * zip_archive_init_file(const char *zipname, mz_uint32 flags){
+static inline mz_zip_archive * zip_archive_init_file(const char *zipname, mz_uint32 flags){
   mz_zip_archive *zip_archive = NULL;
   zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
   if (!zip_archive){
@@ -982,7 +982,7 @@ int zip_extract(const char *zipname, const char *dir,
   return status;
 }
 
-static mz_zip_archive * zip_archive_init_mem(const void *stream,
+static inline mz_zip_archive * zip_archive_init_mem(const void *stream,
                                       size_t size, mz_uint32 flags){
   mz_zip_archive *zip_archive = NULL;
   zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
