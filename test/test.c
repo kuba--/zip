@@ -489,7 +489,7 @@ static void test_extract_stream(void) {
 
   char stream[filesize];
   memset(stream, 0, filesize);
-  size_t size = fread(stream, 1, filesize, fp);
+  size_t size = fread(stream, sizeof(char), filesize, fp);
   assert(filesize == size);
 
   assert(0 == zip_extract_stream(stream, size, ".", NULL, NULL));
