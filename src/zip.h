@@ -322,7 +322,7 @@ extern int zip_extract(const char *zipname, const char *dir,
  * error. The last argument (void *arg) is optional, which you can use to pass
  * data to the on_extract callback.
  *
- * @param zipstream zip archive stream.
+ * @param stream zip archive stream.
  * @param size stream size.
  * @param dir output directory.
  * @param on_extract on extract callback.
@@ -330,7 +330,7 @@ extern int zip_extract(const char *zipname, const char *dir,
  *
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
-extern int zip_extract_stream(const char *zipstream, size_t size, const char *dir,
+extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg);
 /** @} */
 
