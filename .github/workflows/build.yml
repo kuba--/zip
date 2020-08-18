@@ -27,7 +27,7 @@ jobs:
     - name: Configure
       run: |
         pip3 install scan-build
-        scan-build cmake -DSANITIZE_ADDRESS=On .
+        scan-build cmake -DCMAKE_AR=/usr/bin/ar -DSANITIZE_ADDRESS=On .
     - name: Build
       run: |
         scan-build -v --exclude test -enable-checker security.FloatLoopCounter -enable-checker security.insecureAPI.UncheckedReturn --status-bugs cmake --build .
