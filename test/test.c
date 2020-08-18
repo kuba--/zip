@@ -465,7 +465,8 @@ static void test_unix_permissions(void) {
  }
 
 static void test_extract_stream(void) {
-
+#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
+#else
   remove(ZIPNAME);
 
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
@@ -497,6 +498,7 @@ static void test_extract_stream(void) {
   fclose(fp);
   remove(RFILE);
   remove(ZIPNAME);
+#endif
 }
 
 int main(int argc, char *argv[]) {
