@@ -313,25 +313,6 @@ extern int zip_extract(const char *zipname, const char *dir,
                        int (*on_extract_entry)(const char *filename, void *arg),
                        void *arg);
 
-/**
- * Extracts a zip archive stream into directory.
- *
- * If on_extract is not NULL, the callback will be called after
- * successfully extracted each zip entry.
- * Returning a negative value from the callback will cause abort and return an
- * error. The last argument (void *arg) is optional, which you can use to pass
- * data to the on_extract callback.
- *
- * @param stream zip archive stream.
- * @param size stream size.
- * @param dir output directory.
- * @param on_extract on extract callback.
- * @param arg opaque pointer.
- *
- * @return the return code - 0 on success, negative number (< 0) on error.
- */
-extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
-                int (*on_extract)(const char *filename, void *arg), void *arg);
 /** @} */
 
 #ifdef __cplusplus
