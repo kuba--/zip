@@ -462,7 +462,7 @@ static void test_unix_permissions(void) {
   remove(RFILE);
   remove(ZIPNAME);
 #endif
- }
+}
 
 static void test_extract_stream(void) {
 #if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
@@ -483,7 +483,7 @@ static void test_extract_stream(void) {
   FILE *fp = NULL;
   fp = fopen(ZIPNAME, "r+");
   assert(fp != NULL);
- 
+
   fseek(fp, 0L, SEEK_END);
   size_t filesize = ftell(fp);
   fseek(fp, 0L, SEEK_SET);

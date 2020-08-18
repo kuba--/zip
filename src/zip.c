@@ -833,7 +833,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
 }
 
 static inline int extract(mz_zip_archive *zip_archive, const char *dir,
-                int (*on_extract)(const char *filename, void *arg), void *arg){
+                          int (*on_extract)(const char *filename, void *arg),
+                          void *arg) {
   int status = -1;
   mz_uint i, n;
   char path[MAX_PATH + 1];
@@ -939,13 +940,13 @@ out:
     status = -1;
   }
   return status;
-
 }
 
-static inline mz_zip_archive * zip_archive_init_file(const char *zipname, mz_uint32 flags){
+static inline mz_zip_archive *zip_archive_init_file(const char *zipname,
+                                                    mz_uint32 flags) {
   mz_zip_archive *zip_archive = NULL;
   zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
-  if (!zip_archive){
+  if (!zip_archive) {
     // malloc failed.
     return NULL;
   }
@@ -964,14 +965,14 @@ static inline mz_zip_archive * zip_archive_init_file(const char *zipname, mz_uin
 }
 
 int zip_extract(const char *zipname, const char *dir,
-                 int (*on_extract)(const char *filename, void *arg), void *arg) {
+                int (*on_extract)(const char *filename, void *arg), void *arg) {
   if (!zipname || !dir) {
     // Cannot parse zip archive name
     return -1;
   }
   // init zip_archive and set reader
   mz_zip_archive *zip_archive = zip_archive_init_file(zipname, 0);
-  if (!zip_archive){
+  if (!zip_archive) {
     return -1;
   }
 
@@ -982,11 +983,11 @@ int zip_extract(const char *zipname, const char *dir,
   return status;
 }
 
-static inline mz_zip_archive * zip_archive_init_mem(const void *stream,
-                                      size_t size, mz_uint32 flags){
+static inline mz_zip_archive *
+zip_archive_init_mem(const void *stream, size_t size, mz_uint32 flags) {
   mz_zip_archive *zip_archive = NULL;
   zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
-  if (!zip_archive){
+  if (!zip_archive) {
     // malloc failed.
     return NULL;
   }
@@ -1005,14 +1006,15 @@ static inline mz_zip_archive * zip_archive_init_mem(const void *stream,
 }
 
 int zip_extract_stream(const char *stream, size_t size, const char *dir,
-                int (*on_extract)(const char *filename, void *arg), void *arg) {
+                       int (*on_extract)(const char *filename, void *arg),
+                       void *arg) {
   if (!stream || !dir) {
     // Cannot parse zip archive stream
     return -1;
   }
   // init zip_archive and set reader
   mz_zip_archive *zip_archive = zip_archive_init_mem(stream, size, 0);
-  if (!zip_archive){
+  if (!zip_archive) {
     return -1;
   }
 
@@ -1021,5 +1023,4 @@ int zip_extract_stream(const char *stream, size_t size, const char *dir,
   free(zip_archive);
 
   return status;
-
 }
