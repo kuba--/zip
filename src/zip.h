@@ -331,9 +331,7 @@ extern int zip_extract(const char *zipname, const char *dir,
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
 extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
-                              int (*on_extract)(const char *filename,
-                                                void *arg),
-                              void *arg);
+                int (*on_extract)(const char *filename, void *arg), void *arg);
 /** @} */
 
 #ifdef __cplusplus
