@@ -481,7 +481,7 @@ static void test_extract_stream(void) {
   remove(RFILE);
 
   FILE *fp = NULL;
-  fp = fopen(ZIPNAME, "r+");
+  fp = fopen(ZIPNAME, "rb+");
   assert(fp != NULL);
 
   fseek(fp, 0L, SEEK_END);
