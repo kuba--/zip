@@ -832,7 +832,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static inline int extract(mz_zip_archive *zip_archive, const char *dir,
+static int extract(mz_zip_archive *zip_archive, const char *dir,
                           int (*on_extract)(const char *filename, void *arg),
                           void *arg) {
   int status = -1;
@@ -942,85 +942,47 @@ out:
   return status;
 }
 
-static inline mz_zip_archive *zip_archive_init_file(const char *zipname,
-                                                    mz_uint32 flags) {
-  mz_zip_archive *zip_archive = NULL;
-  zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
-  if (!zip_archive) {
-    // malloc failed.
-    return NULL;
-  }
-  if (!memset(zip_archive, 0, sizeof(mz_zip_archive))) {
-    // Cannot memset zip archive
-    free(zip_archive);
-    return NULL;
-  }
-  // Now try to open the archive.
-  if (!mz_zip_reader_init_file(zip_archive, zipname, flags)) {
-    // Cannot initialize zip_archive reader
-    free(zip_archive);
-    return NULL;
-  }
-  return zip_archive;
-}
-
 int zip_extract(const char *zipname, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg) {
+  mz_zip_archive zip_archive;
   if (!zipname || !dir) {
     // Cannot parse zip archive name
     return -1;
   }
-  // init zip_archive and set reader
-  mz_zip_archive *zip_archive = zip_archive_init_file(zipname, 0);
-  if (!zip_archive) {
-    return -1;
-  }
-
-  int status = extract(zip_archive, dir, on_extract, arg);
-
-  free(zip_archive);
-
-  return status;
-}
-
-static inline mz_zip_archive *
-zip_archive_init_mem(const void *stream, size_t size, mz_uint32 flags) {
-  mz_zip_archive *zip_archive = NULL;
-  zip_archive = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
-  if (!zip_archive) {
-    // malloc failed.
-    return NULL;
-  }
-  if (!memset(zip_archive, 0, sizeof(mz_zip_archive))) {
+  if (!memset(&zip_archive, 0, sizeof(mz_zip_archive))) {
     // Cannot memset zip archive
-    free(zip_archive);
-    return NULL;
+    return MZ_FALSE;
   }
   // Now try to open the archive.
-  if (!mz_zip_reader_init_mem(zip_archive, stream, size, flags)) {
+  if (!mz_zip_reader_init_file(&zip_archive, zipname, 0)) {
     // Cannot initialize zip_archive reader
-    free(zip_archive);
-    return NULL;
+    return MZ_FALSE;
   }
-  return zip_archive;
+
+  int status = extract(&zip_archive, dir, on_extract, arg);
+
+  return status;
 }
 
 int zip_extract_stream(const char *stream, size_t size, const char *dir,
                        int (*on_extract)(const char *filename, void *arg),
                        void *arg) {
+  mz_zip_archive zip_archive;
   if (!stream || !dir) {
     // Cannot parse zip archive stream
     return -1;
   }
-  // init zip_archive and set reader
-  mz_zip_archive *zip_archive = zip_archive_init_mem(stream, size, 0);
-  if (!zip_archive) {
-    return -1;
+  if (!memset(&zip_archive, 0, sizeof(mz_zip_archive))) {
+    // Cannot memset zip archive
+    return MZ_FALSE;
+  }
+  if (!mz_zip_reader_init_mem(&zip_archive, stream, size, 0)) {
+    // Cannot initialize zip_archive reader
+    return MZ_FALSE;
   }
 
-  int status = extract(zip_archive, dir, on_extract, arg);
-
-  free(zip_archive);
+  int status = extract(&zip_archive, dir, on_extract, arg);
 
   return status;
+
 }
