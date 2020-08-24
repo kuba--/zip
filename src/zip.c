@@ -833,8 +833,8 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
 }
 
 static int extract(mz_zip_archive *zip_archive, const char *dir,
-                          int (*on_extract)(const char *filename, void *arg),
-                          void *arg) {
+                   int (*on_extract)(const char *filename, void *arg),
+                   void *arg) {
   int status = -1;
   mz_uint i, n;
   char path[MAX_PATH + 1];
@@ -984,5 +984,4 @@ int zip_extract_stream(const char *stream, size_t size, const char *dir,
   int status = extract(&zip_archive, dir, on_extract, arg);
 
   return status;
-
 }
