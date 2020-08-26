@@ -832,6 +832,46 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
+static mz_bool normalize_filename(const char *filename, char* output, mz_uint32 max_output) {
+  char* target = output;
+  const char* src = filename;
+
+  if (max_output <= 0) return MZ_FALSE;
+
+  while (*src != 0 && max_output > 1) {
+    // Skip double slash
+    if (ISSLASH(src[0]) && ISSLASH(src[1])) {
+      src += 1;
+      continue;
+    }
+    // Skip current directory
+    if ((src[0] == '.') && (src[1] == 0 || ISSLASH(src[1]))) {
+        if (src[1] == 0) {
+          src += 1;
+          break;
+        }
+        src += 2;
+        continue;
+    }
+    // Skip parent directory
+    if ((src[0] == '.') && (src[1] != 0 && src[1] == '.') && (src[2] == 0 || ISSLASH(src[2]))) {
+      if (src[2] == 0) target += 1;
+      if (target == output) src += 1;
+      src += 3;
+      *target = 0;
+      continue;
+    }
+    *target = *src;
+
+    src += 1;
+    target += 1;
+    max_output -= 1;
+  }
+  *target = 0;
+
+  return MZ_TRUE;
+}
+
 static int extract(mz_zip_archive *zip_archive, const char *dir,
                    int (*on_extract)(const char *filename, void *arg),
                    void *arg) {
@@ -873,6 +913,10 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
   for (i = 0; i < n; ++i) {
     if (!mz_zip_reader_file_stat(zip_archive, i, &info)) {
       // Cannot get information about zip archive;
+      goto out;
+    }
+    if (!normalize_filename(info.m_filename, info.m_filename, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)) {
+      // Cannot normalize file name;
       goto out;
     }
 #if defined(_MSC_VER)
