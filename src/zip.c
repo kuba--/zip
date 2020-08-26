@@ -832,15 +832,15 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static mz_bool normalize_filename(const char *filename, char* output, mz_uint32 max_output) {
+static mz_bool real_filename(const char *filename, char* output, mz_uint32 max_output) {
   char* target = output;
   const char* src = filename;
 
   if (max_output <= 0) return MZ_FALSE;
-
+  if (ISSLASH(src[0])) src += 1;
   while (*src != 0 && max_output > 1) {
     // Skip double slash
-    if (ISSLASH(src[0]) && ISSLASH(src[1])) {
+    if (ISSLASH(src[0]) && ISSLASH((src - 1)[0])) {
       src += 1;
       continue;
     }
@@ -915,7 +915,7 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-    if (!normalize_filename(info.m_filename, info.m_filename, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)) {
+    if (!real_filename(info.m_filename, info.m_filename, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)) {
       // Cannot normalize file name;
       goto out;
     }
