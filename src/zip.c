@@ -832,47 +832,34 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static mz_bool real_filename(const char *filename, char *output,
-                             mz_uint32 max_output) {
-  char *target = output;
-  const char *src = filename;
+static char *real_filename(char *str, char * const out, size_t len) {
+  size_t offstr = 0;
+  size_t offout = 0, ncopied = 0;
 
-  if (max_output <= 0)
-    return MZ_FALSE;
-  if (ISSLASH(src[0]))
-    src += 1;
-  while (*src != 0 && max_output > 1) {
-    // Skip double slash
-    if (ISSLASH(src[0]) && ISSLASH((src - 1)[0])) {
-      src += 1;
-      continue;
-    }
-    // Skip current directory
-    if ((src[0] == '.') && (src[1] == 0 || ISSLASH(src[1]))) {
-      if (src[1] == 0) {
-        break;
-      }
-      src += 2;
-      continue;
-    }
-    // Skip parent directory
-    if ((src[0] == '.') && (src[1] != 0 && src[1] == '.') &&
-        (src[2] == 0 || ISSLASH(src[2]))) {
-      if (src[2] == 0){
-        break;
-      }
-      src += 3;
-      continue;
-    }
-    *target = *src;
-
-    src += 1;
-    target += 1;
-    max_output -= 1;
+  if (str == NULL || out == NULL || len <= 0) {
+    return NULL;
   }
-  *target = 0;
+  // skip trailing '/'
+  while(ISSLASH(*str)) str++;
 
-  return MZ_TRUE;
+  for (; offstr < len; offstr++) {
+    if (ISSLASH(str[offstr])) {
+      if (ncopied > 0 && strncmp(&out[offout], ".", 1) && strncmp(&out[offout], "..", 2)) {
+        offout += ncopied;
+        out[offout++] = str[offstr]; // append '/'
+      }
+      ncopied = 0;
+    } else {
+      out[offout + ncopied] = str[offstr];
+      ncopied++;
+    }
+  }
+
+  // at the end, extra check what we've already copied
+  if (ncopied == 0 || !strncmp(&out[offout], ".", 1) || !strncmp(&out[offout], "..", 2)) {
+    out[offout] = 0;
+  }
+  return out;
 }
 
 static int extract(mz_zip_archive *zip_archive, const char *dir,
@@ -918,8 +905,7 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-    if (!real_filename(info.m_filename, info.m_filename,
-                       MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)) {
+    if (!real_filename(info.m_filename, info.m_filename, strlen(info.m_filename))) {
       // Cannot normalize file name;
       goto out;
     }
