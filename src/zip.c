@@ -832,7 +832,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static char *real_filename(char *str, char * const out, size_t len) {
+static char *real_filename(char *str, char *const out, size_t len) {
   size_t offstr = 0;
   size_t offout = 0, ncopied = 0;
 
@@ -840,11 +840,13 @@ static char *real_filename(char *str, char * const out, size_t len) {
     return NULL;
   }
   // skip trailing '/'
-  while(ISSLASH(*str)) str++;
+  while (ISSLASH(*str))
+    str++;
 
   for (; offstr < len; offstr++) {
     if (ISSLASH(str[offstr])) {
-      if (ncopied > 0 && strncmp(&out[offout], ".", 1) && strncmp(&out[offout], "..", 2)) {
+      if (ncopied > 0 && strncmp(&out[offout], ".", 1) &&
+          strncmp(&out[offout], "..", 2)) {
         offout += ncopied;
         out[offout++] = str[offstr]; // append '/'
       }
@@ -856,7 +858,8 @@ static char *real_filename(char *str, char * const out, size_t len) {
   }
 
   // at the end, extra check what we've already copied
-  if (ncopied == 0 || !strncmp(&out[offout], ".", 1) || !strncmp(&out[offout], "..", 2)) {
+  if (ncopied == 0 || !strncmp(&out[offout], ".", 1) ||
+      !strncmp(&out[offout], "..", 2)) {
     out[offout] = 0;
   }
   return out;
@@ -905,7 +908,8 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-    if (!real_filename(info.m_filename, info.m_filename, strlen(info.m_filename))) {
+    if (!real_filename(info.m_filename, info.m_filename,
+                       strlen(info.m_filename))) {
       // Cannot normalize file name;
       goto out;
     }
