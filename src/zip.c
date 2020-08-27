@@ -850,7 +850,6 @@ static mz_bool real_filename(const char *filename, char *output,
     // Skip current directory
     if ((src[0] == '.') && (src[1] == 0 || ISSLASH(src[1]))) {
       if (src[1] == 0) {
-        src += 1;
         break;
       }
       src += 2;
@@ -859,12 +858,10 @@ static mz_bool real_filename(const char *filename, char *output,
     // Skip parent directory
     if ((src[0] == '.') && (src[1] != 0 && src[1] == '.') &&
         (src[2] == 0 || ISSLASH(src[2]))) {
-      if (src[2] == 0)
-        target += 1;
-      if (target == output)
-        src += 1;
+      if (src[2] == 0){
+        break;
+      }
       src += 3;
-      *target = 0;
       continue;
     }
     *target = *src;
