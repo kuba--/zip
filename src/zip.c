@@ -908,8 +908,7 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-    if (!normalize(info.m_filename, info.m_filename,
-                       strlen(info.m_filename))) {
+    if (!normalize(info.m_filename, info.m_filename, strlen(info.m_filename))) {
       // Cannot normalize file name;
       goto out;
     }
