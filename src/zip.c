@@ -832,6 +832,39 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
+static char *normalize(char *name, char *const nname, size_t len) {
+  size_t offn = 0;
+  size_t offnn = 0, ncpy = 0;
+
+  if (name == NULL || nname == NULL || len <= 0) {
+    return NULL;
+  }
+  // skip trailing '/'
+  while (ISSLASH(*name))
+    name++;
+
+  for (; offn < len; offn++) {
+    if (ISSLASH(name[offn])) {
+      if (ncpy > 0 && strncmp(&nname[offnn], ".", 1) &&
+          strncmp(&nname[offnn], "..", 2)) {
+        offnn += ncpy;
+        nname[offnn++] = name[offn]; // append '/'
+      }
+      ncpy = 0;
+    } else {
+      nname[offnn + ncpy] = name[offn];
+      ncpy++;
+    }
+  }
+
+  // at the end, extra check what we've already copied
+  if (ncpy == 0 || !strncmp(&nname[offnn], ".", 1) ||
+      !strncmp(&nname[offnn], "..", 2)) {
+    nname[offnn] = 0;
+  }
+  return nname;
+}
+
 static int extract(mz_zip_archive *zip_archive, const char *dir,
                    int (*on_extract)(const char *filename, void *arg),
                    void *arg) {
@@ -873,6 +906,10 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
   for (i = 0; i < n; ++i) {
     if (!mz_zip_reader_file_stat(zip_archive, i, &info)) {
       // Cannot get information about zip archive;
+      goto out;
+    }
+    if (!normalize(info.m_filename, info.m_filename, strlen(info.m_filename))) {
+      // Cannot normalize file name;
       goto out;
     }
 #if defined(_MSC_VER)
