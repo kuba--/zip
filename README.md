@@ -190,7 +190,7 @@ void zip_walk(struct zip_t *zip, const char *path) {
         continue;
 
       snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
-      stat(path, &s);
+      stat(fullpath, &s);
       if (S_ISDIR(s.st_mode))
         zip_walk(zip, fullpath);
       else {
