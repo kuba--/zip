@@ -832,37 +832,37 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   return status;
 }
 
-static char *real_filename(char *str, char *const out, size_t len) {
-  size_t offstr = 0;
-  size_t offout = 0, ncopied = 0;
+static char *normalize(char *name, char *const nname, size_t len) {
+  size_t offn = 0;
+  size_t offnn = 0, ncpy = 0;
 
-  if (str == NULL || out == NULL || len <= 0) {
+  if (name == NULL || nname == NULL || len <= 0) {
     return NULL;
   }
   // skip trailing '/'
-  while (ISSLASH(*str))
-    str++;
+  while (ISSLASH(*name))
+    name++;
 
-  for (; offstr < len; offstr++) {
-    if (ISSLASH(str[offstr])) {
-      if (ncopied > 0 && strncmp(&out[offout], ".", 1) &&
-          strncmp(&out[offout], "..", 2)) {
-        offout += ncopied;
-        out[offout++] = str[offstr]; // append '/'
+  for (; offn < len; offn++) {
+    if (ISSLASH(name[offn])) {
+      if (ncpy > 0 && strncmp(&nname[offnn], ".", 1) &&
+          strncmp(&nname[offnn], "..", 2)) {
+        offnn += ncpy;
+        nname[offnn++] = name[offn]; // append '/'
       }
-      ncopied = 0;
+      ncpy = 0;
     } else {
-      out[offout + ncopied] = str[offstr];
-      ncopied++;
+      nname[offnn + ncpy] = name[offn];
+      ncpy++;
     }
   }
 
   // at the end, extra check what we've already copied
-  if (ncopied == 0 || !strncmp(&out[offout], ".", 1) ||
-      !strncmp(&out[offout], "..", 2)) {
-    out[offout] = 0;
+  if (ncpy == 0 || !strncmp(&nname[offnn], ".", 1) ||
+      !strncmp(&nname[offnn], "..", 2)) {
+    nname[offnn] = 0;
   }
-  return out;
+  return nname;
 }
 
 static int extract(mz_zip_archive *zip_archive, const char *dir,
@@ -908,7 +908,7 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       // Cannot get information about zip archive;
       goto out;
     }
-    if (!real_filename(info.m_filename, info.m_filename,
+    if (!normalize(info.m_filename, info.m_filename,
                        strlen(info.m_filename))) {
       // Cannot normalize file name;
       goto out;
