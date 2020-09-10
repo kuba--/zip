@@ -6,14 +6,6 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
-# test
-if (NOT CMAKE_DISABLE_TESTING)
-  enable_testing()
-  add_subdirectory(test)
-  find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME} ${test_out})
-endif()
-
 
 if (MSVC)
   # Use secure functions by default and suppress warnings about "deprecated" functions
@@ -47,6 +39,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:include>
 )
+
+# test
+if (NOT CMAKE_DISABLE_TESTING)
+  enable_testing()
+  add_subdirectory(test)
+  find_package(Sanitizers)
+  add_sanitizers(${PROJECT_NAME} ${test_out})
+endif()
 
 ####
 # Installation (https://github.com/forexample/package-example) {
