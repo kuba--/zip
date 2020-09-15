@@ -536,7 +536,7 @@ static void test_open_stream(void) {
   assert(0 == zip_entry_open(zipStream, "test/test-1.txt"));
   assert(0 == zip_entry_index(zipStream));
 
-  char *buf =NULL;
+  char *buf = NULL;
   ssize_t bufsize;
   bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
   assert(0 == strncmp(buf, TESTDATA1, (size_t)bufsize));

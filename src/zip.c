@@ -1023,10 +1023,10 @@ int zip_extract_stream(const char *stream, size_t size, const char *dir,
   return status;
 }
 
-struct zip_t* zip_open_stream(char *stream, size_t size) {
+struct zip_t *zip_open_stream(char *stream, size_t size) {
   struct zip_t *zip = NULL;
   zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
-  if(!zip) {
+  if (!zip) {
     goto cleanup;
   }
   if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
