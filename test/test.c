@@ -540,7 +540,7 @@ static void test_open_stream(void) {
   bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
   assert(0 == strncmp(buf, TESTDATA1, (size_t)bufsize));
   assert(0 == zip_entry_close(zipStream));
-  
+
   free(buf);
   zip_close(zipStream);
   remove(ZIPNAME);
