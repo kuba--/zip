@@ -334,6 +334,16 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
                               int (*on_extract)(const char *filename,
                                                 void *arg),
                               void *arg);
+
+/**
+ * open zip archive stream into memory.
+ *
+ * @param stream zip archive stream.
+ * @param size stream size.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern struct zip_t *zip_open_stream(const char *stream, size_t size);
 /** @} */
 
 #ifdef __cplusplus
