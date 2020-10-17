@@ -1176,7 +1176,7 @@ static int mark_entry_mark_array(struct zip_t *zip,
   d_pos = entry_mark_array[index].m_local_header_ofs;
   entry_mark_array[index].type = DELETE;
 
-  mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n * sizeof(mz_uint64));
+  mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if(local_header_ofs_array == NULL){
     return -1;
   }
@@ -1194,7 +1194,7 @@ static int mark_entry_mark_array(struct zip_t *zip,
     entry_mark_array[i].file_index = new_index;
   }
 
-  mz_uint64 *length = (mz_uint64 *)calloc(n * sizeof(mz_uint64));
+  mz_uint64 *length = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if(length == NULL){
     CLEANUP(local_header_ofs_array);
     return -1;
@@ -1243,7 +1243,7 @@ static mz_int64 file_move(MZ_FILE *m_pFile, const mz_uint64 to,
 static mz_int64 zip_file_move(MZ_FILE *m_pFile, mz_uint64 writen_num,
                               mz_uint64 read_num, mz_uint64 length) {
   const mz_int64 page_size = 1 << 12; // 4K
-  mz_uint8 *move_buf = (mz_uint8 *)calloc(page_size);
+  mz_uint8 *move_buf = (mz_uint8 *)calloc(1, page_size);
   if(move_buf == NULL){
     return -1;
   }
@@ -1364,7 +1364,7 @@ static int delete_central_dir_entrys(mz_zip_internal_state *pState,
 
 static int zip_entry_move(struct zip_t *zip,
                           struct entry_mark *entry_mark_array, int entry_num) {
-  mz_bool *deleted_entry_flag_array = (mz_bool *)calloc(entry_num * sizeof(mz_bool));
+  mz_bool *deleted_entry_flag_array = (mz_bool *)calloc(entry_num, sizeof(mz_bool));
   if(deleted_entry_flag_array == NULL){
     return -1;
   }
@@ -1436,7 +1436,7 @@ int zip_entry_delete(struct zip_t *zip, const char *name) {
     return -1;
   }
   int n = zip_total_entries(zip);
-  struct entry_mark *entry_mark_array = (struct entry_mark *)calloc(n * sizeof(struct entry_mark));
+  struct entry_mark *entry_mark_array = (struct entry_mark *)calloc(n, sizeof(struct entry_mark));
   if(entry_mark_array == NULL){
     return -1;
   }
