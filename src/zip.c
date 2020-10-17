@@ -1247,7 +1247,7 @@ static mz_int64 zip_file_move(MZ_FILE *m_pFile, mz_uint64 writen_num,
   if(move_buf == NULL){
     return -1;
   }
-  while (length >= page_size) {
+  while ((mz_int64)length >= page_size) {
     length -= page_size;
     if (file_move(m_pFile, writen_num, read_num, page_size, move_buf, page_size) != page_size) {
       CLEANUP(move_buf);
@@ -1258,13 +1258,13 @@ static mz_int64 zip_file_move(MZ_FILE *m_pFile, mz_uint64 writen_num,
   }
 
   if (length > 0) {
-    if (file_move(m_pFile, writen_num, read_num, length, move_buf, length) != length) {
+    if (file_move(m_pFile, writen_num, read_num, length, move_buf, length) != (mz_int64)length) {
       CLEANUP(move_buf);
       return -1;
     }
   }
   CLEANUP(move_buf);
-  return length;
+  return (mz_int64)length;
 }
 
 static int move_central_dir_entry(mz_zip_internal_state *pState, int begin,
