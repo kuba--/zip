@@ -1250,11 +1250,9 @@ static int set_entry_mark_array(struct zip_t *zip,
                                 struct entry_mark *entry_mark_array, int n,
                                 const char *deleted_entry_name) {
   if (init_entry_mark_array(zip, entry_mark_array, n, deleted_entry_name)) {
-    CLEANUP(entry_mark_array);
     return -1;
   }
   if (finalize_entry_mark_array(zip, entry_mark_array, n)) {
-    CLEANUP(entry_mark_array);
     return -1;
   }
   return 0;
