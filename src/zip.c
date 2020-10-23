@@ -1115,19 +1115,28 @@ static mz_bool file_name_matches(const char *file_name,
   int file_name_length = strlen(file_name);
   int delete_name_length = strlen(delete_name);
   char *delete_entry_name = strrpl(delete_name, delete_name_length, '\\', '/');
+  if (!delete_entry_name) {
+    return MZ_FALSE;
+  }
 
   if (delete_name_length > file_name_length) {
+    CLEANUP(delete_entry_name);
     return MZ_FALSE;
   }
   if (delete_entry_name[delete_name_length - 1] == '/') {
     if (strncmp(file_name, delete_entry_name, delete_name_length) == 0) {
+      CLEANUP(delete_entry_name);
       return MZ_TRUE;
     }
+    CLEANUP(delete_entry_name);
     return MZ_FALSE;
   }
   if (strcmp(file_name, delete_entry_name) == 0) {
+    CLEANUP(delete_entry_name);
     return MZ_TRUE;
   }
+
+  CLEANUP(delete_entry_name);
   return MZ_FALSE;
 }
 
