@@ -67,6 +67,19 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
     }                                                                          \
   } while (0)
 
+static int file_truncate(mz_zip_archive *pZip) {
+  mz_zip_internal_state *pState = pZip->m_pState;
+  mz_uint64 file_size = pZip->m_archive_size;
+
+  if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
+    if (pState->m_pFile) {
+      int fd = fileno(pState->m_pFile);
+      return ftruncate(fd, file_size);
+    }
+  }
+  return 0;
+}
+
 static const char *base_name(const char *name) {
   char const *p;
   char const *base = name += FILESYSTEM_PREFIX_LEN(name);
@@ -162,33 +175,6 @@ struct zip_t {
   struct zip_entry_t entry;
 };
 
-int zip_reader_writer_init_file(mz_zip_archive *pZip, const char *pFilename,
-                                mz_uint32 flags) {
-  mz_uint64 file_size;
-  MZ_FILE *pFile = MZ_FOPEN(pFilename, "rb+");
-  if (!pFile)
-    return -1;
-  if (MZ_FSEEK64(pFile, 0, SEEK_END)) {
-    MZ_FCLOSE(pFile);
-    return -1;
-  }
-  file_size = MZ_FTELL64(pFile);
-  if (!mz_zip_reader_init_internal(pZip, flags)) {
-    MZ_FCLOSE(pFile);
-    return -1;
-  }
-  pZip->m_pRead = mz_zip_file_read_func;
-  pZip->m_pWrite = mz_zip_file_write_func;
-  pZip->m_pIO_opaque = pZip;
-  pZip->m_pState->m_pFile = pFile;
-  pZip->m_archive_size = file_size;
-  if (!mz_zip_reader_read_central_dir(pZip, flags)) {
-    mz_zip_reader_end(pZip);
-    return -1;
-  }
-  return 0;
-}
-
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
   struct zip_t *zip = NULL;
 
@@ -220,6 +206,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
 
   case 'r':
   case 'a':
+  case 'd':
     if (!mz_zip_reader_init_file(
             &(zip->archive), zipname,
             zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
@@ -227,18 +214,9 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
       // zip_archive reader
       goto cleanup;
     }
-    if (mode == 'a' &&
+    if ((mode == 'a' || mode == 'd') &&
         !mz_zip_writer_init_from_reader(&(zip->archive), zipname)) {
       mz_zip_reader_end(&(zip->archive));
-      goto cleanup;
-    }
-    break;
-  case 'd':
-    if (zip_reader_writer_init_file(
-            &(zip->archive), zipname,
-            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
-      // An archive file does not exist or cannot initialize
-      // zip_archive reader
       goto cleanup;
     }
     break;
@@ -254,25 +232,12 @@ cleanup:
   return NULL;
 }
 
-int zip_file_resize(mz_zip_archive *pZip) {
-  mz_zip_internal_state *pState = pZip->m_pState;
-  mz_uint64 file_size = pZip->m_archive_size;
-
-  if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
-    if (pState->m_pFile) {
-      int fd = fileno(pState->m_pFile);
-      return ftruncate(fd, file_size);
-    }
-  }
-  return 0;
-}
-
 void zip_close(struct zip_t *zip) {
   if (zip) {
     // Always finalize, even if adding failed for some reason, so we have a
     // valid central directory.
     mz_zip_writer_finalize_archive(&(zip->archive));
-    zip_file_resize(&(zip->archive));
+    file_truncate(&(zip->archive));
     mz_zip_writer_end(&(zip->archive));
     mz_zip_reader_end(&(zip->archive));
 
@@ -1119,25 +1084,23 @@ static mz_bool file_name_matches(const char *file_name,
     return MZ_FALSE;
   }
 
-  if (delete_name_length > file_name_length) {
-    CLEANUP(delete_entry_name);
-    return MZ_FALSE;
+  mz_bool res = MZ_FALSE;
+  if (delete_name_length - 1 > file_name_length) {
+    goto cleanup;
   }
-  if (delete_entry_name[delete_name_length - 1] == '/') {
-    if (strncmp(file_name, delete_entry_name, delete_name_length) == 0) {
-      CLEANUP(delete_entry_name);
-      return MZ_TRUE;
-    }
-    CLEANUP(delete_entry_name);
-    return MZ_FALSE;
+  if ((delete_entry_name[delete_name_length - 2] == '/') &&
+      (delete_entry_name[delete_name_length - 1] == '*')) {
+    res = (strncmp(file_name, delete_entry_name, delete_name_length - 1) == 0);
+    goto cleanup;
   }
   if (strcmp(file_name, delete_entry_name) == 0) {
-    CLEANUP(delete_entry_name);
-    return MZ_TRUE;
+    res = MZ_TRUE;
+    goto cleanup;
   }
 
+cleanup:
   CLEANUP(delete_entry_name);
-  return MZ_FALSE;
+  return res;
 }
 
 static int init_entry_mark_array(struct zip_t *zip,
@@ -1243,8 +1206,7 @@ static int finalize_entry_mark_array(struct zip_t *zip,
   for (int i = 0; i < n - 1; i++) {
     length[i] = local_header_ofs_array[i + 1] - local_header_ofs_array[i];
   }
-  length[n - 1] =
-      zip->archive.m_central_directory_file_ofs - local_header_ofs_array[n - 1];
+  length[n - 1] = zip->archive.m_archive_size - local_header_ofs_array[n - 1];
 
   for (int i = 0; i < n; i++) {
     entry_mark_array[i].lf_length = length[entry_mark_array[i].file_index];
@@ -1477,8 +1439,7 @@ static int delete_entries(struct zip_t *zip,
     read_num += move_length;
   }
 
-  zip->archive.m_central_directory_file_ofs -= deleted_length;
-  zip->archive.m_archive_size = zip->archive.m_central_directory_file_ofs;
+  zip->archive.m_archive_size -= deleted_length;
   zip->archive.m_total_files = entry_num - deleted_entry_num;
 
   delete_central_dir_entrys(pState, deleted_entry_flag_array, entry_num);
