@@ -1122,6 +1122,7 @@ static int init_entry_mark_array(struct zip_t *zip,
     } else {
       entry_mark_array[i].type = KEEP;
     }
+    CLEANUP(zip->entry.name);
 
     if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
       return -1;
@@ -1262,26 +1263,24 @@ static mz_int64 move_files(MZ_FILE *m_pFile, mz_uint64 writen_num,
   if (move_buf == NULL) {
     return -1;
   }
-  while ((mz_int64)length >= page_size) {
-    length -= page_size;
-    if (file_move(m_pFile, writen_num, read_num, page_size, move_buf,
-                  page_size) != page_size) {
-      CLEANUP(move_buf);
-      return -1;
+
+  mz_int64 moved_length = 0;
+  mz_int64 move_count = 0;
+  while ((mz_int64)length > 0) {
+    move_count = ((mz_int64)length >= page_size) ? page_size : (mz_int64)length;
+    if (file_move(m_pFile, writen_num, read_num, move_count, move_buf,
+                  page_size) != move_count) {
+      goto cleanup;
     }
-    writen_num += page_size;
-    read_num += page_size;
+    writen_num += move_count;
+    read_num += move_count;
+    length -= move_count;
+    moved_length += move_count;
   }
 
-  if (length > 0) {
-    if (file_move(m_pFile, writen_num, read_num, length, move_buf, length) !=
-        (mz_int64)length) {
-      CLEANUP(move_buf);
-      return -1;
-    }
-  }
+cleanup:
   CLEANUP(move_buf);
-  return (mz_int64)length;
+  return moved_length;
 }
 
 static int move_central_dir_entry(mz_zip_internal_state *pState, int begin,
