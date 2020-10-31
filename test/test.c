@@ -610,7 +610,7 @@ static void test_delete_entry() {
   assert(-1 == zip_entry_open(zip, "test/test-3.txt"));
   assert(-1 == zip_entry_open(zip, "test/empty/"));
   assert(-1 == zip_entry_open(zip, "empty/"));
-
+  assert(-1 == zip_entry_open(zip, "test1/"));
   char *buf = NULL;
   ssize_t bufsize;
 
