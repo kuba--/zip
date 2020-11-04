@@ -346,16 +346,16 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
 extern struct zip_t *zip_open_stream(const char *stream, size_t size);
 
 /**
- * Deletes a zip archive file or folder.
+ * Deletes zip archive entries.
  *
  * @param zip zip archive handler.
- * @param name zip archive file.
- *
+ * @param entries array of zip archive entries to be deleted.
+ * @param num the number of entries to be deleted.
  * @return the number of deleted entries, or negative number (< 0) on error.
  */
-extern int zip_entry_delete(struct zip_t *zip, const char *name);
+extern int zip_entries_delete(struct zip_t *zip, char *entries[],
+                              const int num);
 /** @} */
-
 #ifdef __cplusplus
 }
 #endif
