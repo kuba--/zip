@@ -403,13 +403,14 @@ new Zip {
 }
 ```
 
-# Contribution Rules/Coding Standards
-No need to throw away your coding style, just do your best to follow default clang-format style.
-Apply `clang-format` to the source files before commit:
-```sh
-for file in $(git ls-files | \grep -E '\.(c|h)$' | \grep -v -- '#')
-do
-    clang-format -i $file
-done
-```
+### Check out more cool projects which use this library:
+- [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
+- [Hermes JS Engine](https://github.com/facebook/hermes): Hermes is a JavaScript engine optimized for fast start-up of React Native apps on Android. It features ahead-of-time static optimization and compact bytecode.
+- [Open Asset Import Library](https://github.com/assimp/assimp): A library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
+- [The Ring Programming Language](https://ring-lang.github.io): Innovative and practical general-purpose multi-paradigm language.
+- [The V Programming Language](https://github.com/vlang/v): Simple, fast, safe, compiled. For developing maintainable software.
+- [TIC-80](https://github.com/nesbox/TIC-80): TIC-80 is a FREE and OPEN SOURCE fantasy computer for making, playing and sharing tiny games.
+- [Urho3D](https://github.com/urho3d/Urho3D): Urho3D is a free lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license. Greatly inspired by OGRE and Horde3D.
+- [Vcpkg](https://github.com/microsoft/vcpkg): Vcpkg helps you manage C and C++ libraries on Windows, Linux and MacOS.
+- [and more...](https://grep.app/search?q=kuba--/zip)
 
