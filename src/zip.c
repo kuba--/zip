@@ -285,6 +285,9 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     and UNIX file systems etc.  If input came from standard
     input, there is no file name field.
   */
+  if (zip->entry.name) {
+    CLEANUP(zip->entry.name);
+  }
   zip->entry.name = strrpl(entryname, entrylen, '\\', '/');
   if (!zip->entry.name) {
     // Cannot parse zip entry name
@@ -442,6 +445,9 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
     and UNIX file systems etc.  If input came from standard
     input, there is no file name field.
   */
+  if (zip->entry.name) {
+    CLEANUP(zip->entry.name);
+  }
   zip->entry.name = strrpl(pFilename, namelen, '\\', '/');
   if (!zip->entry.name) {
     // local entry name is NULL
@@ -1083,20 +1089,15 @@ static mz_bool file_name_matches(const char *file_name,
     return MZ_FALSE;
   }
 
-  mz_bool res = MZ_FALSE;
-  if (strcmp(file_name, delete_entry_name) == 0) {
-    res = MZ_TRUE;
-    goto cleanup;
-  }
-
-cleanup:
+  mz_bool res =
+      (strcmp(file_name, delete_entry_name) == 0) ? MZ_TRUE : MZ_FALSE;
   CLEANUP(delete_entry_name);
   return res;
 }
 
 static int init_entry_mark_array(struct zip_t *zip,
                                  struct entry_mark *entry_mark_array, int n,
-                                 char *entries[], const int num) {
+                                 char *const entries[], const size_t len) {
   if (!zip || !entry_mark_array || !entries) {
     return -1;
   }
@@ -1108,7 +1109,7 @@ static int init_entry_mark_array(struct zip_t *zip,
       return -1;
     }
     mz_bool name_matches = MZ_FALSE;
-    for (int j = 0; j < num; ++j) {
+    for (int j = 0; j < (const int)len; ++j) {
       if (file_name_matches(zip->entry.name, entries[j])) {
         name_matches = MZ_TRUE;
         break;
@@ -1120,12 +1121,12 @@ static int init_entry_mark_array(struct zip_t *zip,
       entry_mark_array[i].type = KEEP;
     }
 
-    CLEANUP(zip->entry.name);
+    // CLEANUP(zip->entry.name);
 
     if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
       return -1;
     }
-
+    zip_entry_close(zip);
     entry_mark_array[i].m_local_header_ofs = file_stat.m_local_header_ofs;
     entry_mark_array[i].file_index = -1;
     entry_mark_array[i].lf_length = 0;
@@ -1218,8 +1219,8 @@ static int finalize_entry_mark_array(struct zip_t *zip,
 
 static int set_entry_mark_array(struct zip_t *zip,
                                 struct entry_mark *entry_mark_array, int n,
-                                char *entries[], const int num) {
-  if (init_entry_mark_array(zip, entry_mark_array, n, entries, num)) {
+                                char *const entries[], const size_t len) {
+  if (init_entry_mark_array(zip, entry_mark_array, n, entries, len)) {
     return -1;
   }
   if (finalize_entry_mark_array(zip, entry_mark_array, n)) {
@@ -1327,9 +1328,9 @@ static int move_central_dir_entry(mz_zip_internal_state *pState, int begin,
   return 0;
 }
 
-static int delete_central_dir_entrys(mz_zip_internal_state *pState,
-                                     int *deleted_entry_index_array,
-                                     int entry_num) {
+static int delete_central_dir_entries(mz_zip_internal_state *pState,
+                                      int *deleted_entry_index_array,
+                                      int entry_num) {
   int i = 0;
   int begin = 0;
   int end = 0;
@@ -1439,15 +1440,19 @@ static int delete_entries(struct zip_t *zip,
   zip->archive.m_archive_size -= deleted_length;
   zip->archive.m_total_files = entry_num - deleted_entry_num;
 
-  delete_central_dir_entrys(pState, deleted_entry_flag_array, entry_num);
+  delete_central_dir_entries(pState, deleted_entry_flag_array, entry_num);
   CLEANUP(deleted_entry_flag_array);
 
   return deleted_entry_num;
 }
 
-int zip_entries_delete(struct zip_t *zip, char *entries[], const int num) {
-  if (zip == NULL || entries == NULL) {
+int zip_entries_delete(struct zip_t *zip, char *const entries[],
+                       const size_t len) {
+  if (zip == NULL || (entries == NULL && len != 0)) {
     return -1;
+  }
+  if (entries == NULL && len == 0) {
+    return 0;
   }
   int n = zip_total_entries(zip);
   struct entry_mark *entry_mark_array =
@@ -1457,7 +1462,7 @@ int zip_entries_delete(struct zip_t *zip, char *entries[], const int num) {
   }
   zip->archive.m_zip_mode = MZ_ZIP_MODE_READING;
 
-  if (set_entry_mark_array(zip, entry_mark_array, n, entries, num)) {
+  if (set_entry_mark_array(zip, entry_mark_array, n, entries, len)) {
     CLEANUP(entry_mark_array);
     return -1;
   }

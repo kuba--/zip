@@ -571,7 +571,11 @@ static int create_zip_file(const char *filename) {
   assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
   assert(0 == zip_entry_close(zip));
 
-  assert(5 == zip_total_entries(zip));
+  assert(0 == zip_entry_open(zip, "directory/file.4"));
+  assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  assert(0 == zip_entry_close(zip));
+
+  assert(6 == zip_total_entries(zip));
   zip_close(zip);
   return 0;
 }
@@ -586,6 +590,7 @@ static void test_entries_delete() {
   assert(0 == zip_entry_open(zip, "directory/file.1"));
   assert(0 == zip_entry_open(zip, "otherdirectory/file.3"));
   assert(0 == zip_entry_open(zip, "directory/file.2"));
+  assert(0 == zip_entry_open(zip, "directory/file.4"));
   zip_close(zip);
 
   char *entries[] = {"file.txt", "a", "directory/file.1",
@@ -596,11 +601,28 @@ static void test_entries_delete() {
 
   zip = zip_open(ZIPNAME, 0, 'r');
   assert(-1 == zip_entry_open(zip, "file.txt"));
+  assert(0 == zip_entry_close(zip));
   assert(-1 == zip_entry_open(zip, "a"));
+  assert(0 == zip_entry_close(zip));
   assert(-1 == zip_entry_open(zip, "directory/file.1"));
+  assert(0 == zip_entry_close(zip));
   assert(-1 == zip_entry_open(zip, "otherdirectory/file.3"));
+  assert(0 == zip_entry_close(zip));
   assert(-1 == zip_entry_open(zip, "directory/file.2"));
-  assert(0 == zip_total_entries(zip));
+  assert(0 == zip_entry_close(zip));
+
+  assert(1 == zip_total_entries(zip));
+  assert(0 == zip_entry_open(zip, "directory/file.4"));
+  size_t buftmp = 0;
+  char *buf = NULL;
+  ssize_t bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
+  assert(bufsize == strlen(TESTDATA1));
+  assert((size_t)bufsize == buftmp);
+  assert(0 == strncmp(buf, TESTDATA1, bufsize));
+  assert(0 == zip_entry_close(zip));
+  free(buf);
+  buf = NULL;
+
   zip_close(zip);
 }
 
