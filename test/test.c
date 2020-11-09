@@ -586,11 +586,17 @@ static void test_entries_delete() {
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   assert(0 == zip_entry_open(zip, "file.txt"));
+  assert(0 == zip_entry_close(zip));
   assert(0 == zip_entry_open(zip, "a"));
+  assert(0 == zip_entry_close(zip));
   assert(0 == zip_entry_open(zip, "directory/file.1"));
+  assert(0 == zip_entry_close(zip));
   assert(0 == zip_entry_open(zip, "otherdirectory/file.3"));
+  assert(0 == zip_entry_close(zip));
   assert(0 == zip_entry_open(zip, "directory/file.2"));
+  assert(0 == zip_entry_close(zip));
   assert(0 == zip_entry_open(zip, "directory/file.4"));
+  assert(0 == zip_entry_close(zip));
   zip_close(zip);
 
   char *entries[] = {"file.txt", "a", "directory/file.1",
