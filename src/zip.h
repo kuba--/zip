@@ -336,7 +336,7 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
                               void *arg);
 
 /**
- * open zip archive stream into memory.
+ * Opens zip archive stream into memory.
  *
  * @param stream zip archive stream.
  * @param size stream size.
@@ -344,8 +344,18 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
  * @return the zip archive handler or NULL on error
  */
 extern struct zip_t *zip_open_stream(const char *stream, size_t size);
-/** @} */
 
+/**
+ * Deletes zip archive entries.
+ *
+ * @param zip zip archive handler.
+ * @param entries array of zip archive entries to be deleted.
+ * @param len the number of entries to be deleted.
+ * @return the number of deleted entries, or negative number (< 0) on error.
+ */
+extern int zip_entries_delete(struct zip_t *zip, char *const entries[],
+                              size_t len);
+/** @} */
 #ifdef __cplusplus
 }
 #endif
