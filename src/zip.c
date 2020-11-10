@@ -1121,8 +1121,6 @@ static int init_entry_mark_array(struct zip_t *zip,
       entry_mark_array[i].type = KEEP;
     }
 
-    // CLEANUP(zip->entry.name);
-
     if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
       return -1;
     }

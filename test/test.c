@@ -547,6 +547,8 @@ static void test_open_stream(void) {
 #endif
 }
 
+#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
+#else
 static int create_zip_file(const char *filename) {
   struct zip_t *zip = zip_open(filename, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   assert(zip != NULL);
@@ -579,8 +581,11 @@ static int create_zip_file(const char *filename) {
   zip_close(zip);
   return 0;
 }
+#endif
 
 static void test_entries_delete() {
+#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
+#else
   remove(ZIPNAME);
   assert(0 == create_zip_file(ZIPNAME));
 
@@ -630,6 +635,7 @@ static void test_entries_delete() {
   buf = NULL;
 
   zip_close(zip);
+#endif
 }
 
 int main(int argc, char *argv[]) {
