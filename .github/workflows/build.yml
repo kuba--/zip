@@ -48,7 +48,7 @@ jobs:
     - name: Test
       run: ctest -VV -C "Debug"
 
-  windows-mingw32:
+  windows-mingw64:
     runs-on: "windows-latest"
     defaults:
       run:
@@ -56,11 +56,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: msys2/setup-msys2@v2
-    - uses: msys2/setup-msys2@v2
       with:
-        msystem: MINGW32
+        msystem: MINGW64
         update: true
-        install: gitmingw32-base-bin mingw-gcc-g++-bin
+        install: git  mingw-w64-x86_64-toolchain
     - name: Configure
       run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
     - name: Build
