@@ -48,23 +48,15 @@ jobs:
     - name: Test
       run: ctest -VV -C "Debug"
 
-  windows-mingw64:
+  windows-mingw:
     runs-on: "windows-latest"
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
     - uses: actions/checkout@v2
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: git mingw-w64-x86_64-toolchain
     - name: Configure
-      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
+      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DCMAKE_SH=CMAKE_SH-NOTFOUND .
     - name: Build
       run: |
-        cmake --build . --config "Debug"
+        mingw32-make
         tree /a /f .
     - name: Test
       run: ctest -VV -C "Debug"
