@@ -59,7 +59,7 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: git  mingw-w64-x86_64-toolchain
+        install: git mingw-w64-x86_64-toolchain
     - name: Configure
       run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
     - name: Build
