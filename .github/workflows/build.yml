@@ -37,8 +37,6 @@ jobs:
 
   windows-msvc:
     runs-on: "windows-latest"
-    build_type: "Debug"
-    cc: "cl"
     steps:
     - uses: actions/checkout@v2
     - name: Configure
@@ -50,12 +48,19 @@ jobs:
     - name: Test
       run: ctest -VV -C "Debug"
 
-  windows-mingw:
+  windows-mingw32:
     runs-on: "windows-latest"
-    build_type: "Debug"
-    cc: "gcc"
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
     - uses: actions/checkout@v2
+    - uses: msys2/setup-msys2@v2
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW32
+        update: true
+        install: gitmingw32-base-bin mingw-gcc-g++-bin
     - name: Configure
       run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
     - name: Build
