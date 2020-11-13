@@ -35,8 +35,7 @@ jobs:
     - name: Test
       run:  ctest -VV
 
-
-  windows:
+  windows-msvc:
     runs-on: "windows-latest"
     steps:
     - uses: actions/checkout@v2
@@ -45,6 +44,19 @@ jobs:
     - name: Build
       run: |
         cmake --build . --config "Debug"
+        tree /a /f .
+    - name: Test
+      run: ctest -VV -C "Debug"
+
+  windows-mingw:
+    runs-on: "windows-latest"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Configure
+      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
+    - name: Build
+      run: |
+        mingw32-make
         tree /a /f .
     - name: Test
       run: ctest -VV -C "Debug"
