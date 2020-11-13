@@ -53,7 +53,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure
-      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DCMAKE_SH=CMAKE_SH-NOTFOUND .
+      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
     - name: Build
       run: |
         mingw32-make
