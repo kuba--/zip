@@ -19,11 +19,7 @@
 extern "C" {
 #endif
 
-#if !defined(_SSIZE_T_DEFINED) && !defined(_SSIZE_T_DEFINED_) &&               \
-    !defined(__DEFINED_ssize_t) && !defined(__ssize_t_defined) &&              \
-    !defined(_SSIZE_T) && !defined(_SSIZE_T_) &&                               \
-    !defined(_SSIZE_T_DECLARED) && !defined(__have_typedef_ssize_t)
-
+#if !defined(_POSIX_C_SOURCE) && defined(_MSC_VER)
 // 64-bit Windows is the only mainstream platform
 // where sizeof(long) != sizeof(void*)
 #ifdef _WIN64
@@ -31,15 +27,6 @@ typedef long long ssize_t; /* byte count or error */
 #else
 typedef long ssize_t; /* byte count or error */
 #endif
-
-#define _SSIZE_T_DEFINED
-#define _SSIZE_T_DEFINED_
-#define __DEFINED_ssize_t
-#define __ssize_t_defined
-#define _SSIZE_T
-#define _SSIZE_T_
-#define _SSIZE_T_DECLARED
-#define __have_typedef_ssize_t
 #endif
 
 #ifndef MAX_PATH
