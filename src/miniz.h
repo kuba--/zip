@@ -4113,18 +4113,44 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 #include <stdio.h>
 #include <sys/stat.h>
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
+
+#include <windows.h>
+
+static wchar_t* str2wstr(const char *str) {
+  int len = strlen(str) + 1;
+  wchar_t* wstr = malloc(len * sizeof(wchar_t));
+  MultiByteToWideChar(CP_UTF8, 0, str, len * sizeof(char), wstr, len);
+  return wstr;
+}
+
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   FILE *pFile = NULL;
-  fopen_s(&pFile, pFilename, pMode);
+
+  wchar_t* wFilename = str2wstr(pFilename);
+  wchar_t* wMode = str2wstr(pMode);
+  _wfopen_s(&pFile, wFilename, wMode);
+  free(wFilename);
+  free(wMode);
+
   return pFile;
 }
+
 static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   FILE *pFile = NULL;
-  if (freopen_s(&pFile, pPath, pMode, pStream))
-    return NULL;
+
+  wchar_t* wPath = str2wstr(pPath);
+  wchar_t* wMode = str2wstr(pMode);
+  int res = _wfreopen_s(&pFile, wPath, wMode, pStream);
+  free(wPath);
+  free(wMode);
+
+  if (res)
+      return NULL;
+
   return pFile;
 }
+
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
@@ -4145,7 +4171,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
 #include <sys/utime.h>
 #endif
 #define MZ_FILE FILE
-#define MZ_FOPEN(f, m) fopen(f, m)
+#define MZ_FOPEN(f, m) mz_fopen
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
@@ -4154,7 +4180,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
 #define MZ_FILE_STAT_STRUCT _stat
 #define MZ_FILE_STAT _stat
 #define MZ_FFLUSH fflush
-#define MZ_FREOPEN(f, m, s) freopen(f, m, s)
+#define MZ_FREOPEN(f, m, s) mz_freopen
 #define MZ_DELETE_FILE remove
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME

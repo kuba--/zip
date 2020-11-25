@@ -1053,9 +1053,9 @@ int zip_extract_stream(const char *stream, size_t size, const char *dir,
 }
 
 typedef enum {
-  KEEP = 0,
-  DELETE = 1,
-  MOVE = 2,
+  MZ_KEEP = 0,
+  MZ_DELETE = 1,
+  MZ_MOVE = 2,
 } modify_type;
 
 struct entry_mark {
@@ -1116,9 +1116,9 @@ static int init_entry_mark_array(struct zip_t *zip,
       }
     }
     if (name_matches) {
-      entry_mark_array[i].type = DELETE;
+      entry_mark_array[i].type = MZ_DELETE;
     } else {
-      entry_mark_array[i].type = KEEP;
+      entry_mark_array[i].type = MZ_KEEP;
     }
 
     if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
@@ -1128,15 +1128,15 @@ static int init_entry_mark_array(struct zip_t *zip,
     entry_mark_array[i].m_local_header_ofs = file_stat.m_local_header_ofs;
     entry_mark_array[i].file_index = -1;
     entry_mark_array[i].lf_length = 0;
-    if ((entry_mark_array[i].type) == DELETE &&
+    if ((entry_mark_array[i].type) == MZ_DELETE &&
         (d_pos > entry_mark_array[i].m_local_header_ofs)) {
       d_pos = entry_mark_array[i].m_local_header_ofs;
     }
   }
   for (int i = 0; i < n; ++i) {
     if ((entry_mark_array[i].m_local_header_ofs > d_pos) &&
-        (entry_mark_array[i].type != DELETE)) {
-      entry_mark_array[i].type = MOVE;
+        (entry_mark_array[i].type != MZ_DELETE)) {
+      entry_mark_array[i].type = MZ_MOVE;
     }
   }
   return 0;
@@ -1398,13 +1398,13 @@ static int delete_entries(struct zip_t *zip,
   int i = 0;
   int deleted_entry_num = 0;
   while (i < entry_num) {
-    while ((entry_mark_array[i].type == KEEP) && (i < entry_num)) {
+    while ((entry_mark_array[i].type == MZ_KEEP) && (i < entry_num)) {
       writen_num += entry_mark_array[i].lf_length;
       read_num = writen_num;
       i++;
     }
 
-    while ((entry_mark_array[i].type == DELETE) && (i < entry_num)) {
+    while ((entry_mark_array[i].type == MZ_DELETE) && (i < entry_num)) {
       deleted_entry_flag_array[i] = MZ_TRUE;
       read_num += entry_mark_array[i].lf_length;
       deleted_length += entry_mark_array[i].lf_length;
@@ -1412,7 +1412,7 @@ static int delete_entries(struct zip_t *zip,
       deleted_entry_num++;
     }
 
-    while ((entry_mark_array[i].type == MOVE) && (i < entry_num)) {
+    while ((entry_mark_array[i].type == MZ_MOVE) && (i < entry_num)) {
       move_length += entry_mark_array[i].lf_length;
       mz_uint8 *p = &MZ_ZIP_ARRAY_ELEMENT(
           &pState->m_central_dir, mz_uint8,
