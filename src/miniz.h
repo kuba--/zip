@@ -6316,7 +6316,10 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                mz_uint32 ext_attributes) {
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
+#ifndef MINIZ_NO_TIME
   time_t file_modified_time;
+#endif
+  
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs, uncomp_size = 0,
                                                         comp_size = 0;
   size_t archive_name_size;
@@ -6353,10 +6356,12 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
         comment_size + archive_name_size) > 0xFFFFFFFF))
     return MZ_FALSE;
 
+#ifndef MINIZ_NO_TIME
   memset(&file_modified_time, 0, sizeof(file_modified_time));
   if (!mz_zip_get_file_modified_time(pSrc_filename, &file_modified_time))
     return MZ_FALSE;
   mz_zip_time_t_to_dos_time(file_modified_time, &dos_time, &dos_date);
+#endif
 
   pSrc_file = MZ_FOPEN(pSrc_filename, "rb");
   if (!pSrc_file)
