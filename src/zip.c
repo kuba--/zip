@@ -313,7 +313,9 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     zip->entry.header_offset = stats.m_local_header_ofs;
     zip->entry.method = stats.m_method;
     zip->entry.external_attr = stats.m_external_attr;
+#ifndef MINIZ_NO_TIME
     zip->entry.m_time = stats.m_time;
+#endif
 
     return 0;
   }
@@ -466,7 +468,9 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
   zip->entry.header_offset = stats.m_local_header_ofs;
   zip->entry.method = stats.m_method;
   zip->entry.external_attr = stats.m_external_attr;
+#ifndef MINIZ_NO_TIME
   zip->entry.m_time = stats.m_time;
+#endif
 
   return 0;
 }
@@ -476,7 +480,7 @@ int zip_entry_close(struct zip_t *zip) {
   mz_uint level;
   tdefl_status done;
   mz_uint16 entrylen;
-  mz_uint16 dos_time, dos_date;
+  mz_uint16 dos_time = 0, dos_date = 0;
   int status = -1;
 
   if (!zip) {
@@ -509,7 +513,10 @@ int zip_entry_close(struct zip_t *zip) {
     goto cleanup;
   }
 
+#ifndef MINIZ_NO_TIME
   mz_zip_time_t_to_dos_time(zip->entry.m_time, &dos_time, &dos_date);
+#endif
+
   if (!mz_zip_writer_create_local_dir_header(
           pzip, zip->entry.header, entrylen, 0, zip->entry.uncomp_size,
           zip->entry.comp_size, zip->entry.uncomp_crc32, zip->entry.method, 0,
