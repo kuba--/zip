@@ -27,8 +27,7 @@
 
 #else
 
-#include <unistd.h> // needed for symlink() on BSD
-int symlink(const char *target, const char *linkpath); // needed on Linux
+#include <unistd.h> // needed for symlink()
 
 #define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
