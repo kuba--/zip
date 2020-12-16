@@ -66,6 +66,10 @@
     }                                                                          \
   } while (0)
 
+#ifdef _WIN32
+#define fileno _fileno
+#endif
+
 static int file_truncate(mz_zip_archive *pZip) {
   mz_zip_internal_state *pState = pZip->m_pState;
   mz_uint64 file_size = pZip->m_archive_size;
