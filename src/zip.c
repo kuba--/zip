@@ -39,12 +39,13 @@
 #include <unistd.h>
 #endif
 
-#ifdef _MSC_VER
-#define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
-#endif
-
 #include "miniz.h"
 #include "zip.h"
+
+#ifdef _MSC_VER
+#define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
+#define fileno _fileno
+#endif
 
 #ifndef HAS_DEVICE
 #define HAS_DEVICE(P) 0
@@ -65,10 +66,6 @@
       ptr = NULL;                                                              \
     }                                                                          \
   } while (0)
-
-#ifdef _WIN32
-#define fileno _fileno
-#endif
 
 static int file_truncate(mz_zip_archive *pZip) {
   mz_zip_internal_state *pState = pZip->m_pState;
