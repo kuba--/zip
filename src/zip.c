@@ -881,8 +881,8 @@ static char *normalize(char *name, char *const nname, size_t len) {
 
   for (; offn < len; offn++) {
     if (ISSLASH(name[offn])) {
-      if (ncpy > 0 && strncmp(&nname[offnn], ".", 1) &&
-          strncmp(&nname[offnn], "..", 2)) {
+      if (ncpy > 0 && strcmp(&nname[offnn], ".\0") &&
+          strcmp(&nname[offnn], "..\0")) {
         offnn += ncpy;
         nname[offnn++] = name[offn]; // append '/'
       }
@@ -894,8 +894,8 @@ static char *normalize(char *name, char *const nname, size_t len) {
   }
 
   // at the end, extra check what we've already copied
-  if (ncpy == 0 || !strncmp(&nname[offnn], ".", 1) ||
-      !strncmp(&nname[offnn], "..", 2)) {
+  if (ncpy == 0 || !strcmp(&nname[offnn], ".\0") ||
+      !strcmp(&nname[offnn], "..\0")) {
     nname[offnn] = 0;
   }
   return nname;
