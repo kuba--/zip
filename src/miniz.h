@@ -4117,9 +4117,9 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 
 #include <windows.h>
 
-static wchar_t* str2wstr(const char *str) {
+static wchar_t *str2wstr(const char *str) {
   int len = strlen(str) + 1;
-  wchar_t* wstr = malloc(len * sizeof(wchar_t));
+  wchar_t *wstr = malloc(len * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, str, len * sizeof(char), wstr, len);
   return wstr;
 }
@@ -4127,8 +4127,8 @@ static wchar_t* str2wstr(const char *str) {
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   FILE *pFile = NULL;
 
-  wchar_t* wFilename = str2wstr(pFilename);
-  wchar_t* wMode = str2wstr(pMode);
+  wchar_t *wFilename = str2wstr(pFilename);
+  wchar_t *wMode = str2wstr(pMode);
   _wfopen_s(&pFile, wFilename, wMode);
   free(wFilename);
   free(wMode);
@@ -4139,14 +4139,14 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
 static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   FILE *pFile = NULL;
 
-  wchar_t* wPath = str2wstr(pPath);
-  wchar_t* wMode = str2wstr(pMode);
+  wchar_t *wPath = str2wstr(pPath);
+  wchar_t *wMode = str2wstr(pMode);
   int res = _wfreopen_s(&pFile, wPath, wMode, pStream);
   free(wPath);
   free(wMode);
 
   if (res)
-      return NULL;
+    return NULL;
 
   return pFile;
 }
@@ -6319,7 +6319,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
 #ifndef MINIZ_NO_TIME
   time_t file_modified_time;
 #endif
-  
+
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs, uncomp_size = 0,
                                                         comp_size = 0;
   size_t archive_name_size;
