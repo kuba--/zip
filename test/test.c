@@ -83,6 +83,18 @@ static void test_append(void) {
   ++total_entries;
   assert(0 == zip_entry_close(zip));
 
+  assert(0 == zip_entry_open(zip, "dotfiles/.test"));
+  assert(0 == strcmp(zip_entry_name(zip), "dotfiles/.test"));
+  assert(0 == zip_entry_size(zip));
+  assert(0 == zip_entry_crc32(zip));
+  assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+  assert(strlen(TESTDATA2) == zip_entry_size(zip));
+  assert(CRC32DATA2 == zip_entry_crc32(zip));
+
+  assert(total_entries == zip_entry_index(zip));
+  ++total_entries;
+  assert(0 == zip_entry_close(zip));
+
   zip_close(zip);
 }
 
@@ -145,6 +157,17 @@ static void test_read(void) {
   free(buf);
   buf = NULL;
 
+  buftmp = strlen(TESTDATA2);
+  buf = calloc(buftmp, sizeof(char));
+  assert(0 == zip_entry_open(zip, "dotfiles/.test"));
+
+  bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
+  assert(buftmp == (size_t)bufsize);
+  assert(0 == strncmp(buf, TESTDATA2, buftmp));
+  assert(0 == zip_entry_close(zip));
+  free(buf);
+  buf = NULL;
+
   zip_close(zip);
 }
 
@@ -173,13 +196,22 @@ static void test_extract(void) {
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   assert(zip != NULL);
-  memset((void *)&buf, 0, sizeof(struct buffer_t));
 
+  memset((void *)&buf, 0, sizeof(struct buffer_t));
   assert(0 == zip_entry_open(zip, "test/test-1.txt"));
   assert(0 == zip_entry_extract(zip, on_extract, &buf));
-
   assert(buf.size == strlen(TESTDATA1));
   assert(0 == strncmp(buf.data, TESTDATA1, buf.size));
+  assert(0 == zip_entry_close(zip));
+  free(buf.data);
+  buf.data = NULL;
+  buf.size = 0;
+
+  memset((void *)&buf, 0, sizeof(struct buffer_t));
+  assert(0 == zip_entry_open(zip, "dotfiles/.test"));
+  assert(0 == zip_entry_extract(zip, on_extract, &buf));
+  assert(buf.size == strlen(TESTDATA2));
+  assert(0 == strncmp(buf.data, TESTDATA2, buf.size));
   assert(0 == zip_entry_close(zip));
   free(buf.data);
   buf.data = NULL;
@@ -476,9 +508,14 @@ static void test_extract_stream(void) {
   assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
   assert(0 == zip_entry_close(zip));
 
+  assert(0 == zip_entry_open(zip, "dotfiles/.test\0"));
+  assert(0 == zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+  assert(0 == zip_entry_close(zip));
+
   zip_close(zip);
 
   remove(RFILE);
+  remove("dotfiles/.test\0");
 
   FILE *fp = NULL;
   fp = fopen(ZIPNAME, "rb+");
@@ -497,6 +534,7 @@ static void test_extract_stream(void) {
 
   fclose(fp);
   remove(RFILE);
+  remove("dotfiles/.test\0");
   remove(ZIPNAME);
 #endif
 }
