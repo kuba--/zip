@@ -11,7 +11,9 @@
 
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
@@ -25,27 +27,18 @@
    (P)[1] == ':')
 #define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
 
-#else
+#define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
+#define fileno _fileno
 
-#include <unistd.h> // needed for symlink()
+#else
 
 #define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
 #endif
 
-#ifdef __MINGW32__
-#include <sys/types.h>
-#include <unistd.h>
-#endif
-
 #include "miniz.h"
 #include "zip.h"
-
-#ifdef _MSC_VER
-#define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
-#define fileno _fileno
-#endif
 
 #ifndef HAS_DEVICE
 #define HAS_DEVICE(P) 0
