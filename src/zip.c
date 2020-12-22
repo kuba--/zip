@@ -43,6 +43,8 @@
 #include "zip.h"
 
 #ifdef _MSC_VER
+#include <io.h>
+
 #define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
 #define fileno _fileno
 #endif
