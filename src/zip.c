@@ -43,7 +43,9 @@
 #include "zip.h"
 
 #ifdef _MSC_VER
-#define ftruncate(fd, sz) (-(_chsize_s((fd), (__int64)(sz)) != 0))
+#include <io.h>
+
+#define ftruncate(fd, sz) (-(_chsize_s((fd), (sz)) != 0))
 #define fileno _fileno
 #endif
 
@@ -760,6 +762,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   }
 
 #if defined(_MSC_VER)
+  (void)xattr; // unused
 #else
   if (!mz_zip_reader_file_stat(pzip, idx, &info)) {
     // Cannot get information about zip archive;
@@ -988,6 +991,7 @@ static int extract(mz_zip_archive *zip_archive, const char *dir,
       }
 
 #if defined(_MSC_VER)
+      (void)xattr; // unused
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
       if (xattr > 0) {
