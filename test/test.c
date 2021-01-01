@@ -497,6 +497,10 @@ static void test_unix_permissions(void) {
 }
 
 static void test_extract_stream(void) {
+  assert(0 > zip_extract("non_existing_directory/non_existing_archive.zip", ".",
+                         NULL, NULL));
+  assert(0 > zip_extract_stream("", 0, ".", NULL, NULL));
+
 #if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
 #else
   remove(ZIPNAME);
