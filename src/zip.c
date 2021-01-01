@@ -1028,12 +1028,12 @@ int zip_extract(const char *zipname, const char *dir,
   }
   if (!memset(&zip_archive, 0, sizeof(mz_zip_archive))) {
     // Cannot memset zip archive
-    return MZ_FALSE;
+    return -1;
   }
   // Now try to open the archive.
   if (!mz_zip_reader_init_file(&zip_archive, zipname, 0)) {
     // Cannot initialize zip_archive reader
-    return MZ_FALSE;
+    return -1;
   }
 
   int status = extract(&zip_archive, dir, on_extract, arg);
@@ -1051,11 +1051,11 @@ int zip_extract_stream(const char *stream, size_t size, const char *dir,
   }
   if (!memset(&zip_archive, 0, sizeof(mz_zip_archive))) {
     // Cannot memset zip archive
-    return MZ_FALSE;
+    return -1;
   }
   if (!mz_zip_reader_init_mem(&zip_archive, stream, size, 0)) {
     // Cannot initialize zip_archive reader
-    return MZ_FALSE;
+    return -1;
   }
 
   int status = extract(&zip_archive, dir, on_extract, arg);
