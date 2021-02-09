@@ -1111,22 +1111,24 @@ cleanup:
   return NULL;
 }
 
-void zip_write_end(struct zip_t *zip){
+static inline void zip_write_end(struct zip_t *zip){
     if (zip) {
     mz_zip_writer_finalize_archive(&(zip->archive));
     file_truncate(&(zip->archive));
   }
 }
 
-void* get_zip_mem(struct zip_t *zip){
-  	  return zip->archive.m_pState->m_pMem;
-}
-
-size_t get_zip_size(struct zip_t *zip){
+ssize_t zip_stream_cpy(struct zip_t *zip, void **buf, ssize_t *bufsize){
+  if(zip == NULL) return -1;
+  zip_write_end(zip);
+  if(bufsize != NULL)
+    *bufsize = zip->archive.m_archive_size;
+  *buf = (char *)malloc(zip->archive.m_archive_size);
+  memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
   return zip->archive.m_archive_size;
 }
 
-void zip_close_without_write_end(struct zip_t *zip){
+void zip_close_stream(struct zip_t *zip){
   if (zip) {
     mz_zip_writer_end(&(zip->archive));
     mz_zip_reader_end(&(zip->archive));

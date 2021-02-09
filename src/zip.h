@@ -333,10 +333,26 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
  */
 extern struct zip_t *zip_open_stream(const char *stream, size_t size,
                                      int level, char mode);
-extern void zip_write_end(struct zip_t *zip);
-extern size_t get_zip_size(struct zip_t *zip);
-extern void* get_zip_mem(struct zip_t *zip);
-extern void zip_close_without_write_end(struct zip_t *zip);
+
+/**
+ * Copy zip archive stream output buffer.
+ *
+ * @param zip zip archive handler.
+ * @param buf output buffer. User should free buf.
+ * @param bufsize output buffer size (in bytes).
+ *
+ * @return copy size
+ */
+extern ssize_t zip_stream_cpy(struct zip_t *zip, void **buf, ssize_t *bufsize);
+
+/**
+ * Close zip archive releases resources.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return
+ */
+extern void zip_close_stream(struct zip_t *zip);
 
 /**
  * Deletes zip archive entries.
