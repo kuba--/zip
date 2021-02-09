@@ -331,7 +331,12 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
  *
  * @return the zip archive handler or NULL on error
  */
-extern struct zip_t *zip_open_stream(const char *stream, size_t size);
+extern struct zip_t *zip_open_stream(const char *stream, size_t size,
+                                     int level, char mode);
+extern void zip_write_end(struct zip_t *zip);
+extern size_t get_zip_size(struct zip_t *zip);
+extern void* get_zip_mem(struct zip_t *zip);
+extern void zip_close_without_write_end(struct zip_t *zip);
 
 /**
  * Deletes zip archive entries.

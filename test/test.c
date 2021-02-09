@@ -572,7 +572,68 @@ static void test_open_stream(void) {
 
   fclose(fp);
 
-  struct zip_t *zipStream = zip_open_stream(stream, size);
+  struct zip_t *zipStream = zip_open_stream(stream, size, 0, 'r');
+  assert(zipStream != NULL);
+
+  assert(0 == zip_entry_open(zipStream, "test/test-1.txt"));
+
+  char *buf = NULL;
+  ssize_t bufsize;
+  bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
+  assert(0 == strncmp(buf, TESTDATA1, (size_t)bufsize));
+  assert(0 == zip_entry_close(zipStream));
+
+  free(buf);
+  zip_close(zipStream);
+  remove(ZIPNAME);
+#endif
+}
+
+static void test_open_stream2(void) {
+#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
+#else
+  remove(ZIPNAME);
+  /* compress to mem */
+  struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  assert(zip != NULL);
+
+  assert(0 == zip_entry_open(zip, "test/test-1.txt"));
+  assert(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  assert(0 == zip_entry_close(zip));
+
+  zip_write_end(zip);
+  FILE *fp = NULL;
+  fp = fopen(ZIPNAME, "w");
+  assert(fp != NULL);
+  /*
+  size_t get_zip_size(struct zip_t *zip);
+  get compressed mem size.
+  void* get_zip_mem(struct zip_t *zip);
+  get compressed mem ptr.
+  */
+  /* write compressed mem to file */
+  fwrite(get_zip_mem(zip), get_zip_size(zip), 1, fp);
+  fclose(fp);
+  zip_close_without_write_end(zip);
+  //zip_close(zip);
+
+  /* To verify the function of compressing date to the memory */
+  fp = NULL;
+  fp = fopen(ZIPNAME, "r");
+  assert(fp != NULL);
+
+  fseek(fp, 0L, SEEK_END);
+  size_t filesize = ftell(fp);
+  fseek(fp, 0L, SEEK_SET);
+
+  char stream[filesize];
+  memset(stream, 0, filesize);
+  size_t size = fread(stream, sizeof(char), filesize, fp);
+  assert(filesize == size);
+
+  fclose(fp);
+
+  struct zip_t *zipStream = zip_open_stream(stream, size, 0, 'r');
   assert(zipStream != NULL);
 
   assert(0 == zip_entry_open(zipStream, "test/test-1.txt"));
@@ -703,6 +764,7 @@ int main(int argc, char *argv[]) {
   test_unix_permissions();
   test_extract_stream();
   test_open_stream();
+  test_open_stream2();
   test_entries_delete();
 
   remove(ZIPNAME);
