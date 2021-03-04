@@ -1118,12 +1118,12 @@ static inline void zip_write_end(struct zip_t *zip){
   }
 }
 
-ssize_t zip_stream_cpy(struct zip_t *zip, void **buf, ssize_t *bufsize){
+ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize){
   if(zip == NULL) return -1;
   zip_write_end(zip);
   if(bufsize != NULL)
     *bufsize = zip->archive.m_archive_size;
-  *buf = (char *)malloc(zip->archive.m_archive_size);
+  *buf = (char *)calloc(sizeof(unsigned char), zip->archive.m_archive_size);
   memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
   return zip->archive.m_archive_size;
 }

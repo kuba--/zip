@@ -557,7 +557,7 @@ static void test_open_stream(void) {
 
   /* write compressed mem to file */
   char *buf_encode = NULL;
-  size_t n = zip_stream_cpy(zip, (void **)&buf_encode, NULL);
+  size_t n = zip_copy_stream(zip, (void **)&buf_encode, NULL);
   zip_close_stream(zip);
   /* DECOMPRESS MEM TO MEM */
   struct zip_t *zipStream = zip_open_stream(buf_encode, n, 0, 'r');

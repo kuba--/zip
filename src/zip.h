@@ -343,7 +343,7 @@ extern struct zip_t *zip_open_stream(const char *stream, size_t size,
  *
  * @return copy size
  */
-extern ssize_t zip_stream_cpy(struct zip_t *zip, void **buf, ssize_t *bufsize);
+extern ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize);
 
 /**
  * Close zip archive releases resources.
