@@ -72,7 +72,9 @@
 static int file_truncate(mz_zip_archive *pZip) {
   mz_zip_internal_state *pState = pZip->m_pState;
   mz_uint64 file_size = pZip->m_archive_size;
-
+  if ((pZip->m_pWrite == mz_zip_heap_write_func) && (pState->m_pMem)) {
+    return 0;
+  }
   if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
     if (pState->m_pFile) {
       int fd = fileno(pState->m_pFile);
@@ -1076,13 +1078,30 @@ struct entry_mark {
   mz_uint64 lf_length;
 };
 
-struct zip_t *zip_open_stream(const char *stream, size_t size) {
+struct zip_t *zip_open_stream(const char *stream, size_t size, int level, char mode) {
   struct zip_t *zip = NULL;
   zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
   if (!zip) {
     return NULL;
   }
-  if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
+  if (level < 0)
+    level = MZ_DEFAULT_LEVEL;
+  if ((level & 0xF) > MZ_UBER_COMPRESSION) {
+    // Wrong compression level
+    goto cleanup;
+  }
+  zip->level = (mz_uint)level;
+  if((stream != NULL) && (size > 0) && (mode == 'r')){
+    if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
+      goto cleanup;
+    }
+  }else if((stream == NULL) && (size == 0) && (mode == 'w')){
+    // Create a new archive.
+    if (!mz_zip_writer_init_heap(&(zip->archive), 0, 1024)) {
+      // Cannot initialize zip_archive writer
+      goto cleanup;
+    }
+  }else{
     goto cleanup;
   }
   return zip;
@@ -1090,6 +1109,31 @@ struct zip_t *zip_open_stream(const char *stream, size_t size) {
 cleanup:
   CLEANUP(zip);
   return NULL;
+}
+
+static inline void zip_write_end(struct zip_t *zip){
+    if (zip) {
+    mz_zip_writer_finalize_archive(&(zip->archive));
+    file_truncate(&(zip->archive));
+  }
+}
+
+ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize){
+  if(zip == NULL) return -1;
+  zip_write_end(zip);
+  if(bufsize != NULL)
+    *bufsize = zip->archive.m_archive_size;
+  *buf = (char *)calloc(sizeof(unsigned char), zip->archive.m_archive_size);
+  memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
+  return zip->archive.m_archive_size;
+}
+
+void zip_close_stream(struct zip_t *zip){
+  if (zip) {
+    mz_zip_writer_end(&(zip->archive));
+    mz_zip_reader_end(&(zip->archive));
+    CLEANUP(zip);
+  }
 }
 
 static mz_bool file_name_matches(const char *file_name,
