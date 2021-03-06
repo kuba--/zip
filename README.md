@@ -154,35 +154,45 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
 zip_close(zip);
 ```
 
-* Create a new zip archive in memory.
+* Create a new zip archive in memory (stream API).
 
 ```c
-char *buf_encode = NULL;
-const char *buf = "Append some data here...\0";
+char *outbuf = NULL;
+size_t outbufsize = 0;
+
+const char *inbuf = "Append some data here...\0";
 struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 {
     zip_entry_open(zip, "foo-1.txt");
-  	zip_entry_write(zip, buf, strlen(buf));
-  	zip_entry_close(zip);
-  	/* copy compressed mem to buf_encode */
-  	size_t n = zip_copy_stream(zip, (void **)&buf_encode, NULL);
+    {
+        zip_entry_write(zip, inbuf, strlen(inbuf));
+    }
+    zip_entry_close(zip);
+  	
+    /* copy compressed stream into outbuf */
+    zip_copy_stream(zip, (void **)&outbuf, &outbufsize);
 }
 zip_close_stream(zip);
-free(buf_encode);
+
+free(outbuf);
 ```
 
-* Extract a zip entry into a memory.
+* Extract a zip entry into a memory (stream API).
 
 ```c
 char *buf = NULL;
-struct zip_t *zipStream = zip_open_stream(buf_encode, n, 0, 'r');
+ssize_t bufsize = 0;
+
+struct zip_t *zip = zip_open_stream(zipstream, zipstreamsize, 0, 'r');
 {
-    zip_entry_open(zipStream, "foo-1.txt");
-  	ssize_t bufsize;
-  	bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
-    zip_entry_close(zipStream);
+    zip_entry_open(zip, "foo-1.txt");
+    {
+        zip_entry_read(zip, (void **)&buf, &bufsize);
+    }
+    zip_entry_close(zip);
 }
-zip_close_stream(zipStream);
+zip_close_stream(zip);
+
 free(buf);
 ```
 
