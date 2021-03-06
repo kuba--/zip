@@ -154,6 +154,38 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
 zip_close(zip);
 ```
 
+* Create a new zip archive in memory.
+
+```c
+char *buf_encode = NULL;
+const char *buf = "Append some data here...\0";
+struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+{
+    zip_entry_open(zip, "foo-1.txt");
+  	zip_entry_write(zip, buf, strlen(buf));
+  	zip_entry_close(zip);
+  	/* copy compressed mem to buf_encode */
+  	size_t n = zip_copy_stream(zip, (void **)&buf_encode, NULL);
+}
+zip_close_stream(zip);
+free(buf_encode);
+```
+
+* Extract a zip entry into a memory.
+
+```c
+char *buf = NULL;
+struct zip_t *zipStream = zip_open_stream(buf_encode, n, 0, 'r');
+{
+    zip_entry_open(zipStream, "foo-1.txt");
+  	ssize_t bufsize;
+  	bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
+    zip_entry_close(zipStream);
+}
+zip_close_stream(zipStream);
+free(buf);
+```
+
 * List of all zip entries
 ```c
 struct zip_t *zip = zip_open("foo.zip", 0, 'r');
