@@ -548,7 +548,8 @@ static void test_open_stream(void) {
 #else
   remove(ZIPNAME);
   /* COMPRESS MEM TO MEM */
-  struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  struct zip_t *zip =
+      zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   assert(zip != NULL);
 
   assert(0 == zip_entry_open(zip, "test/test-1.txt"));

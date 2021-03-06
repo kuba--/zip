@@ -1078,7 +1078,8 @@ struct entry_mark {
   mz_uint64 lf_length;
 };
 
-struct zip_t *zip_open_stream(const char *stream, size_t size, int level, char mode) {
+struct zip_t *zip_open_stream(const char *stream, size_t size, int level,
+                              char mode) {
   struct zip_t *zip = NULL;
   zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
   if (!zip) {
@@ -1091,17 +1092,17 @@ struct zip_t *zip_open_stream(const char *stream, size_t size, int level, char m
     goto cleanup;
   }
   zip->level = (mz_uint)level;
-  if((stream != NULL) && (size > 0) && (mode == 'r')){
+  if ((stream != NULL) && (size > 0) && (mode == 'r')) {
     if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
       goto cleanup;
     }
-  }else if((stream == NULL) && (size == 0) && (mode == 'w')){
+  } else if ((stream == NULL) && (size == 0) && (mode == 'w')) {
     // Create a new archive.
     if (!mz_zip_writer_init_heap(&(zip->archive), 0, 1024)) {
       // Cannot initialize zip_archive writer
       goto cleanup;
     }
-  }else{
+  } else {
     goto cleanup;
   }
   return zip;
@@ -1111,24 +1112,25 @@ cleanup:
   return NULL;
 }
 
-static inline void zip_write_end(struct zip_t *zip){
-    if (zip) {
+static inline void zip_write_end(struct zip_t *zip) {
+  if (zip) {
     mz_zip_writer_finalize_archive(&(zip->archive));
     file_truncate(&(zip->archive));
   }
 }
 
-ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize){
-  if(zip == NULL) return -1;
+ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize) {
+  if (zip == NULL)
+    return -1;
   zip_write_end(zip);
-  if(bufsize != NULL)
+  if (bufsize != NULL)
     *bufsize = zip->archive.m_archive_size;
   *buf = (char *)calloc(sizeof(unsigned char), zip->archive.m_archive_size);
   memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
   return zip->archive.m_archive_size;
 }
 
-void zip_close_stream(struct zip_t *zip){
+void zip_close_stream(struct zip_t *zip) {
   if (zip) {
     mz_zip_writer_end(&(zip->archive));
     mz_zip_reader_end(&(zip->archive));
