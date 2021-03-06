@@ -331,8 +331,8 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
  *
  * @return the zip archive handler or NULL on error
  */
-extern struct zip_t *zip_open_stream(const char *stream, size_t size,
-                                     int level, char mode);
+extern struct zip_t *zip_open_stream(const char *stream, size_t size, int level,
+                                     char mode);
 
 /**
  * Copy zip archive stream output buffer.
