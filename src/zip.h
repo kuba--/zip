@@ -318,7 +318,7 @@ extern int zip_extract(const char *zipname, const char *dir,
  *
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
-extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
+extern int zip_stream_extract(const char *stream, size_t size, const char *dir,
                               int (*on_extract)(const char *filename,
                                                 void *arg),
                               void *arg);
@@ -331,7 +331,7 @@ extern int zip_extract_stream(const char *stream, size_t size, const char *dir,
  *
  * @return the zip archive handler or NULL on error
  */
-extern struct zip_t *zip_open_stream(const char *stream, size_t size, int level,
+extern struct zip_t *zip_stream_open(const char *stream, size_t size, int level,
                                      char mode);
 
 /**
@@ -343,7 +343,7 @@ extern struct zip_t *zip_open_stream(const char *stream, size_t size, int level,
  *
  * @return copy size
  */
-extern ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize);
+extern ssize_t zip_stream_copy(struct zip_t *zip, void **buf, ssize_t *bufsize);
 
 /**
  * Close zip archive releases resources.
@@ -352,7 +352,7 @@ extern ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize);
  *
  * @return
  */
-extern void zip_close_stream(struct zip_t *zip);
+extern void zip_stream_close(struct zip_t *zip);
 
 /**
  * Deletes zip archive entries.
