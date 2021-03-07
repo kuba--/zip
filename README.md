@@ -161,7 +161,7 @@ char *outbuf = NULL;
 size_t outbufsize = 0;
 
 const char *inbuf = "Append some data here...\0";
-struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+struct zip_t *zip = zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 {
     zip_entry_open(zip, "foo-1.txt");
     {
@@ -170,9 +170,9 @@ struct zip_t *zip = zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w')
     zip_entry_close(zip);
   	
     /* copy compressed stream into outbuf */
-    zip_copy_stream(zip, (void **)&outbuf, &outbufsize);
+    zip_stream_copy(zip, (void **)&outbuf, &outbufsize);
 }
-zip_close_stream(zip);
+zip_stream_close(zip);
 
 free(outbuf);
 ```
@@ -183,7 +183,7 @@ free(outbuf);
 char *buf = NULL;
 ssize_t bufsize = 0;
 
-struct zip_t *zip = zip_open_stream(zipstream, zipstreamsize, 0, 'r');
+struct zip_t *zip = zip_stream_open(zipstream, zipstreamsize, 0, 'r');
 {
     zip_entry_open(zip, "foo-1.txt");
     {
@@ -191,7 +191,7 @@ struct zip_t *zip = zip_open_stream(zipstream, zipstreamsize, 0, 'r');
     }
     zip_entry_close(zip);
 }
-zip_close_stream(zip);
+zip_stream_close(zip);
 
 free(buf);
 ```

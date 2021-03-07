@@ -499,7 +499,7 @@ static void test_unix_permissions(void) {
 static void test_extract_stream(void) {
   assert(0 > zip_extract("non_existing_directory/non_existing_archive.zip", ".",
                          NULL, NULL));
-  assert(0 > zip_extract_stream("", 0, ".", NULL, NULL));
+  assert(0 > zip_stream_extract("", 0, ".", NULL, NULL));
 
 #if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
 #else
@@ -534,7 +534,7 @@ static void test_extract_stream(void) {
   size_t size = fread(stream, sizeof(char), filesize, fp);
   assert(filesize == size);
 
-  assert(0 == zip_extract_stream(stream, size, ".", NULL, NULL));
+  assert(0 == zip_stream_extract(stream, size, ".", NULL, NULL));
 
   fclose(fp);
   remove(RFILE);
@@ -549,7 +549,7 @@ static void test_open_stream(void) {
   remove(ZIPNAME);
   /* COMPRESS MEM TO MEM */
   struct zip_t *zip =
-      zip_open_stream(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   assert(zip != NULL);
 
   assert(0 == zip_entry_open(zip, "test/test-1.txt"));
@@ -558,10 +558,10 @@ static void test_open_stream(void) {
 
   /* write compressed mem to file */
   char *buf_encode = NULL;
-  size_t n = zip_copy_stream(zip, (void **)&buf_encode, NULL);
-  zip_close_stream(zip);
+  size_t n = zip_stream_copy(zip, (void **)&buf_encode, NULL);
+  zip_stream_close(zip);
   /* DECOMPRESS MEM TO MEM */
-  struct zip_t *zipStream = zip_open_stream(buf_encode, n, 0, 'r');
+  struct zip_t *zipStream = zip_stream_open(buf_encode, n, 0, 'r');
   assert(zipStream != NULL);
 
   assert(0 == zip_entry_open(zipStream, "test/test-1.txt"));
@@ -571,7 +571,7 @@ static void test_open_stream(void) {
   bufsize = zip_entry_read(zipStream, (void **)&buf, NULL);
   assert(0 == strncmp(buf, TESTDATA1, (size_t)bufsize));
   assert(0 == zip_entry_close(zipStream));
-  zip_close_stream(zipStream);
+  zip_stream_close(zipStream);
 
   free(buf);
   free(buf_encode);
