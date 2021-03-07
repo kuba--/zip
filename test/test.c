@@ -527,13 +527,15 @@ static void test_extract_stream(void) {
   size_t filesize = ftell(fp);
   fseek(fp, 0L, SEEK_SET);
 
-  char stream[filesize];
+  char *stream = (char *)malloc(filesize * sizeof(char));
   memset(stream, 0, filesize);
+
   size_t size = fread(stream, sizeof(char), filesize, fp);
   assert(filesize == size);
 
   assert(0 == zip_stream_extract(stream, size, ".", NULL, NULL));
 
+  free(stream);
   fclose(fp);
   remove(RFILE);
   remove("dotfiles/.test\0");
