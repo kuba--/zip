@@ -501,8 +501,6 @@ static void test_extract_stream(void) {
                          NULL, NULL));
   assert(0 > zip_stream_extract("", 0, ".", NULL, NULL));
 
-#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
-#else
   remove(ZIPNAME);
 
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
@@ -540,12 +538,9 @@ static void test_extract_stream(void) {
   remove(RFILE);
   remove("dotfiles/.test\0");
   remove(ZIPNAME);
-#endif
 }
 
 static void test_open_stream(void) {
-#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
-#else
   remove(ZIPNAME);
   /* COMPRESS MEM TO MEM */
   struct zip_t *zip =
@@ -557,11 +552,15 @@ static void test_open_stream(void) {
   assert(0 == zip_entry_close(zip));
 
   /* write compressed mem to file */
-  char *buf_encode = NULL;
-  size_t n = zip_stream_copy(zip, (void **)&buf_encode, NULL);
+  char *buf_encode1 = NULL;
+  char *buf_encode2 = NULL;
+  ssize_t n = zip_stream_copy(zip, (void **)&buf_encode1, NULL);
+  zip_stream_copy(zip, (void **)&buf_encode2, &n);
+  assert(0 == strncmp(buf_encode1, buf_encode2, (size_t)n));
+
   zip_stream_close(zip);
   /* DECOMPRESS MEM TO MEM */
-  struct zip_t *zipStream = zip_stream_open(buf_encode, n, 0, 'r');
+  struct zip_t *zipStream = zip_stream_open(buf_encode1, n, 0, 'r');
   assert(zipStream != NULL);
 
   assert(0 == zip_entry_open(zipStream, "test/test-1.txt"));
@@ -574,9 +573,9 @@ static void test_open_stream(void) {
   zip_stream_close(zipStream);
 
   free(buf);
-  free(buf_encode);
+  free(buf_encode1);
+  free(buf_encode2);
   remove(ZIPNAME);
-#endif
 }
 
 #if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
@@ -616,8 +615,6 @@ static int create_zip_file(const char *filename) {
 #endif
 
 static void test_entries_delete() {
-#if defined(_WIN64) || defined(_WIN32) || defined(__WIN32__)
-#else
   remove(ZIPNAME);
   assert(0 == create_zip_file(ZIPNAME));
 
@@ -667,7 +664,6 @@ static void test_entries_delete() {
   buf = NULL;
 
   zip_close(zip);
-#endif
 }
 
 int main(int argc, char *argv[]) {
