@@ -1080,18 +1080,20 @@ struct entry_mark {
 
 struct zip_t *zip_stream_open(const char *stream, size_t size, int level,
                               char mode) {
-  struct zip_t *zip = NULL;
-  zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
+  struct zip_t *zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
   if (!zip) {
     return NULL;
   }
-  if (level < 0)
+
+  if (level < 0) {
     level = MZ_DEFAULT_LEVEL;
+  }
   if ((level & 0xF) > MZ_UBER_COMPRESSION) {
     // Wrong compression level
     goto cleanup;
   }
   zip->level = (mz_uint)level;
+
   if ((stream != NULL) && (size > 0) && (mode == 'r')) {
     if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
       goto cleanup;
@@ -1120,13 +1122,18 @@ static inline void zip_write_end(struct zip_t *zip) {
 }
 
 ssize_t zip_stream_copy(struct zip_t *zip, void **buf, ssize_t *bufsize) {
-  if (zip == NULL)
+  if (!zip) {
     return -1;
+  }
+
   zip_write_end(zip);
-  if (bufsize != NULL)
+
+  if (bufsize != NULL) {
     *bufsize = zip->archive.m_archive_size;
-  *buf = (char *)calloc(sizeof(unsigned char), zip->archive.m_archive_size);
+  }
+  *buf = calloc(sizeof(unsigned char), zip->archive.m_archive_size);
   memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
+
   return zip->archive.m_archive_size;
 }
 

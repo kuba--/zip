@@ -225,8 +225,8 @@ extern ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
  *
  * @note ensure supplied output buffer is large enough.
  *       zip_entry_size function (returns uncompressed size for the current
- *       entry) can be handy to estimate how big buffer is needed. for large
- * entries, please take a look at zip_entry_extract function.
+ *       entry) can be handy to estimate how big buffer is needed.
+ *       For large entries, please take a look at zip_entry_extract function.
  *
  * @return the return code - the number of bytes actually read on success.
  *         Otherwise a -1 on error (e.g. bufsize is not large enough).
