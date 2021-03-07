@@ -1043,7 +1043,7 @@ int zip_extract(const char *zipname, const char *dir,
   return status;
 }
 
-int zip_extract_stream(const char *stream, size_t size, const char *dir,
+int zip_stream_extract(const char *stream, size_t size, const char *dir,
                        int (*on_extract)(const char *filename, void *arg),
                        void *arg) {
   mz_zip_archive zip_archive;
@@ -1078,7 +1078,7 @@ struct entry_mark {
   mz_uint64 lf_length;
 };
 
-struct zip_t *zip_open_stream(const char *stream, size_t size, int level,
+struct zip_t *zip_stream_open(const char *stream, size_t size, int level,
                               char mode) {
   struct zip_t *zip = NULL;
   zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
@@ -1119,7 +1119,7 @@ static inline void zip_write_end(struct zip_t *zip) {
   }
 }
 
-ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize) {
+ssize_t zip_stream_copy(struct zip_t *zip, void **buf, ssize_t *bufsize) {
   if (zip == NULL)
     return -1;
   zip_write_end(zip);
@@ -1130,7 +1130,7 @@ ssize_t zip_copy_stream(struct zip_t *zip, void **buf, ssize_t *bufsize) {
   return zip->archive.m_archive_size;
 }
 
-void zip_close_stream(struct zip_t *zip) {
+void zip_stream_close(struct zip_t *zip) {
   if (zip) {
     mz_zip_writer_end(&(zip->archive));
     mz_zip_reader_end(&(zip->archive));
