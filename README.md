@@ -245,6 +245,17 @@ void zip_walk(struct zip_t *zip, const char *path) {
 }
 ```
 
+* Deletes zip archive entries.
+```c
+char *entries[] = {"unused.txt", "remove.ini", "delete.me"};
+
+struct zip_t *zip = zip_open("foo.zip", 0, 'd');
+{
+    zip_entries_delete(zip, entries, 3);
+}
+zip_close(zip);
+```
+
 # Bindings
 Compile zip library as a dynamic library.
 ```shell
