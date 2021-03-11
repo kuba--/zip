@@ -71,7 +71,7 @@ MU_TEST(test_append) {
   mu_assert_int_eq(0, zip_entry_close(zip));
   ++total_entries;
 
-  mu_assert_int_eq(total_entries, zip_total_entries(zip));
+  mu_assert_int_eq(total_entries, zip_entries_total(zip));
 
   zip_close(zip);
 }
