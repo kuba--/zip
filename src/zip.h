@@ -268,8 +268,7 @@ zip_entry_extract(struct zip_t *zip,
  * @return the return code - the number of entries on success, negative number
  *         (< 0) on error.
  */
-extern int zip_total_entries(struct zip_t *zip);
-
+extern int zip_entries_total(struct zip_t *zip);
 
 /**
  * Deletes zip archive entries.

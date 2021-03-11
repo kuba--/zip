@@ -190,7 +190,7 @@ MU_TEST(test_list_entries) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  int i = 0, n = zip_total_entries(zip);
+  int i = 0, n = zip_entries_total(zip);
   for (; i < n; ++i) {
     mu_check(0 == zip_entry_openbyindex(zip, i));
     fprintf(stdout, "[%d]: %s", i, zip_entry_name(zip));
@@ -232,7 +232,7 @@ MU_TEST(test_entries_delete) {
   mu_check(0 > zip_entry_open(zip, "delete/file.2"));
   mu_check(0 == zip_entry_close(zip));
 
-  mu_assert_int_eq(total_entries - 5, zip_total_entries(zip));
+  mu_assert_int_eq(total_entries - 5, zip_entries_total(zip));
 
   mu_check(0 == zip_entry_open(zip, "delete/file.4"));
 

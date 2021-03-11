@@ -168,7 +168,7 @@ struct zip_t *zip = zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w')
         zip_entry_write(zip, inbuf, strlen(inbuf));
     }
     zip_entry_close(zip);
-  	
+
     /* copy compressed stream into outbuf */
     zip_stream_copy(zip, (void **)&outbuf, &outbufsize);
 }
@@ -199,7 +199,7 @@ free(buf);
 * List of all zip entries
 ```c
 struct zip_t *zip = zip_open("foo.zip", 0, 'r');
-int i, n = zip_total_entries(zip);
+int i, n = zip_entries_total(zip);
 for (i = 0; i < n; ++i) {
     zip_entry_openbyindex(zip, i);
     {
