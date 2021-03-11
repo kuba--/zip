@@ -270,36 +270,17 @@ zip_entry_extract(struct zip_t *zip,
  */
 extern int zip_total_entries(struct zip_t *zip);
 
-/**
- * Creates a new archive and puts files into a single zip archive.
- *
- * @param zipname zip archive file.
- * @param filenames input files.
- * @param len: number of input files.
- *
- * @return the return code - 0 on success, negative number (< 0) on error.
- */
-extern int zip_create(const char *zipname, const char *filenames[], size_t len);
 
 /**
- * Extracts a zip archive file into directory.
+ * Deletes zip archive entries.
  *
- * If on_extract_entry is not NULL, the callback will be called after
- * successfully extracted each zip entry.
- * Returning a negative value from the callback will cause abort and return an
- * error. The last argument (void *arg) is optional, which you can use to pass
- * data to the on_extract_entry callback.
- *
- * @param zipname zip archive file.
- * @param dir output directory.
- * @param on_extract_entry on extract callback.
- * @param arg opaque pointer.
- *
- * @return the return code - 0 on success, negative number (< 0) on error.
+ * @param zip zip archive handler.
+ * @param entries array of zip archive entries to be deleted.
+ * @param len the number of entries to be deleted.
+ * @return the number of deleted entries, or negative number (< 0) on error.
  */
-extern int zip_extract(const char *zipname, const char *dir,
-                       int (*on_extract_entry)(const char *filename, void *arg),
-                       void *arg);
+extern int zip_entries_delete(struct zip_t *zip, char *const entries[],
+                              size_t len);
 
 /**
  * Extracts a zip archive stream into directory.
@@ -355,15 +336,36 @@ extern ssize_t zip_stream_copy(struct zip_t *zip, void **buf, ssize_t *bufsize);
 extern void zip_stream_close(struct zip_t *zip);
 
 /**
- * Deletes zip archive entries.
+ * Creates a new archive and puts files into a single zip archive.
  *
- * @param zip zip archive handler.
- * @param entries array of zip archive entries to be deleted.
- * @param len the number of entries to be deleted.
- * @return the number of deleted entries, or negative number (< 0) on error.
+ * @param zipname zip archive file.
+ * @param filenames input files.
+ * @param len: number of input files.
+ *
+ * @return the return code - 0 on success, negative number (< 0) on error.
  */
-extern int zip_entries_delete(struct zip_t *zip, char *const entries[],
-                              size_t len);
+extern int zip_create(const char *zipname, const char *filenames[], size_t len);
+
+/**
+ * Extracts a zip archive file into directory.
+ *
+ * If on_extract_entry is not NULL, the callback will be called after
+ * successfully extracted each zip entry.
+ * Returning a negative value from the callback will cause abort and return an
+ * error. The last argument (void *arg) is optional, which you can use to pass
+ * data to the on_extract_entry callback.
+ *
+ * @param zipname zip archive file.
+ * @param dir output directory.
+ * @param on_extract_entry on extract callback.
+ * @param arg opaque pointer.
+ *
+ * @return the return code - 0 on success, negative number (< 0) on error.
+ */
+extern int zip_extract(const char *zipname, const char *dir,
+                       int (*on_extract_entry)(const char *filename, void *arg),
+                       void *arg);
+
 /** @} */
 #ifdef __cplusplus
 }
