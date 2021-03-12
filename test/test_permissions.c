@@ -53,12 +53,12 @@ MU_TEST(test_exe_permissions) {
   fclose(f);
   chmod(XFILE, XMODE);
 
-  mu_check(0 == zip_create(ZIPNAME, filenames, 1));
+  mu_assert_int_eq(0, zip_create(ZIPNAME, filenames, 1));
   remove(XFILE);
 
-  mu_check(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
 
-  mu_check(0 == MZ_FILE_STAT(XFILE, &file_stats));
+  mu_assert_int_eq(0, MZ_FILE_STAT(XFILE, &file_stats));
   mu_assert_int_eq(XMODE, file_stats.st_mode);
 }
 
@@ -73,8 +73,8 @@ MU_TEST(test_read_permissions) {
   mu_assert_int_eq(0, zip_create(ZIPNAME, filenames, 1));
   remove(RFILE);
 
-  mu_check(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
-  mu_check(0 == MZ_FILE_STAT(RFILE, &file_stats));
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
+  mu_assert_int_eq(0, MZ_FILE_STAT(RFILE, &file_stats));
   mu_assert_int_eq(RMODE, file_stats.st_mode);
 
   // chmod from 444 to 666 to be able delete the file on windows
@@ -89,11 +89,11 @@ MU_TEST(test_write_permissions) {
   fclose(f);
   chmod(WFILE, WMODE);
 
-  mu_check(0 == zip_create(ZIPNAME, filenames, 1));
+  mu_assert_int_eq(0, zip_create(ZIPNAME, filenames, 1));
   remove(WFILE);
 
-  mu_check(0 == zip_extract(ZIPNAME, ".", NULL, NULL));
-  mu_check(0 == MZ_FILE_STAT(WFILE, &file_stats));
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
+  mu_assert_int_eq(0, MZ_FILE_STAT(WFILE, &file_stats));
   mu_assert_int_eq(WMODE, file_stats.st_mode);
 }
 
@@ -106,15 +106,15 @@ MU_TEST(test_unix_permissions) {
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   mu_check(zip != NULL);
 
-  mu_check(0 == zip_entry_open(zip, RFILE));
-  mu_check(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, RFILE));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 
   mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
 
-  mu_check(0 == MZ_FILE_STAT(RFILE, &file_stats));
+  mu_assert_int_eq(0, MZ_FILE_STAT(RFILE, &file_stats));
 
   mu_assert_int_eq(UNIXMODE, file_stats.st_mode);
 }
@@ -134,7 +134,7 @@ MU_TEST(test_mtime) {
     mu_fail("Cannot open filename\n");
   }
   fwrite(TESTDATA1, sizeof(char), strlen(TESTDATA1), stream);
-  mu_check(0 == fclose(stream));
+  mu_assert_int_eq(0, fclose(stream));
 
   memset(&file_stat1, 0, sizeof(file_stat1));
   memset(&file_stat2, 0, sizeof(file_stat2));
@@ -142,17 +142,17 @@ MU_TEST(test_mtime) {
   zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   mu_check(zip != NULL);
 
-  mu_check(0 == zip_entry_open(zip, filename));
-  mu_check(0 == zip_entry_fwrite(zip, filename));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, filename));
+  mu_assert_int_eq(0, zip_entry_fwrite(zip, filename));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 
-  mu_check(0 == MZ_FILE_STAT(filename, &file_stat1));
+  mu_assert_int_eq(0, MZ_FILE_STAT(filename, &file_stat1));
   remove(filename);
 
   mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
-  mu_check(0 == MZ_FILE_STAT(filename, &file_stat2));
+  mu_assert_int_eq(0, MZ_FILE_STAT(filename, &file_stat2));
   remove(filename);
 
   fprintf(stdout, "file_stat1.st_mtime: %lu\n", file_stat1.st_mtime);
