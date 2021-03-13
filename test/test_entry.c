@@ -89,22 +89,22 @@ MU_TEST(test_entry_name) {
 
   mu_check(zip_entry_name(zip) == NULL);
 
-  mu_check(0 == zip_entry_open(zip, "test\\test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
   mu_check(NULL != zip_entry_name(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
   mu_assert_int_eq(0, zip_entry_index(zip));
 
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
-  mu_check(0 == zip_entry_open(zip, "test/test-2.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
   mu_check(NULL != zip_entry_name(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-2.txt"));
   mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
   mu_assert_int_eq(1, zip_entry_index(zip));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 }
@@ -113,19 +113,19 @@ MU_TEST(test_entry_index) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  mu_check(0 == zip_entry_open(zip, "test\\test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
   mu_assert_int_eq(0, zip_entry_index(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
-  mu_check(0 == zip_entry_open(zip, "test/test-2.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
   mu_assert_int_eq(1, zip_entry_index(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-2.txt"));
   mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 }
@@ -134,19 +134,19 @@ MU_TEST(test_entry_openbyindex) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  mu_check(0 == zip_entry_openbyindex(zip, 1));
+  mu_assert_int_eq(0, zip_entry_openbyindex(zip, 1));
   mu_assert_int_eq(1, zip_entry_index(zip));
   mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-2.txt"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-2.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
-  mu_check(0 == zip_entry_openbyindex(zip, 0));
+  mu_assert_int_eq(0, zip_entry_openbyindex(zip, 0));
   mu_assert_int_eq(0, zip_entry_index(zip));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/test-1.txt"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 }
@@ -161,23 +161,23 @@ MU_TEST(test_entry_read) {
       zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   mu_check(zip != NULL);
 
-  mu_check(0 == zip_entry_open(zip, "test/test-1.txt"));
-  mu_check(0 == zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   ssize_t n = zip_stream_copy(zip, (void **)&bufencode1, NULL);
   zip_stream_copy(zip, (void **)&bufencode2, &n);
-  mu_check(0 == strncmp(bufencode1, bufencode2, (size_t)n));
+  mu_assert_int_eq(0, strncmp(bufencode1, bufencode2, (size_t)n));
 
   zip_stream_close(zip);
 
   struct zip_t *zipstream = zip_stream_open(bufencode1, n, 0, 'r');
   mu_check(zipstream != NULL);
 
-  mu_check(0 == zip_entry_open(zipstream, "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zipstream, "test/test-1.txt"));
   bufsize = zip_entry_read(zipstream, (void **)&buf, NULL);
-  mu_check(0 == strncmp(buf, TESTDATA1, (size_t)bufsize));
-  mu_check(0 == zip_entry_close(zipstream));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA1, (size_t)bufsize));
+  mu_assert_int_eq(0, zip_entry_close(zipstream));
 
   zip_stream_close(zipstream);
 
@@ -192,13 +192,13 @@ MU_TEST(test_list_entries) {
 
   int i = 0, n = zip_entries_total(zip);
   for (; i < n; ++i) {
-    mu_check(0 == zip_entry_openbyindex(zip, i));
+    mu_assert_int_eq(0, zip_entry_openbyindex(zip, i));
     fprintf(stdout, "[%d]: %s", i, zip_entry_name(zip));
     if (zip_entry_isdir(zip)) {
       fprintf(stdout, " (DIR)");
     }
     fprintf(stdout, "\n");
-    mu_check(0 == zip_entry_close(zip));
+    mu_assert_int_eq(0, zip_entry_close(zip));
   }
 
   zip_close(zip);
@@ -218,23 +218,29 @@ MU_TEST(test_entries_delete) {
   zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  mu_check(0 > zip_entry_open(zip, "delete.me"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete.me"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete.me: %s\n", zip_strerror(ZIP_ENOENT));
 
-  mu_check(0 > zip_entry_open(zip, "_"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "_"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "_: %s\n", zip_strerror(ZIP_ENOENT));
 
-  mu_check(0 > zip_entry_open(zip, "delete/file.1"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.1"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.1: %s\n", zip_strerror(ZIP_ENOENT));
 
-  mu_check(0 > zip_entry_open(zip, "deleteme/file.3"));
-  mu_check(0 == zip_entry_close(zip));
-  mu_check(0 > zip_entry_open(zip, "delete/file.2"));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "deleteme/file.3"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.3: %s\n", zip_strerror(ZIP_ENOENT));
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.2"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.2: %s\n", zip_strerror(ZIP_ENOENT));
 
   mu_assert_int_eq(total_entries - 5, zip_entries_total(zip));
 
-  mu_check(0 == zip_entry_open(zip, "delete/file.4"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "delete/file.4"));
 
   size_t buftmp = 0;
   char *buf = NULL;
@@ -242,8 +248,8 @@ MU_TEST(test_entries_delete) {
 
   mu_assert_int_eq(bufsize, strlen(TESTDATA2));
   mu_assert_int_eq((size_t)bufsize, buftmp);
-  mu_check(0 == strncmp(buf, TESTDATA2, bufsize));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, bufsize));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   free(buf);
   buf = NULL;
