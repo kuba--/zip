@@ -58,7 +58,7 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EINVMODE -4     // invalid zip mode
 #define ZIP_EINVLVL -5      // invalid compression level
 #define ZIP_ENOSUP64 -6     // no zip 64 support
-#define ZIP_EMEMSET -7      // cannot memset
+#define ZIP_EMEMSET -7      // memset error
 #define ZIP_EWRTENT -8      // cannot write data to entry
 #define ZIP_ETDEFLINIT -9   // cannot initialize tdefl compressor
 #define ZIP_EINVIDX -10     // invalid index
@@ -76,11 +76,19 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EINVZIPNAME -22 // invalid zip archive name
 #define ZIP_EMKDIR -23      // make dir error
 #define ZIP_ESYMLINK -24    // symlink error
-#define ZIP_ECLSZIP -25     // close the archive error
-#define ZIP_ECAPSIZE -26    // capacity size issue
+#define ZIP_ECLSZIP -25     // close archive error
+#define ZIP_ECAPSIZE -26    // capacity size too small
 #define ZIP_EFSEEK -27      // fseek error
 #define ZIP_EFREAD -28      // fread error
 #define ZIP_EFWRITE -29     // fwrite error
+
+/**
+ * Looks up the error message string coresponding to an error number.
+ * @param errnum error number
+ * @return error message string coresponding to errnum or NULL if error is not
+ * found.
+ */
+extern const char *zip_strerror(int errnum);
 
 /**
  * @struct zip_t

@@ -108,6 +108,7 @@ MU_TEST(test_extract_stream) {
       zip_extract("non_existing_directory/non_existing_archive.zip", ".", NULL,
                   NULL));
   mu_assert_int_eq(ZIP_ENOINIT, zip_stream_extract("", 0, ".", NULL, NULL));
+  fprintf(stdout, "zip_stream_extract: %s\n", zip_strerror(ZIP_ENOINIT));
 
   FILE *fp = NULL;
 #if defined(_MSC_VER)
