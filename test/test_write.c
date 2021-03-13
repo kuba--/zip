@@ -55,14 +55,14 @@ MU_TEST(test_fwrite) {
     mu_fail("Cannot open filename\n");
   }
   fwrite(TESTDATA1, sizeof(char), strlen(TESTDATA1), stream);
-  mu_check(0 == fclose(stream));
+  mu_assert_int_eq(0, fclose(stream));
 
   zip = zip_open(ZIPNAME, 9, 'w');
   mu_check(zip != NULL);
-  mu_check(0 == zip_entry_open(zip, WFILE));
-  mu_check(0 == zip_entry_fwrite(zip, WFILE));
-  mu_check(0 == zip_entry_close(zip));
-  mu_check(0 == zip_is64(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, WFILE));
+  mu_assert_int_eq(0, zip_entry_fwrite(zip, WFILE));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_is64(zip));
 
   zip_close(zip);
 }

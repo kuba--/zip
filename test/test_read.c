@@ -69,16 +69,16 @@ MU_TEST(test_read) {
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
   bufsize = zip_entry_read(zip, (void **)&buf, NULL);
   mu_assert_int_eq(strlen(TESTDATA2), (size_t)bufsize);
-  mu_check(0 == strncmp(buf, TESTDATA2, (size_t)bufsize));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, (size_t)bufsize));
+  mu_assert_int_eq(0, zip_entry_close(zip));
   free(buf);
   buf = NULL;
 
-  mu_check(0 == zip_entry_open(zip, "test\\empty/"));
-  mu_check(0 == strcmp(zip_entry_name(zip), "test/empty/"));
-  mu_check(0 == zip_entry_size(zip));
-  mu_check(0 == zip_entry_crc32(zip));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test\\empty/"));
+  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/empty/"));
+  mu_assert_int_eq(0, zip_entry_size(zip));
+  mu_assert_int_eq(0, zip_entry_crc32(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   zip_close(zip);
 }
@@ -95,28 +95,28 @@ MU_TEST(test_noallocread) {
   mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
   bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
   mu_assert_int_eq(buftmp, (size_t)bufsize);
-  mu_check(0 == strncmp(buf, TESTDATA2, buftmp));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, buftmp));
+  mu_assert_int_eq(0, zip_entry_close(zip));
   free(buf);
   buf = NULL;
 
   buftmp = strlen(TESTDATA1);
   buf = calloc(buftmp, sizeof(char));
-  mu_check(0 == zip_entry_open(zip, "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
   bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
   mu_assert_int_eq(buftmp, (size_t)bufsize);
-  mu_check(0 == strncmp(buf, TESTDATA1, buftmp));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA1, buftmp));
+  mu_assert_int_eq(0, zip_entry_close(zip));
   free(buf);
   buf = NULL;
 
   buftmp = strlen(TESTDATA2);
   buf = calloc(buftmp, sizeof(char));
-  mu_check(0 == zip_entry_open(zip, "dotfiles/.test"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "dotfiles/.test"));
   bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
   mu_assert_int_eq(buftmp, (size_t)bufsize);
-  mu_check(0 == strncmp(buf, TESTDATA2, buftmp));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, buftmp));
+  mu_assert_int_eq(0, zip_entry_close(zip));
   free(buf);
   buf = NULL;
 

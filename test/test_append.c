@@ -47,7 +47,7 @@ MU_TEST(test_append) {
   mu_assert_int_eq(0, zip_entry_open(zip, "test\\empty/"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/empty/"));
   mu_assert_int_eq(0, zip_entry_size(zip));
-  mu_check(0 == zip_entry_crc32(zip));
+  mu_assert_int_eq(0, zip_entry_crc32(zip));
   mu_assert_int_eq(total_entries, zip_entry_index(zip));
   mu_assert_int_eq(0, zip_entry_close(zip));
   ++total_entries;
@@ -55,7 +55,7 @@ MU_TEST(test_append) {
   mu_assert_int_eq(0, zip_entry_open(zip, "empty/"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "empty/"));
   mu_assert_int_eq(0, zip_entry_size(zip));
-  mu_check(0 == zip_entry_crc32(zip));
+  mu_assert_int_eq(0, zip_entry_crc32(zip));
   mu_assert_int_eq(total_entries, zip_entry_index(zip));
   mu_assert_int_eq(0, zip_entry_close(zip));
   ++total_entries;
@@ -63,7 +63,7 @@ MU_TEST(test_append) {
   mu_assert_int_eq(0, zip_entry_open(zip, "dotfiles/.test"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "dotfiles/.test"));
   mu_assert_int_eq(0, zip_entry_size(zip));
-  mu_check(0 == zip_entry_crc32(zip));
+  mu_assert_int_eq(0, zip_entry_crc32(zip));
   mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
   mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));

@@ -77,11 +77,11 @@ MU_TEST(test_extract) {
 
   memset((void *)&buf, 0, sizeof(struct buffer_t));
 
-  mu_check(0 == zip_entry_open(zip, "test/test-1.txt"));
-  mu_check(0 == zip_entry_extract(zip, on_extract, &buf));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_extract(zip, on_extract, &buf));
   mu_assert_int_eq(strlen(TESTDATA1), buf.size);
-  mu_check(0 == strncmp(buf.data, TESTDATA1, buf.size));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf.data, TESTDATA1, buf.size));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   free(buf.data);
   buf.data = NULL;
@@ -89,11 +89,11 @@ MU_TEST(test_extract) {
 
   memset((void *)&buf, 0, sizeof(struct buffer_t));
 
-  mu_check(0 == zip_entry_open(zip, "dotfiles/.test"));
-  mu_check(0 == zip_entry_extract(zip, on_extract, &buf));
+  mu_assert_int_eq(0, zip_entry_open(zip, "dotfiles/.test"));
+  mu_assert_int_eq(0, zip_entry_extract(zip, on_extract, &buf));
   mu_assert_int_eq(strlen(TESTDATA2), buf.size);
-  mu_check(0 == strncmp(buf.data, TESTDATA2, buf.size));
-  mu_check(0 == zip_entry_close(zip));
+  mu_assert_int_eq(0, strncmp(buf.data, TESTDATA2, buf.size));
+  mu_assert_int_eq(0, zip_entry_close(zip));
 
   free(buf.data);
   buf.data = NULL;
@@ -103,9 +103,12 @@ MU_TEST(test_extract) {
 }
 
 MU_TEST(test_extract_stream) {
-  mu_check(0 > zip_extract("non_existing_directory/non_existing_archive.zip",
-                           ".", NULL, NULL));
-  mu_check(0 > zip_stream_extract("", 0, ".", NULL, NULL));
+  mu_assert_int_eq(
+      ZIP_ENOINIT,
+      zip_extract("non_existing_directory/non_existing_archive.zip", ".", NULL,
+                  NULL));
+  mu_assert_int_eq(ZIP_ENOINIT, zip_stream_extract("", 0, ".", NULL, NULL));
+  fprintf(stdout, "zip_stream_extract: %s\n", zip_strerror(ZIP_ENOINIT));
 
   FILE *fp = NULL;
 #if defined(_MSC_VER)
