@@ -91,18 +91,60 @@ struct zip_t {
   struct zip_entry_t entry;
 };
 
-enum modify_t {
+enum zip_modify_t {
   MZ_KEEP = 0,
   MZ_DELETE = 1,
   MZ_MOVE = 2,
 };
 
-struct entry_mark_t {
+struct zip_entry_mark_t {
   int file_index;
-  enum modify_t type;
+  enum zip_modify_t type;
   mz_uint64 m_local_header_ofs;
   mz_uint64 lf_length;
 };
+
+static const char *const zip_errlist[30] = {
+    NULL,
+    "not initialized\0",
+    "invalid entry name\0",
+    "entry not found\0",
+    "invalid zip mode\0",
+    "invalid compression level\0",
+    "no zip 64 support\0",
+    "memset error\0",
+    "cannot write data to entry\0",
+    "cannot initialize tdefl compressor\0",
+    "invalid index\0",
+    "header not found\0",
+    "cannot flush tdefl buffer\0",
+    "cannot write entry header\0",
+    "cannot create entry header\0",
+    "cannot write to central dir\0",
+    "cannot open file\0",
+    "invalid entry type\0",
+    "extracting data using no memory allocation\0",
+    "file not found\0",
+    "no permission\0",
+    "out of memory\0",
+    "invalid zip archive name\0",
+    "make dir error\0"
+    "symlink error\0"
+    "close archive error\0"
+    "capacity size too small\0",
+    "fseek error\0",
+    "fread error\0",
+    "fwrite error\0",
+};
+
+const char *zip_strerror(int errnum) {
+  errnum = -errnum;
+  if (errnum <= 0 || errnum >= 30) {
+    return NULL;
+  }
+
+  return zip_errlist[errnum];
+}
 
 static const char *zip_basename(const char *name) {
   char const *p;
@@ -366,8 +408,9 @@ static inline void zip_archive_finalize(mz_zip_archive *pzip) {
   zip_archive_truncate(pzip);
 }
 
-static int zip_entry_mark(struct zip_t *zip, struct entry_mark_t *entry_mark,
-                          int n, char *const entries[], const size_t len) {
+static int zip_entry_mark(struct zip_t *zip,
+                          struct zip_entry_mark_t *entry_mark, int n,
+                          char *const entries[], const size_t len) {
   int err = 0;
   if (!zip || !entry_mark || !entries) {
     return ZIP_ENOINIT;
@@ -441,7 +484,7 @@ static int zip_sort(mz_uint64 *local_header_ofs_array, int cur_index) {
   return nxt_index;
 }
 
-static int zip_index_update(struct entry_mark_t *entry_mark, int last_index,
+static int zip_index_update(struct zip_entry_mark_t *entry_mark, int last_index,
                             int nxt_index) {
   for (int j = 0; j < last_index; j++) {
     if (entry_mark[j].file_index >= nxt_index) {
@@ -453,7 +496,8 @@ static int zip_index_update(struct entry_mark_t *entry_mark, int last_index,
 }
 
 static int zip_entry_finalize(struct zip_t *zip,
-                              struct entry_mark_t *entry_mark, const int n) {
+                              struct zip_entry_mark_t *entry_mark,
+                              const int n) {
 
   mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if (!local_header_ofs_array) {
@@ -489,7 +533,7 @@ static int zip_entry_finalize(struct zip_t *zip,
   return 0;
 }
 
-static int zip_entry_set(struct zip_t *zip, struct entry_mark_t *entry_mark,
+static int zip_entry_set(struct zip_t *zip, struct zip_entry_mark_t *entry_mark,
                          int n, char *const entries[], const size_t len) {
   int err = 0;
 
@@ -660,7 +704,7 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
 }
 
 static int zip_entries_delete_mark(struct zip_t *zip,
-                                   struct entry_mark_t *entry_mark,
+                                   struct zip_entry_mark_t *entry_mark,
                                    int entry_num) {
   mz_uint64 writen_num = 0;
   mz_uint64 read_num = 0;
@@ -1383,7 +1427,7 @@ int zip_entries_delete(struct zip_t *zip, char *const entries[],
                        const size_t len) {
   int n = 0;
   int err = 0;
-  struct entry_mark_t *entry_mark = NULL;
+  struct zip_entry_mark_t *entry_mark = NULL;
 
   if (zip == NULL || (entries == NULL && len != 0)) {
     return ZIP_ENOINIT;
@@ -1395,7 +1439,8 @@ int zip_entries_delete(struct zip_t *zip, char *const entries[],
 
   n = zip_entries_total(zip);
 
-  entry_mark = (struct entry_mark_t *)calloc(n, sizeof(struct entry_mark_t));
+  entry_mark =
+      (struct zip_entry_mark_t *)calloc(n, sizeof(struct zip_entry_mark_t));
   if (!entry_mark) {
     return ZIP_EOOMEM;
   }

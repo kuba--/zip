@@ -220,17 +220,23 @@ MU_TEST(test_entries_delete) {
 
   mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete.me"));
   mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete.me: %s\n", zip_strerror(ZIP_ENOENT));
 
   mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "_"));
   mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "_: %s\n", zip_strerror(ZIP_ENOENT));
 
   mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.1"));
   mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.1: %s\n", zip_strerror(ZIP_ENOENT));
 
   mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "deleteme/file.3"));
   mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.3: %s\n", zip_strerror(ZIP_ENOENT));
+
   mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.2"));
   mu_assert_int_eq(0, zip_entry_close(zip));
+  fprintf(stdout, "delete/file.2: %s\n", zip_strerror(ZIP_ENOENT));
 
   mu_assert_int_eq(total_entries - 5, zip_entries_total(zip));
 
