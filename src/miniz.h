@@ -4125,11 +4125,10 @@ static wchar_t *str2wstr(const char *str) {
 }
 
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
-  FILE *pFile = NULL;
-
   wchar_t *wFilename = str2wstr(pFilename);
   wchar_t *wMode = str2wstr(pMode);
-  _wfopen_s(&pFile, wFilename, wMode);
+  FILE *pFile = _wfopen(wFilename, wMode);
+
   free(wFilename);
   free(wMode);
 
@@ -4137,16 +4136,12 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
 }
 
 static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
-  FILE *pFile = NULL;
-
   wchar_t *wPath = str2wstr(pPath);
   wchar_t *wMode = str2wstr(pMode);
-  int res = _wfreopen_s(&pFile, wPath, wMode, pStream);
+  FILE *pFile = _wfreopen(wPath, wMode, pStream);
+
   free(wPath);
   free(wMode);
-
-  if (res)
-    return NULL;
 
   return pFile;
 }
