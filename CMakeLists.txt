@@ -12,6 +12,7 @@ option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 set(SRC src/miniz.h src/zip.h src/zip.c)
 
 add_library(${PROJECT_NAME} ${SRC})
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
   set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
