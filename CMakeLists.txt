@@ -11,20 +11,18 @@ option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
 
-# this is the "object library" target: compiles the sources only once
-add_library(OBJLIB OBJECT ${SRC})
-# shared libraries need PIC
-if(BUILD_SHARED_LIBS OR ZIP_STATIC_PIC)
-  set_property(TARGET OBJLIB PROPERTY POSITION_INDEPENDENT_CODE 1)
+add_library(${PROJECT_NAME} ${SRC})
+
+if(ZIP_STATIC_PIC)
+  set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()
 
-# static and shared libraries built from the same object files
-if (BUILD_SHARED_LIBS)
-  add_library(${PROJECT_NAME} SHARED $<TARGET_OBJECTS:OBJLIB>)
-  include(GenerateExportHeader)
-  generate_export_header(${PROJECT_NAME})
-else()
-  add_library(${PROJECT_NAME} STATIC $<TARGET_OBJECTS:OBJLIB>)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
+if(BUILD_SHARED_LIBS)
+  target_compile_definitions(${PROJECT_NAME}
+    PUBLIC ZIP_SHARED
+    PRIVATE ZIP_BUILD_SHARED
+  )
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -36,8 +34,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
-  find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME} ${test_out})
 endif()
 
 if (MSVC)
