@@ -6,6 +6,7 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
+option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
@@ -13,7 +14,9 @@ set(SRC src/miniz.h src/zip.h src/zip.c)
 # this is the "object library" target: compiles the sources only once
 add_library(OBJLIB OBJECT ${SRC})
 # shared libraries need PIC
-set_property(TARGET OBJLIB PROPERTY POSITION_INDEPENDENT_CODE 1)
+if(BUILD_SHARED_LIBS OR ZIP_STATIC_PIC)
+  set_property(TARGET OBJLIB PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
 
 # static and shared libraries built from the same object files
 if (BUILD_SHARED_LIBS)
