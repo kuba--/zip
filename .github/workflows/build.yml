@@ -55,7 +55,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure
-      run:  cmake -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
+      run:  cmake .
     - name: Build
       run: |
         cmake --build . --config "Debug"
@@ -68,7 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure
-      run:  cmake -G "MinGW Makefiles" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE .
+      run:  cmake -G "MinGW Makefiles" .
     - name: Build
       run: |
         mingw32-make
