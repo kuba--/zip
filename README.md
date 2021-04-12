@@ -1,5 +1,5 @@
 ### A portable (OSX/Linux/Windows), simple zip library written in C
-This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v1.15 API.
+This is done by hacking awesome [miniz](https://code.google.com/p/miniz) library and layering functions on top of the miniz v2.2.0 API.
 
 [![Build](https://github.com/kuba--/zip/workflows/build/badge.svg)](https://github.com/kuba--/zip/actions?query=workflow%3Abuild)
 
@@ -256,18 +256,6 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 zip_close(zip);
 ```
 
-* Use custom CRC-32 function.
-```c
-unsigned long my_crc32(unsigned long crc, const void *buf, size_t bufsize) {
-	uint32_t c = crc32_16bytes_prefetch(buf, bufsize, (uint32_t)crc);
-	return (unsigned long)c;
-}
-
-//...
-zip_crc32_func(my_crc32);
-
-zip_extract("foo.zip", "/tmp", NULL, NULL);
-```
 
 # Bindings
 Compile zip library as a dynamic library.
