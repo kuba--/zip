@@ -12,10 +12,22 @@
 #ifndef ZIP_H
 #define ZIP_H
 
-#include <zip/zip_export.h>
-
 #include <string.h>
 #include <sys/types.h>
+
+#ifndef ZIP_SHARED
+#  define ZIP_EXPORT
+#else
+#  ifdef _WIN32
+#    ifdef ZIP_BUILD_SHARED
+#      define ZIP_EXPORT __declspec(dllexport)
+#    else
+#      define ZIP_EXPORT __declspec(dllimport)
+#    endif
+#  else
+#    define ZIP_EXPORT __attribute__ ((visibility ("default")))
+#  endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {
