@@ -5,8 +5,10 @@ project(zip
   VERSION "0.1.19")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
+option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
@@ -111,8 +113,8 @@ if(NOT TARGET uninstall)
         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
 endif()
 
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
+if(ZIP_BUILD_DOCS)
+    find_package(Doxygen REQUIRED)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
