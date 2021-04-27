@@ -4119,7 +4119,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 
 static wchar_t *str2wstr(const char *str) {
   int len = strlen(str) + 1;
-  wchar_t *wstr = malloc(len * sizeof(wchar_t));
+  wchar_t *wstr = (wchar_t*)malloc(len * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, str, len * sizeof(char), wstr, len);
   return wstr;
 }
