@@ -458,6 +458,7 @@ new Zip {
 # Check out more cool projects which use this library:
 - [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
 - [Hermes JS Engine](https://github.com/facebook/hermes): Hermes is a JavaScript engine optimized for fast start-up of React Native apps on Android. It features ahead-of-time static optimization and compact bytecode.
+- [Object-Oriented Graphics Rendering Engine](https://github.com/OGRECave/ogre): OGRE is a scene-oriented, flexible 3D engine written in C++ designed to make it easier and more intuitive for developers to produce games and demos utilising 3D hardware. 
 - [Open Asset Import Library](https://github.com/assimp/assimp): A library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
 - [PowerToys](https://github.com/microsoft/PowerToys): Set of utilities for power users to tune and streamline their Windows 10 experience for greater productivity.
 - [The Ring Programming Language](https://ring-lang.github.io): Innovative and practical general-purpose multi-paradigm language.
