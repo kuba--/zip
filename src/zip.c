@@ -128,9 +128,9 @@ static const char *const zip_errlist[30] = {
     "no permission\0",
     "out of memory\0",
     "invalid zip archive name\0",
-    "make dir error\0"
-    "symlink error\0"
-    "close archive error\0"
+    "make dir error\0",
+    "symlink error\0",
+    "close archive error\0",
     "capacity size too small\0",
     "fseek error\0",
     "fread error\0",
