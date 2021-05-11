@@ -267,7 +267,7 @@ extern ZIP_EXPORT int zip_entry_fwrite(struct zip_t *zip, const char *filename);
  *       for large entries, please take a look at zip_entry_extract function.
  *
  * @return the return code - the number of bytes actually read on success.
- *         Otherwise a -1 on error.
+ *         Otherwise a negative number (< 0) on error.
  */
 extern ZIP_EXPORT ssize_t zip_entry_read(struct zip_t *zip, void **buf,
                                          size_t *bufsize);
@@ -286,7 +286,7 @@ extern ZIP_EXPORT ssize_t zip_entry_read(struct zip_t *zip, void **buf,
  *       For large entries, please take a look at zip_entry_extract function.
  *
  * @return the return code - the number of bytes actually read on success.
- *         Otherwise a -1 on error (e.g. bufsize is not large enough).
+ *         Otherwise a negative number (< 0) on error (e.g. bufsize is not large enough).
  */
 extern ZIP_EXPORT ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
                                                 size_t bufsize);
@@ -381,7 +381,7 @@ extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
  * @return copy size
  */
 extern ZIP_EXPORT ssize_t zip_stream_copy(struct zip_t *zip, void **buf,
-                                          ssize_t *bufsize);
+                                          size_t *bufsize);
 
 /**
  * Close zip archive releases resources.
