@@ -158,7 +158,7 @@ zip_close(zip);
 
 ```c
 char *outbuf = NULL;
-size_t outbufsize = 0;
+ssize_t outbufsize = 0;
 
 const char *inbuf = "Append some data here...\0";
 struct zip_t *zip = zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
@@ -181,7 +181,7 @@ free(outbuf);
 
 ```c
 char *buf = NULL;
-ssize_t bufsize = 0;
+size_t bufsize = 0;
 
 struct zip_t *zip = zip_stream_open(zipstream, zipstreamsize, 0, 'r');
 {
