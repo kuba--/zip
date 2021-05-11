@@ -1299,26 +1299,26 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
 
   if (!zip) {
     // zip_t handler is not initialized
-    return ZIP_ENOINIT;
+    return (ssize_t)ZIP_ENOINIT;
   }
 
   pzip = &(zip->archive);
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
-    return ZIP_ENOENT;
+    return (ssize_t)ZIP_ENOENT;
   }
 
   idx = (mz_uint)zip->entry.index;
   if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
     // the entry is a directory
-    return ZIP_EINVENTTYPE;
+    return (ssize_t)ZIP_EINVENTTYPE;
   }
 
   *buf = mz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
   if (*buf && bufsize) {
     *bufsize = size;
   }
-  return size;
+  return (ssize_t)size;
 }
 
 ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
@@ -1326,18 +1326,18 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
 
   if (!zip) {
     // zip_t handler is not initialized
-    return ZIP_ENOINIT;
+    return (ssize_t)ZIP_ENOINIT;
   }
 
   pzip = &(zip->archive);
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
-    return ZIP_ENOENT;
+    return (ssize_t)ZIP_ENOENT;
   }
 
   if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, (mz_uint)zip->entry.index,
                                              buf, bufsize, 0, NULL, 0)) {
-    return ZIP_EMEMNOALLOC;
+    return (ssize_t)ZIP_EMEMNOALLOC;
   }
 
   return (ssize_t)zip->entry.uncomp_size;
@@ -1514,20 +1514,20 @@ cleanup:
   return NULL;
 }
 
-ssize_t zip_stream_copy(struct zip_t *zip, void **buf, ssize_t *bufsize) {
+ssize_t zip_stream_copy(struct zip_t *zip, void **buf, size_t *bufsize) {
   if (!zip) {
-    return ZIP_ENOINIT;
+    return (ssize_t)ZIP_ENOINIT;
   }
 
   zip_archive_finalize(&(zip->archive));
 
   if (bufsize != NULL) {
-    *bufsize = zip->archive.m_archive_size;
+    *bufsize = (size_t)zip->archive.m_archive_size;
   }
   *buf = calloc(sizeof(unsigned char), zip->archive.m_archive_size);
   memcpy(*buf, zip->archive.m_pState->m_pMem, zip->archive.m_archive_size);
 
-  return zip->archive.m_archive_size;
+  return (ssize_t)zip->archive.m_archive_size;
 }
 
 void zip_stream_close(struct zip_t *zip) {
