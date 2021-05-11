@@ -181,7 +181,7 @@ free(outbuf);
 
 ```c
 char *buf = NULL;
-ssize_t bufsize = 0;
+size_t bufsize = 0;
 
 struct zip_t *zip = zip_stream_open(zipstream, zipstreamsize, 0, 'r');
 {
