@@ -425,6 +425,13 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                                           void *arg),
                                   void *arg);
 
+/**
+ * Sets global CRC-32 checksum function.
+ *
+ * @param crc32_func crc32 function (init value, buffer, buffer size)
+ */
+extern ZIP_EXPORT void zip_crc32_func(unsigned long (*crc32_func)(unsigned long crc, const void *buf, size_t bufsize));
+
 /** @} */
 #ifdef __cplusplus
 }

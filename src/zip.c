@@ -1219,8 +1219,7 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
   pzip = &(zip->archive);
   if (buf && bufsize > 0) {
     zip->entry.uncomp_size += bufsize;
-    zip->entry.uncomp_crc32 = (mz_uint32)mz_crc32(
-        zip->entry.uncomp_crc32, (const mz_uint8 *)buf, bufsize);
+    zip->entry.uncomp_crc32 = (mz_uint32)def_crc32_func(zip->entry.uncomp_crc32, buf, bufsize);
 
     level = zip->level & 0xF;
     if (!level) {
@@ -1619,4 +1618,10 @@ int zip_extract(const char *zipname, const char *dir,
   }
 
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
+}
+
+void zip_crc32_func(unsigned long (*crc32_func)(unsigned long crc, const void *buf, size_t bufsize)) {
+  if (crc32_func) {
+    def_crc32_func = crc32_func;
+  }
 }
