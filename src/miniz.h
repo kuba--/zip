@@ -1437,7 +1437,6 @@ static void *def_realloc_func(void *opaque, void *address, size_t items,
   return MZ_REALLOC(address, items * size);
 }
 
-
 const char *mz_version(void) { return MZ_VERSION; }
 
 int mz_deflateInit(mz_streamp pStream, int level) {
@@ -2802,8 +2801,9 @@ static void tdefl_optimize_huffman_table(tdefl_compressor *d, int table_num,
   {                                                                            \
     if (rle_repeat_count) {                                                    \
       if (rle_repeat_count < 3) {                                              \
-        d->m_huff_count[2][prev_code_size] = (mz_uint16)(                      \
-            d->m_huff_count[2][prev_code_size] + rle_repeat_count);            \
+        d->m_huff_count[2][prev_code_size] =                                   \
+            (mz_uint16)(d->m_huff_count[2][prev_code_size] +                   \
+                        rle_repeat_count);                                     \
         while (rle_repeat_count--)                                             \
           packed_code_sizes[num_packed_code_sizes++] = prev_code_size;         \
       } else {                                                                 \
@@ -3386,12 +3386,13 @@ static mz_bool tdefl_compress_fast(tdefl_compressor *d) {
 
       if (((cur_match_dist = (mz_uint16)(lookahead_pos - probe_pos)) <=
            dict_size) &&
-          ((mz_uint32)(
-               *(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK)) |
-               (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 1))
-                << 8) |
-               (*(d->m_dict + ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 2))
-                << 16)) == first_trigram)) {
+          ((mz_uint32)(*(d->m_dict + (probe_pos & TDEFL_LZ_DICT_SIZE_MASK)) |
+                       (*(d->m_dict +
+                          ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 1))
+                        << 8) |
+                       (*(d->m_dict +
+                          ((probe_pos & TDEFL_LZ_DICT_SIZE_MASK) + 2))
+                        << 16)) == first_trigram)) {
         const mz_uint16 *p = (const mz_uint16 *)pCur_dict;
         const mz_uint16 *q =
             (const mz_uint16 *)(d->m_dict +
@@ -3982,7 +3983,7 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits,
 
 static wchar_t *str2wstr(const char *str) {
   int len = strlen(str) + 1;
-  wchar_t *wstr = (wchar_t*)malloc(len * sizeof(wchar_t));
+  wchar_t *wstr = (wchar_t *)malloc(len * sizeof(wchar_t));
   MultiByteToWideChar(CP_UTF8, 0, str, len * sizeof(char), wstr, len);
   return wstr;
 }
@@ -5223,7 +5224,8 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip,
       return MZ_FALSE;
     return ((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) != 0) ||
            (def_crc32_func(MZ_CRC32_INIT, pBuf,
-                     (size_t)file_stat.m_uncomp_size) == file_stat.m_crc32);
+                           (size_t)file_stat.m_uncomp_size) ==
+            file_stat.m_crc32);
   }
 
   // Decompress the file either directly from memory or from a file input
@@ -5284,8 +5286,8 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip,
   if (status == TINFL_STATUS_DONE) {
     // Make sure the entire file was decompressed, and check its CRC.
     if ((out_buf_ofs != file_stat.m_uncomp_size) ||
-        (def_crc32_func(MZ_CRC32_INIT, pBuf,
-                  (size_t)file_stat.m_uncomp_size) != file_stat.m_crc32))
+        (def_crc32_func(MZ_CRC32_INIT, pBuf, (size_t)file_stat.m_uncomp_size) !=
+         file_stat.m_crc32))
       status = TINFL_STATUS_FAILED;
   }
 
@@ -5445,9 +5447,8 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip,
                     (size_t)file_stat.m_comp_size) != file_stat.m_comp_size)
         status = TINFL_STATUS_FAILED;
       else if (!(flags & MZ_ZIP_FLAG_COMPRESSED_DATA))
-        file_crc32 =
-            (mz_uint32)def_crc32_func(file_crc32, pRead_buf,
-                                (size_t)file_stat.m_comp_size);
+        file_crc32 = (mz_uint32)def_crc32_func(file_crc32, pRead_buf,
+                                               (size_t)file_stat.m_comp_size);
       // cur_file_ofs += file_stat.m_comp_size;
       out_buf_ofs += file_stat.m_comp_size;
       // comp_remaining = 0;
@@ -5514,8 +5515,8 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip,
             status = TINFL_STATUS_FAILED;
             break;
           }
-          file_crc32 =
-              (mz_uint32)def_crc32_func(file_crc32, (const void *)pWrite_buf_cur, out_buf_size);
+          file_crc32 = (mz_uint32)def_crc32_func(
+              file_crc32, (const void *)pWrite_buf_cur, out_buf_size);
           if ((out_buf_ofs += out_buf_size) > file_stat.m_uncomp_size) {
             status = TINFL_STATUS_FAILED;
             break;
@@ -6083,8 +6084,8 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
   cur_archive_file_ofs += archive_name_size;
 
   if (!(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) {
-    uncomp_crc32 =
-        (mz_uint32)def_crc32_func(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, buf_size);
+    uncomp_crc32 = (mz_uint32)def_crc32_func(MZ_CRC32_INIT,
+                                             (const mz_uint8 *)pBuf, buf_size);
     uncomp_size = buf_size;
     if (uncomp_size <= 3) {
       level = 0;
@@ -6265,8 +6266,8 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
           MZ_FCLOSE(pSrc_file);
           return MZ_FALSE;
         }
-        uncomp_crc32 =
-            (mz_uint32)def_crc32_func(uncomp_crc32, (const mz_uint8 *)pRead_buf, n);
+        uncomp_crc32 = (mz_uint32)def_crc32_func(
+            uncomp_crc32, (const mz_uint8 *)pRead_buf, n);
         uncomp_remaining -= n;
         cur_archive_file_ofs += n;
       }
@@ -6304,8 +6305,8 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
         if (MZ_FREAD(pRead_buf, 1, in_buf_size, pSrc_file) != in_buf_size)
           break;
 
-        uncomp_crc32 = (mz_uint32)def_crc32_func(
-            uncomp_crc32, pRead_buf, in_buf_size);
+        uncomp_crc32 =
+            (mz_uint32)def_crc32_func(uncomp_crc32, pRead_buf, in_buf_size);
         uncomp_remaining -= in_buf_size;
 
         status = tdefl_compress_buffer(pComp, pRead_buf, in_buf_size,
