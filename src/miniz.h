@@ -1393,7 +1393,6 @@ mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len) {
   return (s2 << 16) + s1;
 }
 
-#include <stdio.h>
 // Karl Malbrain's compact CRC-32. See "A compact CCITT crc16 and crc32 C
 // implementation that balances processor cache usage against speed":
 // http://www.geocities.com/malbrain/
