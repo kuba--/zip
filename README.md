@@ -245,7 +245,7 @@ void zip_walk(struct zip_t *zip, const char *path) {
 }
 ```
 
-* Deletes zip archive entries.
+* Delete zip archive entries.
 ```c
 char *entries[] = {"unused.txt", "remove.ini", "delete.me"};
 
@@ -254,6 +254,19 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'd');
     zip_entries_delete(zip, entries, 3);
 }
 zip_close(zip);
+```
+
+* Use custom CRC-32 function.
+```c
+unsigned long my_crc32(unsigned long crc, const void *buf, size_t bufsize) {
+	uint32_t c = crc32_16bytes_prefetch(buf, bufsize, (uint32_t)crc);
+	return (unsigned long)c;
+}
+
+//...
+zip_crc32_func(my_crc32);
+
+zip_extract("foo.zip", "/tmp", NULL, NULL);
 ```
 
 # Bindings

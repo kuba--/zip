@@ -16,17 +16,17 @@
 #include <sys/types.h>
 
 #ifndef ZIP_SHARED
-#  define ZIP_EXPORT
+#define ZIP_EXPORT
 #else
-#  ifdef _WIN32
-#    ifdef ZIP_BUILD_SHARED
-#      define ZIP_EXPORT __declspec(dllexport)
-#    else
-#      define ZIP_EXPORT __declspec(dllimport)
-#    endif
-#  else
-#    define ZIP_EXPORT __attribute__ ((visibility ("default")))
-#  endif
+#ifdef _WIN32
+#ifdef ZIP_BUILD_SHARED
+#define ZIP_EXPORT __declspec(dllexport)
+#else
+#define ZIP_EXPORT __declspec(dllimport)
+#endif
+#else
+#define ZIP_EXPORT __attribute__((visibility("default")))
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -286,7 +286,8 @@ extern ZIP_EXPORT ssize_t zip_entry_read(struct zip_t *zip, void **buf,
  *       For large entries, please take a look at zip_entry_extract function.
  *
  * @return the return code - the number of bytes actually read on success.
- *         Otherwise a negative number (< 0) on error (e.g. bufsize is not large enough).
+ *         Otherwise a negative number (< 0) on error (e.g. bufsize is not large
+ * enough).
  */
 extern ZIP_EXPORT ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
                                                 size_t bufsize);
@@ -424,6 +425,15 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                   int (*on_extract_entry)(const char *filename,
                                                           void *arg),
                                   void *arg);
+
+/**
+ * Sets global CRC-32 checksum function.
+ *
+ * @param crc32_func crc32 function (init value, buffer, buffer size)
+ */
+extern ZIP_EXPORT void
+zip_crc32_func(unsigned long (*crc32_func)(unsigned long crc, const void *buf,
+                                           size_t bufsize));
 
 /** @} */
 #ifdef __cplusplus
