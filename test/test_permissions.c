@@ -32,14 +32,6 @@ void test_teardown(void) {
   free(ZIPNAME);
 }
 
-#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
-#define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
-#else
-#define MZ_FILE_STAT_STRUCT stat
-#define MZ_FILE_STAT stat
-#endif
-
 #define XMODE 0100777
 #define RMODE 0100444
 #define WMODE 0100666
