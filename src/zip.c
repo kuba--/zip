@@ -1247,7 +1247,7 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
 int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   int err = 0;
   size_t n = 0;
-  FILE *stream = NULL;
+  MZ_FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE];
   struct MZ_FILE_STAT_STRUCT file_stat;
 
@@ -1270,12 +1270,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   zip->entry.external_attr |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
   zip->entry.m_time = file_stat.st_mtime;
 
-#if defined(_MSC_VER)
-  if (fopen_s(&stream, filename, "rb"))
-#else
-  if (!(stream = fopen(filename, "rb")))
-#endif
-  {
+  if (!(stream = MZ_FOPEN(filename, "rb"))) {
     // Cannot open filename
     return ZIP_EOPNFILE;
   }
