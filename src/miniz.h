@@ -4009,6 +4009,15 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   return pFile;
 }
 
+static int mz_stat(const char *pPath, struct _stat *buffer) {
+  wchar_t *wPath = str2wstr(pPath);
+  int res = _wstat(wPath, buffer);
+
+  free(wPath);
+
+  return res;
+}
+
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
@@ -4020,7 +4029,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
 #define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
+#define MZ_FILE_STAT mz_stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
