@@ -3981,9 +3981,10 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits,
 #include <windows.h>
 
 static wchar_t *str2wstr(const char *str) {
-  int len = strlen(str) + 1;
+  size_t len = strlen(str) + 1;
   wchar_t *wstr = (wchar_t *)malloc(len * sizeof(wchar_t));
-  MultiByteToWideChar(CP_UTF8, 0, str, len * sizeof(char), wstr, len);
+  MultiByteToWideChar(CP_UTF8, 0, str, (int)(len * sizeof(char)), wstr,
+                      (int)len);
   return wstr;
 }
 
@@ -5963,12 +5964,12 @@ static mz_bool mz_zip_writer_validate_archive_name(const char *pArchive_name) {
 
 static mz_uint
 mz_zip_writer_compute_padding_needed_for_file_alignment(mz_zip_archive *pZip) {
-  mz_uint32 n;
+  mz_uint n;
   if (!pZip->m_file_offset_alignment)
     return 0;
-  n = (mz_uint32)(pZip->m_archive_size & (pZip->m_file_offset_alignment - 1));
-  return (pZip->m_file_offset_alignment - n) &
-         (pZip->m_file_offset_alignment - 1);
+  n = (mz_uint)(pZip->m_archive_size & (pZip->m_file_offset_alignment - 1));
+  return (mz_uint)((pZip->m_file_offset_alignment - n) &
+                   (pZip->m_file_offset_alignment - 1));
 }
 
 static mz_bool mz_zip_writer_write_zeros(mz_zip_archive *pZip,

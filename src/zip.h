@@ -326,7 +326,7 @@ zip_entry_extract(struct zip_t *zip,
  * @return the return code - the number of entries on success, negative number
  *         (< 0) on error.
  */
-extern ZIP_EXPORT int zip_entries_total(struct zip_t *zip);
+extern ZIP_EXPORT ssize_t zip_entries_total(struct zip_t *zip);
 
 /**
  * Deletes zip archive entries.
@@ -336,8 +336,8 @@ extern ZIP_EXPORT int zip_entries_total(struct zip_t *zip);
  * @param len the number of entries to be deleted.
  * @return the number of deleted entries, or negative number (< 0) on error.
  */
-extern ZIP_EXPORT int zip_entries_delete(struct zip_t *zip,
-                                         char *const entries[], size_t len);
+extern ZIP_EXPORT ssize_t zip_entries_delete(struct zip_t *zip,
+                                             char *const entries[], size_t len);
 
 /**
  * Extracts a zip archive stream into directory.
