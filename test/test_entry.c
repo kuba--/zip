@@ -155,7 +155,7 @@ MU_TEST(test_entry_read) {
   char *bufencode1 = NULL;
   char *bufencode2 = NULL;
   char *buf = NULL;
-  ssize_t bufsize;
+  size_t bufsize;
 
   struct zip_t *zip =
       zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
@@ -166,8 +166,8 @@ MU_TEST(test_entry_read) {
   mu_assert_int_eq(0, zip_entry_close(zip));
 
   ssize_t n = zip_stream_copy(zip, (void **)&bufencode1, NULL);
-  zip_stream_copy(zip, (void **)&bufencode2, &n);
-  mu_assert_int_eq(0, strncmp(bufencode1, bufencode2, (size_t)n));
+  zip_stream_copy(zip, (void **)&bufencode2, &bufsize);
+  mu_assert_int_eq(0, strncmp(bufencode1, bufencode2, bufsize));
 
   zip_stream_close(zip);
 
@@ -175,8 +175,8 @@ MU_TEST(test_entry_read) {
   mu_check(zipstream != NULL);
 
   mu_assert_int_eq(0, zip_entry_open(zipstream, "test/test-1.txt"));
-  bufsize = zip_entry_read(zipstream, (void **)&buf, NULL);
-  mu_assert_int_eq(0, strncmp(buf, TESTDATA1, (size_t)bufsize));
+  n = zip_entry_read(zipstream, (void **)&buf, NULL);
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA1, (size_t)n));
   mu_assert_int_eq(0, zip_entry_close(zipstream));
 
   zip_stream_close(zipstream);
