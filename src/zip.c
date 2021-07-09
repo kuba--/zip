@@ -521,13 +521,12 @@ static int zip_entry_finalize(struct zip_t *zip,
     CLEANUP(local_header_ofs_array);
     return ZIP_EOOMEM;
   }
-  for (int i = 0; i < n - 1; i++) {
-    length[i] = local_header_ofs_array[i + 1] - local_header_ofs_array[i];
+  for (i = 0; i < n - 1; i++) {
+    length[i] = (size_t)(local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
   }
-  length[n - 1] =
-      (size_t)zip->archive.m_archive_size - local_header_ofs_array[n - 1];
+  length[n - 1] = (size_t)(zip->archive.m_archive_size - local_header_ofs_array[n - 1]);
 
-  for (int i = 0; i < n; i++) {
+  for (i = 0; i < n; i++) {
     entry_mark[i].lf_length = length[entry_mark[i].file_index];
   }
 
