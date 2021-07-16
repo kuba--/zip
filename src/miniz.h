@@ -454,6 +454,7 @@ enum {
 // Window bits
 #define MZ_DEFAULT_WINDOW_BITS 15
 
+
 struct mz_internal_state;
 
 // Compression/decompression stream struct.
@@ -1301,6 +1302,9 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits,
 #define MZ_UINT16_MAX (0xFFFFU)
 #define MZ_UINT32_MAX (0xFFFFFFFFU)
 
+// Maximum positive value for a 32-bit signed binary integer
+#define MZ_INT32_MAX (0x7FFFFFFF)
+
 #ifdef __cplusplus
 }
 #endif
@@ -1573,7 +1577,7 @@ int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len,
   memset(&stream, 0, sizeof(stream));
 
   // In case mz_ulong is 64-bits (argh I hate longs).
-  if ((source_len | *pDest_len) > 0xFFFFFFFFU)
+  if ((source_len | *pDest_len) > MZ_UINT32_MAX)
     return MZ_PARAM_ERROR;
 
   stream.next_in = pSource;
@@ -1794,7 +1798,7 @@ int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len,
   memset(&stream, 0, sizeof(stream));
 
   // In case mz_ulong is 64-bits (argh I hate longs).
-  if ((source_len | *pDest_len) > 0xFFFFFFFFU)
+  if ((source_len | *pDest_len) > MZ_UINT32_MAX)
     return MZ_PARAM_ERROR;
 
   stream.next_in = pSource;
@@ -5257,7 +5261,7 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip,
   } else {
     // Temporarily allocate a read buffer.
     read_buf_size = MZ_MIN(file_stat.m_comp_size, MZ_ZIP_MAX_IO_BUF_SIZE);
-    if (((sizeof(size_t) == sizeof(mz_uint32))) && (read_buf_size > 0x7FFFFFFF))
+    if ((sizeof(size_t) == sizeof(mz_uint32)) && (read_buf_size > MZ_INT32_MAX))
       return MZ_FALSE;
 
     if (NULL == (pRead_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1,
@@ -5346,7 +5350,7 @@ void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index,
   uncomp_size = MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS);
 
   alloc_size = (flags & MZ_ZIP_FLAG_COMPRESSED_DATA) ? comp_size : uncomp_size;
-  if (((sizeof(size_t) == sizeof(mz_uint32))) && (alloc_size > 0x7FFFFFFF))
+  if ((sizeof(size_t) == sizeof(mz_uint32)) && (alloc_size > MZ_INT32_MAX))
     return NULL;
   if (NULL ==
       (pBuf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)alloc_size)))
@@ -5449,7 +5453,7 @@ mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip,
     // The file is stored or the caller has requested the compressed data.
     if (pZip->m_pState->m_pMem) {
       if (((sizeof(size_t) == sizeof(mz_uint32))) &&
-          (file_stat.m_comp_size > 0xFFFFFFFF))
+          (file_stat.m_comp_size > MZ_UINT32_MAX))
         return MZ_FALSE;
 
       if (pCallback(pOpaque, out_buf_ofs, pRead_buf,
@@ -5694,7 +5698,7 @@ static size_t mz_zip_heap_write_func(void *pOpaque, mz_uint64 file_ofs,
   mz_uint64 new_size = MZ_MAX(file_ofs + n, pState->m_mem_size);
 
   if ((!n) ||
-      ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF)))
+      ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > MZ_INT32_MAX)))
     return 0;
 
   if (new_size > pState->m_mem_capacity) {
@@ -5783,7 +5787,7 @@ mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip,
   // size
   if ((pZip->m_total_files == 0xFFFF) ||
       ((pZip->m_archive_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
-        MZ_ZIP_LOCAL_DIR_HEADER_SIZE) > 0xFFFFFFFF))
+        MZ_ZIP_LOCAL_DIR_HEADER_SIZE) > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   pState = pZip->m_pState;
@@ -5917,10 +5921,10 @@ static mz_bool mz_zip_writer_add_to_central_dir(
   mz_uint8 central_dir_header[MZ_ZIP_CENTRAL_DIR_HEADER_SIZE];
 
   // No zip64 support yet
-  if ((local_header_ofs > 0xFFFFFFFF) ||
+  if ((local_header_ofs > MZ_UINT32_MAX) ||
       (((mz_uint64)pState->m_central_dir.m_size +
         MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + filename_size + extra_size +
-        comment_size) > 0xFFFFFFFF))
+        comment_size) > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   if (!mz_zip_writer_create_central_dir_header(
@@ -6020,7 +6024,7 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
   if ((!(level_and_flags & MZ_ZIP_FLAG_COMPRESSED_DATA)) && (uncomp_size))
     return MZ_FALSE;
   // No zip64 support yet
-  if ((buf_size > 0xFFFFFFFF) || (uncomp_size > 0xFFFFFFFF))
+  if ((buf_size > MZ_UINT32_MAX) || (uncomp_size > MZ_UINT32_MAX))
     return MZ_FALSE;
   if (!mz_zip_writer_validate_archive_name(pArchive_name))
     return MZ_FALSE;
@@ -6044,7 +6048,7 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
   if ((pZip->m_total_files == 0xFFFF) ||
       ((pZip->m_archive_size + num_alignment_padding_bytes +
         MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
-        comment_size + archive_name_size) > 0xFFFFFFFF))
+        comment_size + archive_name_size) > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   if ((archive_name_size) && (pArchive_name[archive_name_size - 1] == '/')) {
@@ -6141,7 +6145,7 @@ mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip,
   pComp = NULL;
 
   // no zip64 support yet
-  if ((comp_size > 0xFFFFFFFF) || (cur_archive_file_ofs > 0xFFFFFFFF))
+  if ((comp_size > MZ_UINT32_MAX) || (cur_archive_file_ofs > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   if (!mz_zip_writer_create_local_dir_header(
@@ -6209,7 +6213,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
   if ((pZip->m_total_files == 0xFFFF) ||
       ((pZip->m_archive_size + num_alignment_padding_bytes +
         MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
-        comment_size + archive_name_size) > 0xFFFFFFFF))
+        comment_size + archive_name_size) > MZ_UINT32_MAX))
     return MZ_FALSE;
 
 #ifndef MINIZ_NO_TIME
@@ -6226,7 +6230,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
   uncomp_size = MZ_FTELL64(pSrc_file);
   MZ_FSEEK64(pSrc_file, 0, SEEK_SET);
 
-  if (uncomp_size > 0xFFFFFFFF) {
+  if (uncomp_size > MZ_UINT32_MAX) {
     // No zip64 support yet
     MZ_FCLOSE(pSrc_file);
     return MZ_FALSE;
@@ -6349,7 +6353,7 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
   pSrc_file = NULL;
 
   // no zip64 support yet
-  if ((comp_size > 0xFFFFFFFF) || (cur_archive_file_ofs > 0xFFFFFFFF))
+  if ((comp_size > MZ_UINT32_MAX) || (cur_archive_file_ofs > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   if (!mz_zip_writer_create_local_dir_header(
@@ -6404,7 +6408,7 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip,
   if ((pZip->m_total_files == 0xFFFF) ||
       ((pZip->m_archive_size + num_alignment_padding_bytes +
         MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE) >
-       0xFFFFFFFF))
+       MZ_UINT32_MAX))
     return MZ_FALSE;
 
   cur_src_file_ofs =
@@ -6486,7 +6490,7 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip,
   pZip->m_pFree(pZip->m_pAlloc_opaque, pBuf);
 
   // no zip64 support yet
-  if (cur_dst_file_ofs > 0xFFFFFFFF)
+  if (cur_dst_file_ofs > MZ_UINT32_MAX)
     return MZ_FALSE;
 
   orig_central_dir_size = pState->m_central_dir.m_size;
@@ -6509,7 +6513,7 @@ mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip,
     return MZ_FALSE;
   }
 
-  if (pState->m_central_dir.m_size > 0xFFFFFFFF)
+  if (pState->m_central_dir.m_size > MZ_UINT32_MAX)
     return MZ_FALSE;
   n = (mz_uint32)orig_central_dir_size;
   if (!mz_zip_array_push_back(pZip, &pState->m_central_dir_offsets, &n, 1)) {
@@ -6537,7 +6541,7 @@ mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip) {
   // no zip64 support yet
   if ((pZip->m_total_files > 0xFFFF) ||
       ((pZip->m_archive_size + pState->m_central_dir.m_size +
-        MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) > 0xFFFFFFFF))
+        MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) > MZ_UINT32_MAX))
     return MZ_FALSE;
 
   central_dir_ofs = 0;
