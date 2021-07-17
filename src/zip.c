@@ -1421,8 +1421,7 @@ ssize_t zip_entries_total(struct zip_t *zip) {
   return (ssize_t)zip->archive.m_total_files;
 }
 
-ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
-                           const size_t len) {
+ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[], size_t len) {
   ssize_t n = 0;
   ssize_t err = 0;
   struct zip_entry_mark_t *entry_mark = NULL;
