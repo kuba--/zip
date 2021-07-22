@@ -454,7 +454,6 @@ enum {
 // Window bits
 #define MZ_DEFAULT_WINDOW_BITS 15
 
-
 struct mz_internal_state;
 
 // Compression/decompression stream struct.
@@ -4029,7 +4028,7 @@ static int mz_mkdir(const char *pDirname) {
 
   free(wDirname);
 
-  return res
+  return res;
 }
 
 #ifndef MINIZ_NO_TIME
