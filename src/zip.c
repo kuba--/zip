@@ -18,7 +18,6 @@
 /* Win32, DOS, MSVC, MSVS */
 #include <direct.h>
 
-#define MKDIR(DIRNAME) _mkdir(DIRNAME)
 #define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
 #define HAS_DEVICE(P)                                                          \
   ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) &&   \
@@ -28,8 +27,6 @@
 #else
 
 #include <unistd.h> // needed for symlink()
-
-#define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
 #endif
@@ -188,7 +185,7 @@ static int zip_mkpath(char *path) {
       }
 #endif
 
-      if (MKDIR(npath) == -1) {
+      if (MZ_MKDIR(npath) == -1) {
         if (errno != EEXIST) {
           return ZIP_EMKDIR;
         }

@@ -4023,6 +4023,15 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
   return res;
 }
 
+static int mz_mkdir(const char *pDirname) {
+  wchar_t *wDirname = str2wstr(pDirname);
+  int res = _wmkdir(wDirname);
+
+  free(wDirname);
+
+  return res
+}
+
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
@@ -4038,6 +4047,7 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mz_mkdir(d)
 #elif defined(__MINGW32__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
@@ -4054,6 +4064,7 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) mz_freopen
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) _mkdir(d)
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
@@ -4070,6 +4081,7 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 #elif defined(__GNUC__) && _LARGEFILE64_SOURCE
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
@@ -4086,6 +4098,7 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 #else
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
@@ -4107,6 +4120,7 @@ static int mz_stat(const char *pPath, struct _stat *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 #endif // #ifdef _MSC_VER
 #endif // #ifdef MINIZ_NO_STDIO
 
