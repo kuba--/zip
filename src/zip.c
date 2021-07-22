@@ -18,7 +18,6 @@
 /* Win32, DOS, MSVC, MSVS */
 #include <direct.h>
 
-#define MKDIR(DIRNAME) _mkdir(DIRNAME)
 #define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
 #define HAS_DEVICE(P)                                                          \
   ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) &&   \
@@ -28,8 +27,6 @@
 #else
 
 #include <unistd.h> // needed for symlink()
-
-#define MKDIR(DIRNAME) mkdir(DIRNAME, 0755)
 #define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
 #endif
@@ -188,7 +185,7 @@ static int zip_mkpath(char *path) {
       }
 #endif
 
-      if (MKDIR(npath) == -1) {
+      if (MZ_MKDIR(npath) == -1) {
         if (errno != EEXIST) {
           return ZIP_EMKDIR;
         }
@@ -418,7 +415,7 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
   }
 
   mz_zip_archive_file_stat file_stat;
-  mz_uint64 d_pos = ~0;
+  mz_uint64 d_pos = ~0UL;
   for (i = 0; i < n; ++i) {
     if ((err = zip_entry_openbyindex(zip, i))) {
       return (ssize_t)err;
@@ -522,9 +519,11 @@ static int zip_entry_finalize(struct zip_t *zip,
     return ZIP_EOOMEM;
   }
   for (i = 0; i < n - 1; i++) {
-    length[i] = (size_t)(local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
+    length[i] =
+        (size_t)(local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
   }
-  length[n - 1] = (size_t)(zip->archive.m_archive_size - local_header_ofs_array[n - 1]);
+  length[n - 1] =
+      (size_t)(zip->archive.m_archive_size - local_header_ofs_array[n - 1]);
 
   for (i = 0; i < n; i++) {
     entry_mark[i].lf_length = length[entry_mark[i].file_index];
@@ -1421,7 +1420,8 @@ ssize_t zip_entries_total(struct zip_t *zip) {
   return (ssize_t)zip->archive.m_total_files;
 }
 
-ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[], size_t len) {
+ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
+                           size_t len) {
   ssize_t n = 0;
   ssize_t err = 0;
   struct zip_entry_mark_t *entry_mark = NULL;
