@@ -1170,10 +1170,12 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   if (!mz_zip_writer_add_to_central_dir(
-          pzip, zip->entry.name, entrylen, NULL, 0, "", 0,
+          pzip, zip->entry.name, entrylen,
+          NULL, 0, "", 0,
           zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
-          zip->entry.method, 0, dos_time, dos_date, zip->entry.header_offset,
-          zip->entry.external_attr)) {
+          zip->entry.method, 0, dos_time, dos_date,
+          zip->entry.header_offset, zip->entry.external_attr,
+          NULL, 0)) {
     // Cannot write to zip central dir
     err = ZIP_EWRTDIR;
     goto cleanup;
