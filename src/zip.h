@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #ifndef ZIP_SHARED
 #define ZIP_EXPORT
@@ -314,8 +315,10 @@ extern ZIP_EXPORT int zip_entry_fread(struct zip_t *zip, const char *filename);
  */
 extern ZIP_EXPORT int
 zip_entry_extract(struct zip_t *zip,
-                  size_t (*on_extract)(void *arg, unsigned long long offset,
-                                       const void *data, size_t size),
+                  size_t (*on_extract)(void *arg,
+                                       uint64_t offset,
+                                       const void *data,
+                                       size_t size),
                   void *arg);
 
 /**

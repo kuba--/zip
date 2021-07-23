@@ -55,7 +55,7 @@ struct buffer_t {
   size_t size;
 };
 
-static size_t on_extract(void *arg, unsigned long long offset, const void *data,
+static size_t on_extract(void *arg, uint64_t offset, const void *data,
                          size_t size) {
   UNUSED(offset);
 

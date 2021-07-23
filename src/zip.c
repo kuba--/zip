@@ -1413,8 +1413,10 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
 }
 
 int zip_entry_extract(struct zip_t *zip,
-                      size_t (*on_extract)(void *arg, unsigned long long offset,
-                                           const void *buf, size_t bufsize),
+                      size_t (*on_extract)(void *arg,
+                                           uint64_t offset,
+                                           const void *buf,
+                                           size_t bufsize),
                       void *arg) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
