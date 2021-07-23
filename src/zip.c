@@ -162,6 +162,29 @@ static const char *zip_basename(const char *name) {
   return base;
 }
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+static wchar_t *str2wstr(const char *str) {
+  size_t len = strlen(str) + 1;
+  wchar_t *wstr = (wchar_t *)malloc(len * sizeof(wchar_t));
+  MultiByteToWideChar(CP_UTF8, 0, str, (int)(len * sizeof(char)), wstr,
+                      (int)len);
+  return wstr;
+}
+#endif
+
+static int zip_mkdir(const char* path) {
+#if defined(_MSC_VER) || defined(__MINGW32__)
+  wchar_t *dirname = str2wstr(path);
+  int res = _wmkdir(dirname);
+
+  free(dirname);
+
+  return res;
+#else
+  return mkdir(path, 0755);
+#endif
+}
+
 static int zip_mkpath(char *path) {
   char *p;
   char npath[MAX_PATH + 1];
@@ -185,7 +208,7 @@ static int zip_mkpath(char *path) {
       }
 #endif
 
-      if (MZ_MKDIR(npath) == -1) {
+      if (zip_mkdir(npath) == -1) {
         if (errno != EEXIST) {
           return ZIP_EMKDIR;
         }
