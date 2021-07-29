@@ -5,13 +5,14 @@
 
 #include "minunit.h"
 
-static char *ZIPNAME = NULL;
+static char ZIPNAME[L_tmpnam + 1] = {0};
 
 #define TESTDATA1 "Some test data 1...\0"
 #define TESTDATA2 "Some test data 2...\0"
 
 void test_setup(void) {
-  ZIPNAME = tempnam(".", "z-");
+  strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
+  mktemp(ZIPNAME);
 
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 
@@ -45,7 +46,6 @@ void test_teardown(void) {
   remove("dotfiles/.test");
   remove("dotfiles");
   remove(ZIPNAME);
-  free(ZIPNAME);
 }
 
 #define UNUSED(x) (void)x

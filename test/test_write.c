@@ -5,20 +5,20 @@
 
 #include "minunit.h"
 
-static char *ZIPNAME = NULL;
-static char *WFILE = NULL;
+static char ZIPNAME[L_tmpnam + 1] = {0};
+static char WFILE[L_tmpnam + 1] = {0};
 
 void test_setup(void) {
-  ZIPNAME = tempnam(NULL, "z-");
-  WFILE = tempnam(NULL, "w-");
+  strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
+  strncpy(WFILE, "w-XXXXXX\0", L_tmpnam);
+
+  mktemp(ZIPNAME);
+  mktemp(WFILE);
 }
 
 void test_teardown(void) {
   remove(WFILE);
-  free(WFILE);
-
   remove(ZIPNAME);
-  free(ZIPNAME);
 }
 
 #define CRC32DATA1 2220805626
