@@ -263,7 +263,7 @@ Compile zip library as a dynamic library.
 $ mkdir build
 $ cd build
 $ cmake -DBUILD_SHARED_LIBS=true ..
-$ make
+$ cmake --build .
 ```
 
 ### [Go](https://golang.org) (cgo)
