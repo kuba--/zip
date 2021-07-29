@@ -6,33 +6,31 @@
 
 #include "minunit.h"
 
-static char *ZIPNAME = NULL;
-static char *XFILE = NULL;
-static char *RFILE = NULL;
-static char *WFILE = NULL;
+static char ZIPNAME[L_tmpnam + 1] = {0};
+static char XFILE[L_tmpnam + 1] = {0};
+static char RFILE[L_tmpnam + 1] = {0};
+static char WFILE[L_tmpnam + 1] = {0};
 
 void test_setup(void) {
-  ZIPNAME = tempnam(".", "z-");
-  XFILE = tempnam(".", "x-");
-  RFILE = tempnam(".", "r-");
-  WFILE = tempnam(".", "w-");
+  strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
+  strncpy(XFILE, "x-XXXXXX\0", L_tmpnam);
+  strncpy(RFILE, "r-XXXXXX\0", L_tmpnam);
+  strncpy(WFILE, "w-XXXXXX\0", L_tmpnam);
+
+  mktemp(ZIPNAME);
+  mktemp(XFILE);
+  mktemp(RFILE);
+  mktemp(WFILE);
 }
 
 void test_teardown(void) {
   remove(WFILE);
-  free(WFILE);
-
   remove(RFILE);
-  free(RFILE);
-
   remove(XFILE);
-  free(XFILE);
-
   remove(ZIPNAME);
-  free(ZIPNAME);
 }
 
-#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define MZ_FILE_STAT_STRUCT _stat
 #define MZ_FILE_STAT _stat
 #else
