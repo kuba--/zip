@@ -4815,7 +4815,7 @@ extern "C" {
 #else
 #include <sys/stat.h>
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 
 #include <windows.h>
 
@@ -4833,7 +4833,7 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   wchar_t *wFilename = str2wstr(pFilename);
   wchar_t *wMode = str2wstr(pMode);
 
-#if defined(__MINGW64__)
+#if defined(__MINGW32__) || defined(__MINGW64__)
   pFile = _wfopen(wFilename, wMode);
 #elif defined(_MSC_VER)
   _wfopen_s(&pFile, wFilename, wMode);
@@ -4852,7 +4852,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   wchar_t *wPath = str2wstr(pPath);
   wchar_t *wMode = str2wstr(pMode);
 
-#if defined(__MINGW64__)
+#if defined(__MINGW32__) || defined(__MINGW64__)
   pFile = _wfreopen(wPath, wMode, pStream);
 #elif defined(_MSC_VER)
   res = _wfreopen_s(&pFile, wPath, wMode, pStream);
@@ -4890,7 +4890,7 @@ static int mz_mkdir(const char *pDirname) {
 #include <sys/utime.h>
 #endif
 
-#if defined(__MINGW64__)
+#if defined(__MINGW32__) || defined(__MINGW64__)
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
