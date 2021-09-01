@@ -4815,10 +4815,11 @@ extern "C" {
 #else
 #include <sys/stat.h>
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
-
+#if defined(_MSC_VER)
 #include <windows.h>
-
+#ifndef MINIZ_NO_TIME
+#include <sys/utime.h>
+#endif
 static wchar_t *str2wstr(const char *str) {
   size_t len = strlen(str) + 1;
   wchar_t *wstr = (wchar_t *)malloc(len * sizeof(wchar_t));
@@ -4829,15 +4830,10 @@ static wchar_t *str2wstr(const char *str) {
 
 static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   FILE *pFile = NULL;
-
   wchar_t *wFilename = str2wstr(pFilename);
   wchar_t *wMode = str2wstr(pMode);
 
-#if defined(__MINGW64__)
-  pFile = _wfopen(wFilename, wMode);
-#elif defined(_MSC_VER)
   _wfopen_s(&pFile, wFilename, wMode);
-#endif
 
   free(wFilename);
   free(wMode);
@@ -4852,11 +4848,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   wchar_t *wPath = str2wstr(pPath);
   wchar_t *wMode = str2wstr(pMode);
 
-#if defined(__MINGW64__)
-  pFile = _wfreopen(wPath, wMode, pStream);
-#elif defined(_MSC_VER)
   res = _wfreopen_s(&pFile, wPath, wMode, pStream);
-#endif
 
   free(wPath);
   free(wMode);
@@ -4886,9 +4878,6 @@ static int mz_mkdir(const char *pDirname) {
   return res;
 }
 
-#ifndef MINIZ_NO_TIME
-#include <sys/utime.h>
-#endif
 #define MZ_FOPEN mz_fopen
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4901,26 +4890,32 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mz_mkdir(d)
-#elif defined(__MINGW32__)
+
+
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+#include <windows.h>
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
+
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
-#define MZ_FTELL64 ftello64
-#define MZ_FSEEK64 fseeko64
-#define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
+#define MZ_FTELL64 ftell
+#define MZ_FSEEK64 fseek
+#define MZ_FILE_STAT_STRUCT stat
+#define MZ_FILE_STAT stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) _mkdir(d)
+
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
+
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4933,10 +4928,12 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
+
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
+
 #define MZ_FOPEN(f, m) fopen64(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4949,10 +4946,12 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
+
 #elif defined(__APPLE__)
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
+
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4972,6 +4971,7 @@ static int mz_mkdir(const char *pDirname) {
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
+
 #define MZ_FOPEN(f, m) fopen(f, m)
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4989,6 +4989,7 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
+
 #endif /* #ifdef _MSC_VER */
 #endif /* #ifdef MINIZ_NO_STDIO */
 
