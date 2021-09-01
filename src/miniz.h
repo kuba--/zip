@@ -4818,6 +4818,11 @@ extern "C" {
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 
 #include <windows.h>
+#ifndef MINIZ_NO_TIME
+#include <sys/utime.h>
+#endif
+
+#if defined(_MSC_VER)
 
 static wchar_t *str2wstr(const char *str) {
   size_t len = strlen(str) + 1;
@@ -4886,24 +4891,6 @@ static int mz_mkdir(const char *pDirname) {
   return res;
 }
 
-#ifndef MINIZ_NO_TIME
-#include <sys/utime.h>
-#endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#define MZ_FOPEN(f, m) fopen(f, m)
-#define MZ_FCLOSE fclose
-#define MZ_FREAD fread
-#define MZ_FWRITE fwrite
-#define MZ_FTELL64 ftell
-#define MZ_FSEEK64 fseek
-#define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
-#define MZ_FFLUSH fflush
-#define MZ_FREOPEN(f, m, s) freopen(f, m, s)
-#define MZ_DELETE_FILE remove
-#define MZ_MKDIR(d) _mkdir(d)
-#elif defined(_MSC_VER)
 #define MZ_FOPEN mz_fopen
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
@@ -4917,6 +4904,20 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mz_mkdir(d)
 #endif
+
+#elif defined(__MINGW32__) || defined(__MINGW64__)
+#define MZ_FOPEN(f, m) fopen(f, m)
+#define MZ_FCLOSE fclose
+#define MZ_FREAD fread
+#define MZ_FWRITE fwrite
+#define MZ_FTELL64 ftell
+#define MZ_FSEEK64 fseek
+#define MZ_FILE_STAT_STRUCT _stat
+#define MZ_FILE_STAT _stat
+#define MZ_FFLUSH fflush
+#define MZ_FREOPEN(f, m, s) freopen(f, m, s)
+#define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) _mkdir(d)
 
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
@@ -4934,6 +4935,7 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
+
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
@@ -4950,6 +4952,7 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
+
 #elif defined(__APPLE__)
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
@@ -4990,7 +4993,7 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
 #define MZ_MKDIR(d) mkdir(d, 0755)
-#endif /* #ifdef defined(_MSC_VER) || defined(__MINGW64__) */
+#endif /* #ifdef defined(_MSC_VER) || || defined(__MINGW32__) || defined(__MINGW64__) */
 #endif /* #ifdef MINIZ_NO_STDIO */
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
