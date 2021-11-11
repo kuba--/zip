@@ -39,6 +39,7 @@ if (NOT CMAKE_DISABLE_TESTING)
   add_subdirectory(test)
 endif()
 
+set(CMAKE_C_STANDARD 90)
 if (MSVC)
   # Use secure functions by default and suppress warnings about "deprecated" functions
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
@@ -47,7 +48,7 @@ if (MSVC)
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Wextra -Werror -pedantic -Wno-deprecated")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic")
 endif (MSVC)
 
 ####
