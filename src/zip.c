@@ -422,10 +422,13 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
     }
 
     mz_bool name_matches = MZ_FALSE;
-    for (int j = 0; j < (const int)len; ++j) {
-      if (zip_name_match(zip->entry.name, entries[j])) {
-        name_matches = MZ_TRUE;
-        break;
+    {
+      size_t j;
+      for (j = 0; j < len; ++j) {
+        if (zip_name_match(zip->entry.name, entries[j])) {
+          name_matches = MZ_TRUE;
+          break;
+        }
       }
     }
     if (name_matches) {
@@ -459,8 +462,8 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
 }
 
 static int zip_index_next(mz_uint64 *local_header_ofs_array, int cur_index) {
-  int new_index = 0;
-  for (int i = cur_index - 1; i >= 0; --i) {
+  int new_index = 0, i;
+  for (i = cur_index - 1; i >= 0; --i) {
     if (local_header_ofs_array[cur_index] > local_header_ofs_array[i]) {
       new_index = i + 1;
       return new_index;
@@ -474,7 +477,8 @@ static int zip_sort(mz_uint64 *local_header_ofs_array, int cur_index) {
 
   if (nxt_index != cur_index) {
     mz_uint64 temp = local_header_ofs_array[cur_index];
-    for (int i = cur_index; i > nxt_index; i--) {
+    int i;
+    for (i = cur_index; i > nxt_index; i--) {
       local_header_ofs_array[i] = local_header_ofs_array[i - 1];
     }
     local_header_ofs_array[nxt_index] = temp;
@@ -484,7 +488,8 @@ static int zip_sort(mz_uint64 *local_header_ofs_array, int cur_index) {
 
 static int zip_index_update(struct zip_entry_mark_t *entry_mark, int last_index,
                             int nxt_index) {
-  for (int j = 0; j < last_index; j++) {
+  int j;
+  for (j = 0; j < last_index; j++) {
     if (entry_mark[j].file_index >= nxt_index) {
       entry_mark[j].file_index += 1;
     }
@@ -637,17 +642,23 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
   if (l_size == 0) {
     memmove(pState->m_central_dir.m_p, next, r_size);
     pState->m_central_dir.m_p = MZ_REALLOC(pState->m_central_dir.m_p, r_size);
-    for (int i = end; i < entry_num; i++) {
-      MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
-          d_size;
+    {
+      int i;
+      for (i = end; i < entry_num; i++) {
+        MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
+                d_size;
+      }
     }
   }
 
   if (l_size * r_size != 0) {
     memmove(deleted, next, r_size);
-    for (int i = end; i < entry_num; i++) {
-      MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
-          d_size;
+    {
+      int i;
+      for (i = end; i < entry_num; i++) {
+        MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
+                d_size;
+      }
     }
   }
 
@@ -688,8 +699,8 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
       i++;
     }
     end = i;
-    int k = 0;
-    for (int j = end; j < entry_num; j++) {
+    int k = 0, j;
+    for (j = end; j < entry_num; j++) {
       MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32,
                            begin + k) =
           (mz_uint32)MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets,
