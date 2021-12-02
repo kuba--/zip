@@ -7,6 +7,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
+option(CMAKE_ENABLE_SANITIZERS "Enable zip sanitizers" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 
@@ -37,6 +38,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
+endif()
+if (CMAKE_ENABLE_SANITIZERS)
+  find_package(Sanitizers)
+  add_sanitizers(${PROJECT_NAME})
 endif()
 
 set(CMAKE_C_STANDARD 90)
