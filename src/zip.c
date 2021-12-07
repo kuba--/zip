@@ -812,7 +812,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
   switch (mode) {
   case 'w':
     // Create a new archive.
-    if (!mz_zip_writer_init_file(&(zip->archive), zipname, 0)) {
+    if (!mz_zip_writer_init_file_v2(&(zip->archive), zipname, 0, MZ_ZIP_FLAG_WRITE_ZIP64)) {
       // Cannot initialize zip_archive writer
       goto cleanup;
     }
@@ -874,6 +874,10 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   mz_uint num_alignment_padding_bytes, level;
   mz_zip_archive_file_stat stats;
   int err = 0;
+  mz_uint16 dos_time, dos_date;
+  mz_uint32 extra_size = 0;
+  mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
+  mz_uint64 local_dir_header_ofs = zip->archive.m_archive_size;
 
   if (!zip) {
     return ZIP_ENOINIT;
@@ -936,6 +940,8 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     return 0;
   }
 
+  level = zip->level & 0xF;
+
   zip->entry.index = (int)zip->archive.m_total_files;
   zip->entry.comp_size = 0;
   zip->entry.uncomp_size = 0;
@@ -943,7 +949,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   zip->entry.offset = zip->archive.m_archive_size;
   zip->entry.header_offset = zip->archive.m_archive_size;
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
-  zip->entry.method = 0;
+  zip->entry.method = level ? MZ_DEFLATED : 0;
 
   // UNIX or APPLE
 #if MZ_PLATFORM == 3 || MZ_PLATFORM == 19
@@ -966,24 +972,40 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     err = ZIP_EINVLVL;
     goto cleanup;
   }
-  // no zip64 support yet
-  if ((pzip->m_total_files == 0xFFFF) ||
-      ((pzip->m_archive_size + num_alignment_padding_bytes +
-        MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
-        entrylen) > 0xFFFFFFFF)) {
-    // No zip64 support yet
-    err = ZIP_ENOSUP64;
-    goto cleanup;
-  }
+
   if (!mz_zip_writer_write_zeros(pzip, zip->entry.offset,
-                                 num_alignment_padding_bytes +
-                                     sizeof(zip->entry.header))) {
+                                 num_alignment_padding_bytes)) {
     // Cannot memset zip entry header
     err = ZIP_EMEMSET;
     goto cleanup;
   }
+  local_dir_header_ofs += num_alignment_padding_bytes;
 
-  zip->entry.header_offset += num_alignment_padding_bytes;
+  zip->entry.m_time = time(NULL);
+  mz_zip_time_t_to_dos_time(zip->entry.m_time, &dos_time, &dos_date);
+
+  // ZIP64 header with NULL sizes (sizes will be in the data descriptor, just after file data)
+  extra_size = mz_zip_writer_create_zip64_extra_data(extra_data, NULL, NULL, (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
+
+  if (!mz_zip_writer_create_local_dir_header(pzip, zip->entry.header, entrylen,
+                                             (mz_uint16)extra_size, 0, 0, 0,
+                                             zip->entry.method, MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR,
+                                             dos_time, dos_date)) {
+    // Cannot create zip entry header
+    err = ZIP_EMEMSET;
+    goto cleanup;
+  }
+
+  zip->entry.header_offset = zip->entry.offset + num_alignment_padding_bytes;
+
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.header_offset,
+                   zip->entry.header,
+                   sizeof(zip->entry.header)) != sizeof(zip->entry.header)) {
+    // Cannot write zip entry header
+    err = ZIP_EMEMSET;
+    goto cleanup;
+  }
+
   if (pzip->m_file_offset_alignment) {
     MZ_ASSERT(
         (zip->entry.header_offset & (pzip->m_file_offset_alignment - 1)) == 0);
@@ -998,7 +1020,14 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   }
 
   zip->entry.offset += entrylen;
-  level = zip->level & 0xF;
+
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, extra_data, extra_size) != extra_size) {
+      // Cannot write ZIP64 data to zip entry
+      err = ZIP_EWRTENT;
+      goto cleanup;
+  }
+  zip->entry.offset += extra_size;
+
   if (level) {
     zip->entry.state.m_pZip = pzip;
     zip->entry.state.m_cur_archive_file_ofs = zip->entry.offset;
@@ -1014,8 +1043,6 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
       goto cleanup;
     }
   }
-
-  zip->entry.m_time = time(NULL);
 
   return 0;
 
@@ -1104,6 +1131,9 @@ int zip_entry_close(struct zip_t *zip) {
   mz_uint16 entrylen;
   mz_uint16 dos_time = 0, dos_date = 0;
   int err = 0;
+  mz_uint8 *pExtra_data = NULL;
+  mz_uint32 extra_size = 0;
+  mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -1117,7 +1147,7 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   level = zip->level & 0xF;
-  if (level) {
+  if (level && zip->entry.uncomp_size) {
     done = tdefl_compress_buffer(&(zip->entry.comp), "", 0, TDEFL_FINISH);
     if (done != TDEFL_STATUS_DONE && done != TDEFL_STATUS_OKAY) {
       // Cannot flush compressed buffer
@@ -1130,38 +1160,43 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   entrylen = (mz_uint16)strlen(zip->entry.name);
-  if ((zip->entry.comp_size > 0xFFFFFFFF) || (zip->entry.offset > 0xFFFFFFFF)) {
-    // No zip64 support, yet
-    err = ZIP_ENOSUP64;
-    goto cleanup;
-  }
-
 #ifndef MINIZ_NO_TIME
   mz_zip_time_t_to_dos_time(zip->entry.m_time, &dos_time, &dos_date);
 #endif
 
-  if (!mz_zip_writer_create_local_dir_header(
-          pzip, zip->entry.header, entrylen, 0, zip->entry.uncomp_size,
-          zip->entry.comp_size, zip->entry.uncomp_crc32, zip->entry.method, 0,
-          dos_time, dos_date)) {
-    // Cannot create zip entry header
-    err = ZIP_ECRTHDR;
-    goto cleanup;
+  mz_uint8 local_dir_footer[MZ_ZIP_DATA_DESCRIPTER_SIZE64];
+  mz_uint32 local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE32;
+
+  MZ_WRITE_LE32(local_dir_footer + 0, MZ_ZIP_DATA_DESCRIPTOR_ID);
+  MZ_WRITE_LE32(local_dir_footer + 4, zip->entry.uncomp_crc32);
+  MZ_WRITE_LE64(local_dir_footer + 8, zip->entry.comp_size);
+  MZ_WRITE_LE64(local_dir_footer + 16, zip->entry.uncomp_size);
+  local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE64;
+
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset,
+                     local_dir_footer, local_dir_footer_size) != local_dir_footer_size) {
+      // Cannot write zip entry header
+      err = ZIP_EWRTHDR;
+      goto cleanup;
+  }
+  zip->entry.offset += local_dir_footer_size;
+
+  pExtra_data = extra_data;
+  extra_size = mz_zip_writer_create_zip64_extra_data(extra_data, (zip->entry.uncomp_size >= MZ_UINT32_MAX) ? &zip->entry.uncomp_size : NULL,
+                                                             (zip->entry.comp_size >= MZ_UINT32_MAX) ? &zip->entry.comp_size : NULL,
+                                                     (zip->entry.header_offset >= MZ_UINT32_MAX) ? &zip->entry.header_offset : NULL);
+
+  if ((entrylen) && (zip->entry.name[entrylen - 1] == '/') && !zip->entry.uncomp_size)
+  {
+      /* Set DOS Subdirectory attribute bit. */
+      zip->entry.external_attr |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
   }
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.header_offset,
-                     zip->entry.header,
-                     sizeof(zip->entry.header)) != sizeof(zip->entry.header)) {
-    // Cannot write zip entry header
-    err = ZIP_EWRTHDR;
-    goto cleanup;
-  }
-
-  if (!mz_zip_writer_add_to_central_dir(
-          pzip, zip->entry.name, entrylen, NULL, 0, "", 0,
-          zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
-          zip->entry.method, 0, dos_time, dos_date, zip->entry.header_offset,
-          zip->entry.external_attr, NULL, 0)) {
+  if (!mz_zip_writer_add_to_central_dir(pzip, zip->entry.name, entrylen, pExtra_data, (mz_uint16)extra_size, "", 0,
+                                        zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
+                                        zip->entry.method, MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR, dos_time, dos_date,
+                                        zip->entry.header_offset, zip->entry.external_attr,
+                                        NULL, 0)) {
     // Cannot write to zip central dir
     err = ZIP_EWRTDIR;
     goto cleanup;
