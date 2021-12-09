@@ -646,7 +646,7 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
       int i;
       for (i = end; i < entry_num; i++) {
         MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
-                d_size;
+            d_size;
       }
     }
   }
@@ -657,7 +657,7 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
       int i;
       for (i = end; i < entry_num; i++) {
         MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i) -=
-                d_size;
+            d_size;
       }
     }
   }
@@ -1160,8 +1160,9 @@ int zip_entry_close(struct zip_t *zip) {
   if (!mz_zip_writer_add_to_central_dir(
           pzip, zip->entry.name, entrylen, NULL, 0, "", 0,
           zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
-          zip->entry.method, 0, dos_time, dos_date, zip->entry.header_offset,
-          zip->entry.external_attr, NULL, 0)) {
+          zip->entry.method, MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8, dos_time,
+          dos_date, zip->entry.header_offset, zip->entry.external_attr, NULL,
+          0)) {
     // Cannot write to zip central dir
     err = ZIP_EWRTDIR;
     goto cleanup;
