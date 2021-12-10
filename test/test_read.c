@@ -49,7 +49,7 @@ MU_TEST(test_read) {
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
-  mu_assert_int_eq(0, zip_is64(zip));
+  mu_assert_int_eq(1, zip_is64(zip));
 
   mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
@@ -88,7 +88,7 @@ MU_TEST(test_noallocread) {
 
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
-  mu_assert_int_eq(0, zip_is64(zip));
+  mu_assert_int_eq(1, zip_is64(zip));
 
   mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
   bufsize = zip_entry_noallocread(zip, (void *)buf, buftmp);
