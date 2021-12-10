@@ -36,7 +36,7 @@ MU_TEST(test_write) {
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
   mu_assert_int_eq(0, zip_entry_close(zip));
 
-  mu_assert_int_eq(0, zip_is64(zip));
+  mu_assert_int_eq(1, zip_is64(zip));
 
   zip_close(zip);
 }
@@ -62,7 +62,7 @@ MU_TEST(test_fwrite) {
   mu_assert_int_eq(0, zip_entry_open(zip, WFILE));
   mu_assert_int_eq(0, zip_entry_fwrite(zip, WFILE));
   mu_assert_int_eq(0, zip_entry_close(zip));
-  mu_assert_int_eq(0, zip_is64(zip));
+  mu_assert_int_eq(1, zip_is64(zip));
 
   zip_close(zip);
 }
