@@ -8,32 +8,32 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Tools
-      run: sudo apt-get -y install tree
+      run: sudo apt-get -y install tree ninja-build
     - name: Configure
       run: |
-        cmake -DSANITIZE_ADDRESS=On .
+        cmake -DSANITIZE_ADDRESS=On -S . -B build -GNinja
     - name: Build
       run: |
-        cmake --build .
-        tree -sha .
+        cmake --build build
+        tree -sha build
     - name: Test
-      run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 ctest -VV
+      run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 cmake --build build --target test
 
   macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: Tools
-      run: brew install tree
+      run: brew install tree ninja
     - name: Configure
       run: |
-        cmake -DSANITIZE_ADDRESS=On .
+        cmake -DSANITIZE_ADDRESS=On -S . -B build -GNinja
     - name: Build
       run: |
-        cmake --build .
-        tree -sha .
+        cmake --build build
+        tree -sha build
     - name: Test
-      run:  ctest -VV
+      run: cmake --build build --target test
 
   # freebsd:
   #   runs-on: macos-latest
@@ -55,23 +55,25 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure
-      run:  cmake .
+      run:  cmake -S . -B build
     - name: Build
       run: |
-        cmake --build . --config "Debug"
-        tree /a /f .
+        cmake --build build  --config "Debug"
+        tree /a /f build
     - name: Test
-      run: ctest -VV -C "Debug"
+      run: |
+        cd build
+        ctest -VV -C "Debug"
 
   windows-mingw:
     runs-on: "windows-latest"
     steps:
     - uses: actions/checkout@v2
     - name: Configure
-      run:  cmake -G "MinGW Makefiles" .
+      run:  cmake -S . -B build -G "MinGW Makefiles"
     - name: Build
       run: |
-        mingw32-make
-        tree /a /f .
+        cmake --build build
+        tree /a /f build
     - name: Test
-      run: ctest -VV -C "Debug"
+      run: cmake --build build --target test
