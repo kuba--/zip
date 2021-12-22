@@ -4833,8 +4833,11 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   wchar_t *wFilename = str2wstr(pFilename);
   wchar_t *wMode = str2wstr(pMode);
 
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  pFile = _wfopen(wFilename, wMode);
+#else
   _wfopen_s(&pFile, wFilename, wMode);
-
+#endif
   free(wFilename);
   free(wMode);
 

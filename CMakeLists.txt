@@ -11,6 +11,10 @@ option(CMAKE_ENABLE_SANITIZERS "Enable zip sanitizers" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 
+if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
+	add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
+endif()
+
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
 
@@ -50,6 +54,7 @@ if (MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
+
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")

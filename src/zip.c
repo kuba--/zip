@@ -870,6 +870,14 @@ int zip_is64(struct zip_t *zip) {
 }
 
 int zip_entry_open(struct zip_t *zip, const char *entryname) {
+  if (!zip) {
+    return ZIP_ENOINIT;
+  }
+
+  if (!entryname) {
+    return ZIP_EINVENTNAME;
+  }
+
   size_t entrylen = 0;
   mz_zip_archive *pzip = NULL;
   mz_uint num_alignment_padding_bytes, level;
@@ -879,14 +887,6 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   mz_uint32 extra_size = 0;
   mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
   mz_uint64 local_dir_header_ofs = zip->archive.m_archive_size;
-
-  if (!zip) {
-    return ZIP_ENOINIT;
-  }
-
-  if (!entryname) {
-    return ZIP_EINVENTNAME;
-  }
 
   entrylen = strlen(entryname);
   if (entrylen == 0) {
