@@ -4851,14 +4851,20 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   wchar_t *wPath = str2wstr(pPath);
   wchar_t *wMode = str2wstr(pMode);
 
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  pFile = _wfreopen(wPath, wMode, pStream);
+#else
   res = _wfreopen_s(&pFile, wPath, wMode, pStream);
+#endif
 
   free(wPath);
   free(wMode);
 
+#ifndef ZIP_ENABLE_SHARABLE_FILE_OPEN
   if (res) {
     return NULL;
   }
+#endif
 
   return pFile;
 }
