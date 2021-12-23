@@ -880,16 +880,16 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
   mz_uint64 local_dir_header_ofs = 0;
 
-	if (!zip) {
-	  return ZIP_ENOINIT;
+  if (!zip) {
+    return ZIP_ENOINIT;
   }
 
   local_dir_header_ofs = zip->archive.m_archive_size;
-	
+
   if (!entryname) {
-	  return ZIP_EINVENTNAME;
+    return ZIP_EINVENTNAME;
   }
-	
+
   entrylen = strlen(entryname);
   if (entrylen == 0) {
     return ZIP_EINVENTNAME;
