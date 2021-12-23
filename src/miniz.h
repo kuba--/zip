@@ -8224,8 +8224,8 @@ mz_bool mz_zip_writer_add_mem_ex_v2(
     mz_uint user_extra_data_central_len) {
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
   mz_uint level, ext_attributes = 0, num_alignment_padding_bytes;
-  mz_uint64 local_dir_header_ofs = pZip->m_archive_size,
-            cur_archive_file_ofs = pZip->m_archive_size, comp_size = 0;
+  mz_uint64 local_dir_header_ofs = 0,
+            cur_archive_file_ofs = 0, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   tdefl_compressor *pComp = NULL;
@@ -8257,6 +8257,8 @@ mz_bool mz_zip_writer_add_mem_ex_v2(
     return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
   pState = pZip->m_pState;
+  local_dir_header_ofs = pZip->m_archive_size;
+  cur_archive_file_ofs = pZip->m_archive_size;
 
   if (pState->m_zip64) {
     if (pZip->m_total_files == MZ_UINT32_MAX)
@@ -8533,7 +8535,7 @@ mz_bool mz_zip_writer_add_read_buf_callback(
                             : MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR;
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
-  mz_uint64 local_dir_header_ofs, cur_archive_file_ofs = pZip->m_archive_size,
+  mz_uint64 local_dir_header_ofs, cur_archive_file_ofs = 0,
                                   uncomp_size = 0, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
@@ -8557,7 +8559,8 @@ mz_bool mz_zip_writer_add_read_buf_callback(
     return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
 
   pState = pZip->m_pState;
-
+  cur_archive_file_ofs = pZip->m_archive_size;
+  
   if ((!pState->m_zip64) && (max_size > MZ_UINT32_MAX)) {
     /* Source file is too large for non-zip64 */
     /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */
