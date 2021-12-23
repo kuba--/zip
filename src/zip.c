@@ -878,11 +878,13 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   mz_uint16 dos_time, dos_date;
   mz_uint32 extra_size = 0;
   mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
-  mz_uint64 local_dir_header_ofs = zip->archive.m_archive_size;
+  mz_uint64 local_dir_header_ofs = 0;
 
   if (!zip) {
     return ZIP_ENOINIT;
   }
+
+  local_dir_header_ofs = zip->archive.m_archive_size;
 
   if (!entryname) {
     return ZIP_EINVENTNAME;
