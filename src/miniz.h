@@ -1133,7 +1133,7 @@ extern "C" {
 enum {
   /* Note: These enums can be reduced as needed to save memory or stack space -
      they are pretty conservative. */
-  MZ_ZIP_MAX_IO_BUF_SIZE = 64 * 1024,
+  MZ_ZIP_MAX_IO_BUF_SIZE = 8 * 1024,
   MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = 512,
   MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE = 512
 };
@@ -8560,7 +8560,7 @@ mz_bool mz_zip_writer_add_read_buf_callback(
 
   pState = pZip->m_pState;
   cur_archive_file_ofs = pZip->m_archive_size;
-  
+
   if ((!pState->m_zip64) && (max_size > MZ_UINT32_MAX)) {
     /* Source file is too large for non-zip64 */
     /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */

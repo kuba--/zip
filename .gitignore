@@ -2,6 +2,7 @@
 /test/build/
 /xcodeproj/
 .vscode/
+Testing/
 
 # Object files
 *.o
