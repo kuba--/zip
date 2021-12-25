@@ -24,7 +24,9 @@ void test_setup(void) {
   zip_close(zip);
 }
 
-void test_teardown(void) { remove(ZIPNAME); }
+void test_teardown(void) {
+  remove(ZIPNAME);
+}
 
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
@@ -41,7 +43,9 @@ MU_TEST(test_append) {
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
   mu_assert_int_eq(0, zip_entry_close(zip));
   ++total_entries;
+  zip_close(zip);
 
+  zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
   mu_assert_int_eq(0, zip_entry_open(zip, "test\\empty/"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/empty/"));
   mu_assert_int_eq(0, zip_entry_size(zip));
@@ -49,7 +53,9 @@ MU_TEST(test_append) {
   mu_assert_int_eq(total_entries, zip_entry_index(zip));
   mu_assert_int_eq(0, zip_entry_close(zip));
   ++total_entries;
+  zip_close(zip);
 
+  zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
   mu_assert_int_eq(0, zip_entry_open(zip, "empty/"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "empty/"));
   mu_assert_int_eq(0, zip_entry_size(zip));

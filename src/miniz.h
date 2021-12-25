@@ -1356,6 +1356,12 @@ MINIZ_EXPORT mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip,
                                                 mz_uint flags,
                                                 mz_uint64 file_start_ofs,
                                                 mz_uint64 archive_size);
+MINIZ_EXPORT mz_bool mz_zip_reader_init_file_v2_rpb(mz_zip_archive *pZip,
+                                                const char *pFilename,
+                                                mz_uint flags,
+                                                mz_uint64 file_start_ofs,
+                                                mz_uint64 archive_size);
+
 
 /* Read an archive from an already opened FILE, beginning at the current file
  * position. */
@@ -1617,6 +1623,9 @@ MINIZ_EXPORT mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip,
 MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip,
                                                     const char *pFilename);
 MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip,
+                                                       const char *pFilename,
+                                                       mz_uint flags);
+MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2_noreopen(mz_zip_archive *pZip,
                                                        const char *pFilename,
                                                        mz_uint flags);
 
@@ -5966,6 +5975,59 @@ mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename,
   return MZ_TRUE;
 }
 
+mz_bool mz_zip_reader_init_file_v2_rpb(mz_zip_archive *pZip, const char *pFilename,
+                                   mz_uint flags, mz_uint64 file_start_ofs,
+                                   mz_uint64 archive_size) {
+  mz_uint64 file_size;
+  MZ_FILE *pFile;
+
+  if ((!pZip) || (!pFilename) ||
+      ((archive_size) &&
+       (archive_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE)))
+    return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+
+  pFile = MZ_FOPEN(pFilename, "r+b");
+  if (!pFile)
+    return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
+
+  file_size = archive_size;
+  if (!file_size) {
+    if (MZ_FSEEK64(pFile, 0, SEEK_END)) {
+      MZ_FCLOSE(pFile);
+      return mz_zip_set_error(pZip, MZ_ZIP_FILE_SEEK_FAILED);
+    }
+
+    file_size = MZ_FTELL64(pFile);
+  }
+
+  /* TODO: Better sanity check archive_size and the # of actual remaining bytes
+   */
+
+  if (file_size < MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) {
+    MZ_FCLOSE(pFile);
+    return mz_zip_set_error(pZip, MZ_ZIP_NOT_AN_ARCHIVE);
+  }
+
+  if (!mz_zip_reader_init_internal(pZip, flags)) {
+    MZ_FCLOSE(pFile);
+    return MZ_FALSE;
+  }
+
+  pZip->m_zip_type = MZ_ZIP_TYPE_FILE;
+  pZip->m_pRead = mz_zip_file_read_func;
+  pZip->m_pIO_opaque = pZip;
+  pZip->m_pState->m_pFile = pFile;
+  pZip->m_archive_size = file_size;
+  pZip->m_pState->m_file_archive_start_ofs = file_start_ofs;
+
+  if (!mz_zip_reader_read_central_dir(pZip, flags)) {
+    mz_zip_reader_end_internal(pZip, MZ_FALSE);
+    return MZ_FALSE;
+  }
+
+  return MZ_TRUE;
+}
+
 mz_bool mz_zip_reader_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile,
                                  mz_uint64 archive_size, mz_uint flags) {
   mz_uint64 cur_file_ofs;
@@ -7992,6 +8054,88 @@ mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip,
   return MZ_TRUE;
 }
 
+mz_bool mz_zip_writer_init_from_reader_v2_noreopen(mz_zip_archive *pZip,
+                                          const char *pFilename,
+                                          mz_uint flags) {
+  mz_zip_internal_state *pState;
+
+  if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_READING))
+    return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+
+  if (flags & MZ_ZIP_FLAG_WRITE_ZIP64) {
+    /* We don't support converting a non-zip64 file to zip64 - this seems like
+     * more trouble than it's worth. (What about the existing 32-bit data
+     * descriptors that could follow the compressed data?) */
+    if (!pZip->m_pState->m_zip64)
+      return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+  }
+
+  /* No sense in trying to write to an archive that's already at the support max
+   * size */
+  if (pZip->m_pState->m_zip64) {
+    if (pZip->m_total_files == MZ_UINT32_MAX)
+      return mz_zip_set_error(pZip, MZ_ZIP_TOO_MANY_FILES);
+  } else {
+    if (pZip->m_total_files == MZ_UINT16_MAX)
+      return mz_zip_set_error(pZip, MZ_ZIP_TOO_MANY_FILES);
+
+    if ((pZip->m_archive_size + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
+         MZ_ZIP_LOCAL_DIR_HEADER_SIZE) > MZ_UINT32_MAX)
+      return mz_zip_set_error(pZip, MZ_ZIP_FILE_TOO_LARGE);
+  }
+
+  pState = pZip->m_pState;
+
+  if (pState->m_pFile) {
+#ifdef MINIZ_NO_STDIO
+    (void)pFilename;
+    return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+#else
+    if (pZip->m_pIO_opaque != pZip)
+      return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+
+    if (pZip->m_zip_type == MZ_ZIP_TYPE_FILE) {
+      if (!pFilename)
+        return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+    }
+
+    pZip->m_pWrite = mz_zip_file_write_func;
+    pZip->m_pNeeds_keepalive = NULL;
+#endif /* #ifdef MINIZ_NO_STDIO */
+  } else if (pState->m_pMem) {
+    /* Archive lives in a memory block. Assume it's from the heap that we can
+     * resize using the realloc callback. */
+    if (pZip->m_pIO_opaque != pZip)
+      return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+
+    pState->m_mem_capacity = pState->m_mem_size;
+    pZip->m_pWrite = mz_zip_heap_write_func;
+    pZip->m_pNeeds_keepalive = NULL;
+  }
+  /* Archive is being read via a user provided read function - make sure the
+     user has specified a write function too. */
+  else if (!pZip->m_pWrite)
+    return mz_zip_set_error(pZip, MZ_ZIP_INVALID_PARAMETER);
+
+  /* Start writing new files at the archive's current central directory
+   * location. */
+  /* TODO: We could add a flag that lets the user start writing immediately
+   * AFTER the existing central dir - this would be safer. */
+  pZip->m_archive_size = pZip->m_central_directory_file_ofs;
+  pZip->m_central_directory_file_ofs = 0;
+
+  /* Clear the sorted central dir offsets, they aren't useful or maintained now.
+   */
+  /* Even though we're now in write mode, files can still be extracted and
+   * verified, but file locates will be slow. */
+  /* TODO: We could easily maintain the sorted central directory offsets. */
+  mz_zip_array_clear(pZip, &pZip->m_pState->m_sorted_central_dir_offsets);
+
+  pZip->m_zip_mode = MZ_ZIP_MODE_WRITING;
+
+  return MZ_TRUE;
+}
+
 mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip,
                                        const char *pFilename) {
   return mz_zip_writer_init_from_reader_v2(pZip, pFilename, 0);
@@ -8560,7 +8704,7 @@ mz_bool mz_zip_writer_add_read_buf_callback(
 
   pState = pZip->m_pState;
   cur_archive_file_ofs = pZip->m_archive_size;
-  
+
   if ((!pState->m_zip64) && (max_size > MZ_UINT32_MAX)) {
     /* Source file is too large for non-zip64 */
     /*return mz_zip_set_error(pZip, MZ_ZIP_ARCHIVE_TOO_LARGE); */
