@@ -822,17 +822,18 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
   case 'r':
   case 'a':
   case 'd':
-    if (!mz_zip_reader_init_file(
+    if (!mz_zip_reader_init_file_v2_rpb(
             &(zip->archive), zipname,
-            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
       goto cleanup;
     }
-    if ((mode == 'a' || mode == 'd') &&
-        !mz_zip_writer_init_from_reader(&(zip->archive), zipname)) {
-      mz_zip_reader_end(&(zip->archive));
-      goto cleanup;
+    if ((mode == 'a' || mode == 'd')) {
+      if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), zipname, 0)) {
+        mz_zip_reader_end(&(zip->archive));
+        goto cleanup;
+      }
     }
     break;
 
