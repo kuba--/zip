@@ -66,6 +66,14 @@
     }                                                                          \
   } while (0)
 
+#define UNX_IFDIR 0040000  /* Unix directory */
+#define UNX_IFREG 0100000  /* Unix regular file */
+#define UNX_IFSOCK 0140000 /* Unix socket (BSD, not SysV or Amiga) */
+#define UNX_IFLNK 0120000  /* Unix symbolic link (not SysV, Amiga) */
+#define UNX_IFBLK 0060000  /* Unix block special       (not Amiga) */
+#define UNX_IFCHR 0020000  /* Unix character special   (not Amiga) */
+#define UNX_IFIFO 0010000  /* Unix fifo    (BCC, not MSC or Amiga) */
+
 struct zip_entry_t {
   int index;
   char *name;
@@ -375,8 +383,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       (void)xattr; // unused
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
-      if (xattr > 0) {
-        if (chmod(path, (mode_t)xattr) < 0) {
+      if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
+        if (CHMOD(path, (mode_t)xattr) < 0) {
           err = ZIP_ENOPERM;
           goto out;
         }
@@ -830,7 +838,8 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
       goto cleanup;
     }
     if ((mode == 'a' || mode == 'd')) {
-      if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), zipname, 0)) {
+      if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), zipname,
+                                                      0)) {
         mz_zip_reader_end(&(zip->archive));
         goto cleanup;
       }
@@ -957,7 +966,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
   // UNIX or APPLE
 #if MZ_PLATFORM == 3 || MZ_PLATFORM == 19
-  // regular file with rw-r--r-- persmissions
+  // regular file with rw-r--r-- permissions
   zip->entry.external_attr = (mz_uint32)(0100644) << 16;
 #else
   zip->entry.external_attr = 0;
@@ -1315,6 +1324,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   MZ_FILE *stream = NULL;
   mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE];
   struct MZ_FILE_STAT_STRUCT file_stat;
+  mz_uint16 modes;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -1328,11 +1338,32 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return ZIP_ENOENT;
   }
 
-  if ((file_stat.st_mode & 0200) == 0) {
-    // MS-DOS read-only attribute
-    zip->entry.external_attr |= 0x01;
+#if defined(_WIN32) || defined(__WIN32__)
+  (void)modes; // unused
+#else
+  /* Initialize with permission bits--which are not implementation-optional */
+  modes = file_stat.st_mode &
+          (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+  if (S_ISDIR(file_stat.st_mode))
+    modes |= UNX_IFDIR;
+  if (S_ISREG(file_stat.st_mode))
+    modes |= UNX_IFREG;
+  if (S_ISLNK(file_stat.st_mode))
+    modes |= UNX_IFLNK;
+  if (S_ISBLK(file_stat.st_mode))
+    modes |= UNX_IFBLK;
+  if (S_ISCHR(file_stat.st_mode))
+    modes |= UNX_IFCHR;
+  if (S_ISFIFO(file_stat.st_mode))
+    modes |= UNX_IFIFO;
+  if (S_ISSOCK(file_stat.st_mode))
+    modes |= UNX_IFSOCK;
+  zip->entry.external_attr = (modes << 16) | !(file_stat.st_mode & S_IWRITE);
+  if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
+    zip->entry.external_attr |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
   }
-  zip->entry.external_attr |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
+#endif
+
   zip->entry.m_time = file_stat.st_mtime;
 
   if (!(stream = MZ_FOPEN(filename, "rb"))) {
@@ -1440,8 +1471,8 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   }
 
   xattr = (info.m_external_attr >> 16) & 0xFFFF;
-  if (xattr > 0) {
-    if (chmod(filename, (mode_t)xattr) < 0) {
+  if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
+    if (CHMOD(filename, (mode_t)xattr) < 0) {
       return ZIP_ENOPERM;
     }
   }
@@ -1607,6 +1638,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   mz_zip_archive zip_archive;
   struct MZ_FILE_STAT_STRUCT file_stat;
   mz_uint32 ext_attributes = 0;
+  mz_uint16 modes;
 
   if (!zipname || strlen(zipname) < 1) {
     // zip_t archive name is empty or NULL
@@ -1641,11 +1673,32 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       break;
     }
 
-    if ((file_stat.st_mode & 0200) == 0) {
-      // MS-DOS read-only attribute
-      ext_attributes |= 0x01;
+#if defined(_WIN32) || defined(__WIN32__)
+    (void)modes; // unused
+#else
+
+    /* Initialize with permission bits--which are not implementation-optional */
+    modes = file_stat.st_mode &
+            (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
+    if (S_ISDIR(file_stat.st_mode))
+      modes |= UNX_IFDIR;
+    if (S_ISREG(file_stat.st_mode))
+      modes |= UNX_IFREG;
+    if (S_ISLNK(file_stat.st_mode))
+      modes |= UNX_IFLNK;
+    if (S_ISBLK(file_stat.st_mode))
+      modes |= UNX_IFBLK;
+    if (S_ISCHR(file_stat.st_mode))
+      modes |= UNX_IFCHR;
+    if (S_ISFIFO(file_stat.st_mode))
+      modes |= UNX_IFIFO;
+    if (S_ISSOCK(file_stat.st_mode))
+      modes |= UNX_IFSOCK;
+    ext_attributes = (modes << 16) | !(file_stat.st_mode & S_IWRITE);
+    if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
+      ext_attributes |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
     }
-    ext_attributes |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
+#endif
 
     if (!mz_zip_writer_add_file(&zip_archive, zip_basename(name), name, "", 0,
                                 ZIP_DEFAULT_COMPRESSION_LEVEL,

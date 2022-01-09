@@ -1357,11 +1357,10 @@ MINIZ_EXPORT mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip,
                                                 mz_uint64 file_start_ofs,
                                                 mz_uint64 archive_size);
 MINIZ_EXPORT mz_bool mz_zip_reader_init_file_v2_rpb(mz_zip_archive *pZip,
-                                                const char *pFilename,
-                                                mz_uint flags,
-                                                mz_uint64 file_start_ofs,
-                                                mz_uint64 archive_size);
-
+                                                    const char *pFilename,
+                                                    mz_uint flags,
+                                                    mz_uint64 file_start_ofs,
+                                                    mz_uint64 archive_size);
 
 /* Read an archive from an already opened FILE, beginning at the current file
  * position. */
@@ -1625,9 +1624,8 @@ MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip,
 MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip,
                                                        const char *pFilename,
                                                        mz_uint flags);
-MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2_noreopen(mz_zip_archive *pZip,
-                                                       const char *pFilename,
-                                                       mz_uint flags);
+MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2_noreopen(
+    mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
 
 /* Adds the contents of a memory buffer to an archive. These functions record
  * the current local time into the archive. */
@@ -5010,6 +5008,13 @@ static int mz_mkdir(const char *pDirname) {
 #endif /* #ifdef _MSC_VER */
 #endif /* #ifdef MINIZ_NO_STDIO */
 
+#ifndef CHMOD
+// Upon successful completion, a value of 0 is returned.
+// Otherwise, a value of -1 is returned and errno is set to indicate the error.
+// int chmod(const char *path, mode_t mode);
+#define CHMOD(f, m) chmod(f, m)
+#endif
+
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
 /* Various ZIP archive enums. To completely avoid cross platform compiler
@@ -5975,9 +5980,10 @@ mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename,
   return MZ_TRUE;
 }
 
-mz_bool mz_zip_reader_init_file_v2_rpb(mz_zip_archive *pZip, const char *pFilename,
-                                   mz_uint flags, mz_uint64 file_start_ofs,
-                                   mz_uint64 archive_size) {
+mz_bool mz_zip_reader_init_file_v2_rpb(mz_zip_archive *pZip,
+                                       const char *pFilename, mz_uint flags,
+                                       mz_uint64 file_start_ofs,
+                                       mz_uint64 archive_size) {
   mz_uint64 file_size;
   MZ_FILE *pFile;
 
@@ -8055,8 +8061,8 @@ mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip,
 }
 
 mz_bool mz_zip_writer_init_from_reader_v2_noreopen(mz_zip_archive *pZip,
-                                          const char *pFilename,
-                                          mz_uint flags) {
+                                                   const char *pFilename,
+                                                   mz_uint flags) {
   mz_zip_internal_state *pState;
 
   if ((!pZip) || (!pZip->m_pState) || (pZip->m_zip_mode != MZ_ZIP_MODE_READING))
@@ -8368,8 +8374,7 @@ mz_bool mz_zip_writer_add_mem_ex_v2(
     mz_uint user_extra_data_central_len) {
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
   mz_uint level, ext_attributes = 0, num_alignment_padding_bytes;
-  mz_uint64 local_dir_header_ofs = 0,
-            cur_archive_file_ofs = 0, comp_size = 0;
+  mz_uint64 local_dir_header_ofs = 0, cur_archive_file_ofs = 0, comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   tdefl_compressor *pComp = NULL;
@@ -8679,8 +8684,8 @@ mz_bool mz_zip_writer_add_read_buf_callback(
                             : MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR;
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
   mz_uint16 method = 0, dos_time = 0, dos_date = 0;
-  mz_uint64 local_dir_header_ofs, cur_archive_file_ofs = 0,
-                                  uncomp_size = 0, comp_size = 0;
+  mz_uint64 local_dir_header_ofs, cur_archive_file_ofs = 0, uncomp_size = 0,
+                                  comp_size = 0;
   size_t archive_name_size;
   mz_uint8 local_dir_header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   mz_uint8 *pExtra_data = NULL;
