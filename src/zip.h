@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-#if !defined(_POSIX_C_SOURCE) && defined(_MSC_VER)
+#if !defined(_POSIX_C_SOURCE) && (defined(_MSC_VER) || defined(__ANDROID__))
 // 64-bit Windows is the only mainstream platform
 // where sizeof(long) != sizeof(void*)
 #ifdef _WIN64
