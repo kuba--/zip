@@ -24,9 +24,7 @@ void test_setup(void) {
   zip_close(zip);
 }
 
-void test_teardown(void) {
-  remove(ZIPNAME);
-}
+void test_teardown(void) { remove(ZIPNAME); }
 
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
