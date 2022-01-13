@@ -379,7 +379,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
         }
       }
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(PS4)
       (void)xattr; // unused
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
@@ -1462,7 +1462,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
     return ZIP_ENOFILE;
   }
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(PS4)
   (void)xattr; // unused
 #else
   if (!mz_zip_reader_file_stat(pzip, idx, &info)) {
