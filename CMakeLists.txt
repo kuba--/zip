@@ -67,8 +67,6 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
 endif (MSVC)
 
 ####
-# Installation (https://github.com/forexample/package-example) {
-
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
 set(INCLUDE_INSTALL_DIR "include")
 
@@ -107,8 +105,6 @@ install(
     NAMESPACE "${NAMESPACE}"
     DESTINATION "${CONFIG_INSTALL_DIR}"
 )
-
-# }
 
 install(TARGETS ${PROJECT_NAME}
         EXPORT ${TARGETS_EXPORT_NAME}
