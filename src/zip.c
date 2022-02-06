@@ -1338,7 +1338,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return ZIP_ENOENT;
   }
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(__WIN32__) || defined(DJGPP)
   (void)modes; // unused
 #else
   /* Initialize with permission bits--which are not implementation-optional */
@@ -1673,7 +1673,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       break;
     }
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(__WIN32__) || defined(DJGPP)
     (void)modes; // unused
 #else
 
