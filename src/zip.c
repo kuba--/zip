@@ -258,8 +258,14 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
 }
 
 static mz_bool zip_name_match(const char *name1, const char *name2) {
-  size_t len2 = strlen(name2);
-  char *nname2 = zip_strrpl(name2, len2, '\\', '/');
+  char *nname2 = NULL;
+
+#ifdef ZIP_RAW_ENTRYNAME
+  nname2 = STRCLONE(name2);
+#else
+  nname2 = zip_strrpl(name2, strlen(name2), '\\', '/');
+#endif
+
   if (!nname2) {
     return MZ_FALSE;
   }
@@ -919,7 +925,12 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   if (zip->entry.name) {
     CLEANUP(zip->entry.name);
   }
+#ifdef ZIP_RAW_ENTRYNAME
+  zip->entry.name = STRCLONE(entryname);
+#else
   zip->entry.name = zip_strrpl(entryname, entrylen, '\\', '/');
+#endif
+
   if (!zip->entry.name) {
     // Cannot parse zip entry name
     return ZIP_EINVENTNAME;
@@ -1120,7 +1131,12 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
   if (zip->entry.name) {
     CLEANUP(zip->entry.name);
   }
+#ifdef ZIP_RAW_ENTRYNAME
+  zip->entry.name = STRCLONE(pFilename);
+#else
   zip->entry.name = zip_strrpl(pFilename, namelen, '\\', '/');
+#endif
+
   if (!zip->entry.name) {
     // local entry name is NULL
     return ZIP_EINVENTNAME;
