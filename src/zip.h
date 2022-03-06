@@ -159,6 +159,11 @@ extern ZIP_EXPORT int zip_is64(struct zip_t *zip);
  */
 extern ZIP_EXPORT int zip_entry_open(struct zip_t *zip, const char *entryname);
 
+/** @overload 
+ * Entry lookup is case sensitive
+ */
+extern ZIP_EXPORT int zip_entry_caseopen(struct zip_t* zip, const char* entryname);
+
 /**
  * Opens a new entry by index in the zip archive.
  *
