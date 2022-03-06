@@ -1293,6 +1293,10 @@ unsigned long long zip_entry_size(struct zip_t *zip) {
   return zip ? zip->entry.uncomp_size : 0;
 }
 
+unsigned long long zip_entry_comp_size(struct zip_t *zip) {
+  return zip ? zip->entry.comp_size : 0;
+}
+
 unsigned int zip_entry_crc32(struct zip_t *zip) {
   return zip ? zip->entry.uncomp_crc32 : 0;
 }

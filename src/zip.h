@@ -216,13 +216,22 @@ extern ZIP_EXPORT int zip_entry_index(struct zip_t *zip);
 extern ZIP_EXPORT int zip_entry_isdir(struct zip_t *zip);
 
 /**
- * Returns an uncompressed size of the current zip entry.
+ * Returns the uncompressed size of the current zip entry.
  *
  * @param zip zip archive handler.
  *
  * @return the uncompressed size in bytes.
  */
 extern ZIP_EXPORT unsigned long long zip_entry_size(struct zip_t *zip);
+
+/**
+ * Returns the compressed size of the current zip entry.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the compressed size in bytes.
+ */
+extern ZIP_EXPORT unsigned long long zip_entry_comp_size(struct zip_t *zip);
 
 /**
  * Returns CRC-32 checksum of the current zip entry.
