@@ -160,6 +160,21 @@ extern ZIP_EXPORT int zip_is64(struct zip_t *zip);
 extern ZIP_EXPORT int zip_entry_open(struct zip_t *zip, const char *entryname);
 
 /**
+ * Opens an entry by name in the zip archive.
+ *
+ * For zip archive opened in 'w' or 'a' mode the function will append
+ * a new entry. In readonly mode the function tries to locate the entry
+ * in global dictionary (case sensitive).
+ *
+ * @param zip zip archive handler.
+ * @param entryname an entry name in local dictionary (case sensitive).
+ *
+ * @return the return code - 0 on success, negative number (< 0) on error.
+ */
+extern ZIP_EXPORT int zip_entry_opencasesensitive(struct zip_t *zip,
+                                                  const char *entryname);
+
+/**
  * Opens a new entry by index in the zip archive.
  *
  * This function is only valid if zip archive was opened in 'r' (readonly) mode.
@@ -216,13 +231,32 @@ extern ZIP_EXPORT int zip_entry_index(struct zip_t *zip);
 extern ZIP_EXPORT int zip_entry_isdir(struct zip_t *zip);
 
 /**
- * Returns an uncompressed size of the current zip entry.
+ * Returns the uncompressed size of the current zip entry.
+ * Alias for zip_entry_uncomp_size (for backward compatibility).
  *
  * @param zip zip archive handler.
  *
  * @return the uncompressed size in bytes.
  */
 extern ZIP_EXPORT unsigned long long zip_entry_size(struct zip_t *zip);
+
+/**
+ * Returns the uncompressed size of the current zip entry.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the uncompressed size in bytes.
+ */
+extern ZIP_EXPORT unsigned long long zip_entry_uncomp_size(struct zip_t *zip);
+
+/**
+ * Returns the compressed size of the current zip entry.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the compressed size in bytes.
+ */
+extern ZIP_EXPORT unsigned long long zip_entry_comp_size(struct zip_t *zip);
 
 /**
  * Returns CRC-32 checksum of the current zip entry.

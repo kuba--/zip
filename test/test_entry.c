@@ -109,6 +109,22 @@ MU_TEST(test_entry_name) {
   zip_close(zip);
 }
 
+MU_TEST(test_entry_opencasesensitive) {
+  struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+  mu_check(zip != NULL);
+
+  mu_check(zip_entry_name(zip) == NULL);
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/TEST-1.TXT"));
+  mu_check(NULL != zip_entry_name(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(ZIP_ENOENT,
+                   zip_entry_opencasesensitive(zip, "test/TEST-1.TXT"));
+
+  zip_close(zip);
+}
+
 MU_TEST(test_entry_index) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
@@ -261,6 +277,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_entry_name);
+  MU_RUN_TEST(test_entry_opencasesensitive);
   MU_RUN_TEST(test_entry_index);
   MU_RUN_TEST(test_entry_openbyindex);
   MU_RUN_TEST(test_entry_read);
