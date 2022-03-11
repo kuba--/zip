@@ -885,7 +885,8 @@ int zip_is64(struct zip_t *zip) {
   return (int)zip->archive.m_pState->m_zip64;
 }
 
-int zip_entry_open(struct zip_t *zip, const char *entryname) {
+static int _zip_entry_open(struct zip_t *zip, const char *entryname,
+                           int case_sensitive) {
   size_t entrylen = 0;
   mz_zip_archive *pzip = NULL;
   mz_uint num_alignment_padding_bytes, level;
@@ -938,8 +939,9 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
   pzip = &(zip->archive);
   if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
-    zip->entry.index =
-        mz_zip_reader_locate_file(pzip, zip->entry.name, NULL, 0);
+    zip->entry.index = mz_zip_reader_locate_file(
+        pzip, zip->entry.name, NULL,
+        case_sensitive ? MZ_ZIP_FLAG_CASE_SENSITIVE : 0);
     if (zip->entry.index < 0) {
       err = ZIP_ENOENT;
       goto cleanup;
@@ -1081,6 +1083,14 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 cleanup:
   CLEANUP(zip->entry.name);
   return err;
+}
+
+int zip_entry_open(struct zip_t *zip, const char *entryname) {
+  return _zip_entry_open(zip, entryname, 0);
+}
+
+int zip_entry_opencasesensitive(struct zip_t *zip, const char *entryname) {
+  return _zip_entry_open(zip, entryname, 1);
 }
 
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
@@ -1290,7 +1300,15 @@ int zip_entry_isdir(struct zip_t *zip) {
 }
 
 unsigned long long zip_entry_size(struct zip_t *zip) {
+  return zip_entry_uncomp_size(zip);
+}
+
+unsigned long long zip_entry_uncomp_size(struct zip_t *zip) {
   return zip ? zip->entry.uncomp_size : 0;
+}
+
+unsigned long long zip_entry_comp_size(struct zip_t *zip) {
+  return zip ? zip->entry.comp_size : 0;
 }
 
 unsigned int zip_entry_crc32(struct zip_t *zip) {
