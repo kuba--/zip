@@ -749,7 +749,7 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   mz_zip_internal_state *pState = zip->archive.m_pState;
   zip->archive.m_zip_mode = MZ_ZIP_MODE_WRITING;
 
-  if (MZ_FSEEK64(pState->m_pFile, 0, SEEK_SET)) {
+  if ((!pState->m_pFile) || MZ_FSEEK64(pState->m_pFile, 0, SEEK_SET)) {
     CLEANUP(deleted_entry_flag_array);
     return ZIP_ENOENT;
   }
