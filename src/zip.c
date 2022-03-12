@@ -1393,7 +1393,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     modes |= UNX_IFIFO;
   if (S_ISSOCK(file_stat.st_mode))
     modes |= UNX_IFSOCK;
-  zip->entry.external_attr = (modes << 16) | !(file_stat.st_mode & S_IWRITE);
+  zip->entry.external_attr = (modes << 16) | !(file_stat.st_mode & S_IWUSR);
   if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
     zip->entry.external_attr |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
   }
@@ -1729,7 +1729,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       modes |= UNX_IFIFO;
     if (S_ISSOCK(file_stat.st_mode))
       modes |= UNX_IFSOCK;
-    ext_attributes = (modes << 16) | !(file_stat.st_mode & S_IWRITE);
+    ext_attributes = (modes << 16) | !(file_stat.st_mode & S_IWUSR);
     if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
       ext_attributes |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
     }
