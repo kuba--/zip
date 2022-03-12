@@ -1196,7 +1196,7 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   level = zip->level & 0xF;
-  if (level && zip->entry.uncomp_size) {
+  if (level) {
     done = tdefl_compress_buffer(&(zip->entry.comp), "", 0, TDEFL_FINISH);
     if (done != TDEFL_STATUS_DONE && done != TDEFL_STATUS_OKAY) {
       // Cannot flush compressed buffer
