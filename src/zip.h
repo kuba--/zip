@@ -184,7 +184,7 @@ extern ZIP_EXPORT int zip_entry_opencasesensitive(struct zip_t *zip,
  *
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
-extern ZIP_EXPORT int zip_entry_openbyindex(struct zip_t *zip, int index);
+extern ZIP_EXPORT int zip_entry_openbyindex(struct zip_t *zip, size_t index);
 
 /**
  * Closes a zip entry, flushes buffer and releases resources.
@@ -218,7 +218,7 @@ extern ZIP_EXPORT const char *zip_entry_name(struct zip_t *zip);
  *
  * @return the index on success, negative number (< 0) on error.
  */
-extern ZIP_EXPORT int zip_entry_index(struct zip_t *zip);
+extern ZIP_EXPORT ssize_t zip_entry_index(struct zip_t *zip);
 
 /**
  * Determines if the current zip entry is a directory entry.
