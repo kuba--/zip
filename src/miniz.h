@@ -4942,7 +4942,11 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#if defined(_WIN32) || defined(_WIN64)
+#define MZ_MKDIR(d) _mkdir(d)
+#else
 #define MZ_MKDIR(d) mkdir(d, 0755)
+#endif
 
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
 #ifndef MINIZ_NO_TIME
