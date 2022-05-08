@@ -655,7 +655,7 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
     d_size = (mz_uint32)(next - deleted);
   }
 
-  if (l_size == 0) {
+  if (next && l_size == 0) {
     memmove(pState->m_central_dir.m_p, next, r_size);
     pState->m_central_dir.m_p = MZ_REALLOC(pState->m_central_dir.m_p, r_size);
     {
@@ -667,7 +667,7 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
     }
   }
 
-  if (l_size * r_size != 0) {
+  if (next && l_size * r_size != 0) {
     memmove(deleted, next, r_size);
     {
       int i;
@@ -1184,7 +1184,7 @@ int zip_entry_close(struct zip_t *zip) {
   mz_uint32 extra_size = 0;
   mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
   mz_uint8 local_dir_footer[MZ_ZIP_DATA_DESCRIPTER_SIZE64];
-  mz_uint32 local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE32;
+  mz_uint32 local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE64;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -1219,7 +1219,6 @@ int zip_entry_close(struct zip_t *zip) {
   MZ_WRITE_LE32(local_dir_footer + 4, zip->entry.uncomp_crc32);
   MZ_WRITE_LE64(local_dir_footer + 8, zip->entry.comp_size);
   MZ_WRITE_LE64(local_dir_footer + 16, zip->entry.uncomp_size);
-  local_dir_footer_size = MZ_ZIP_DATA_DESCRIPTER_SIZE64;
 
   if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, local_dir_footer,
                      local_dir_footer_size) != local_dir_footer_size) {
