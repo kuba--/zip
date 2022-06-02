@@ -575,7 +575,7 @@ typedef void *const voidpc;
 #pragma once
 #include <assert.h>
 
-#if _MSC_VER <= 1200
+#if defined(_MSC_VER) && _MSC_VER <= 1200
 // no stdint with MSVC 6.0, so work around it
 typedef signed __int8 int8_t;
 typedef unsigned __int8 uint8_t;
