@@ -4883,7 +4883,6 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   free(wPath);
   free(wMode);
 
-
 #if defined(ZIP_ENABLE_SHARABLE_FILE_OPEN) || _MSCVER <= 1200
 #else
   if (res) {
@@ -4894,13 +4893,11 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   return pFile;
 }
 
-
-static int mz_stat(
-        const char *pPath,
+static int mz_stat(const char *pPath,
 #if _MSV_VER > 1200
-        struct _stat64 *buffer
+                   struct _stat64 *buffer
 #else
-        struct _stati64 *buffer
+                   struct _stati64 *buffer
 #endif
 ) {
   wchar_t *wPath = str2wstr(pPath);
@@ -5293,7 +5290,8 @@ static MZ_TIME_T mz_zip_dos_to_time_t(int dos_time, int dos_date) {
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 static void mz_zip_time_t_to_dos_time(MZ_TIME_T time, mz_uint16 *pDOS_time,
                                       mz_uint16 *pDOS_date) {
-#if defined(_MSC_VER) && _MSC_VER > 1200 /* MSVC 6.0 does not have localtime_s (and errno_t) */
+#if defined(_MSC_VER) &&                                                       \
+    _MSC_VER > 1200 /* MSVC 6.0 does not have localtime_s (and errno_t) */
   struct tm tm_struct;
   struct tm *tm = &tm_struct;
   errno_t err = localtime_s(tm, &time);

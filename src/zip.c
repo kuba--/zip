@@ -364,8 +364,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
           19)) /*  if zip is produced on Unix or macOS (3 and 19 from
                 *  section 4.4.2.2 of zip standard) */
         && info.m_external_attr &
-               (0x20 << 24)) { /*  and has sym link attribute (0x80 is file, 0x40
-                                *  is directory) */
+               (0x20 << 24)) { /*  and has sym link attribute (0x80 is file,
+                                * 0x40 is directory) */
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
 #else
@@ -421,11 +421,12 @@ out:
 
 static
 #if _MSC_VER > 1200
-inline
+    inline
 #else
-__inline
+    __inline
 #endif
-void zip_archive_finalize(mz_zip_archive *pzip) {
+    void
+    zip_archive_finalize(mz_zip_archive *pzip) {
   mz_zip_writer_finalize_archive(pzip);
   zip_archive_truncate(pzip);
 }
@@ -1322,9 +1323,7 @@ int zip_entry_isdir(struct zip_t *zip) {
                                                 (mz_uint)zip->entry.index);
 }
 
-zip_ull zip_entry_size(struct zip_t *zip) {
-  return zip_entry_uncomp_size(zip);
-}
+zip_ull zip_entry_size(struct zip_t *zip) { return zip_entry_uncomp_size(zip); }
 
 zip_ull zip_entry_uncomp_size(struct zip_t *zip) {
   return zip ? zip->entry.uncomp_size : 0;
