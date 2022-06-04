@@ -574,7 +574,22 @@ typedef void *const voidpc;
 
 #pragma once
 #include <assert.h>
+
+#if defined(_MSC_VER) && _MSC_VER <= 1200
+// no stdint with MSVC 6.0, so work around it
+typedef signed __int8 int8_t;
+typedef unsigned __int8 uint8_t;
+typedef signed __int16 int16_t;
+typedef unsigned __int16 uint16_t;
+typedef signed __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef signed __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+
+#else
 #include <stdint.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -586,6 +601,7 @@ typedef unsigned int mz_uint32;
 typedef unsigned int mz_uint;
 typedef int64_t mz_int64;
 typedef uint64_t mz_uint64;
+
 typedef int mz_bool;
 
 #define MZ_FALSE (0)
@@ -4395,7 +4411,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r,
               tree_cur = pTable->m_tree[-tree_cur - 1];
           }
           tree_cur -= ((rev_code >>= 1) & 1);
-          (void)rev_code; // unused
+          (void)rev_code; /* unused */
           pTable->m_tree[-tree_cur - 1] = (mz_int16)sym_index;
         }
         if (r->m_type == 2) {
@@ -4840,7 +4856,7 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   wchar_t *wFilename = str2wstr(pFilename);
   wchar_t *wMode = str2wstr(pMode);
 
-#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+#if defined(ZIP_ENABLE_SHARABLE_FILE_OPEN) || _MSCVER <= 1200
   pFile = _wfopen(wFilename, wMode);
 #else
   _wfopen_s(&pFile, wFilename, wMode);
@@ -4858,7 +4874,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   wchar_t *wPath = str2wstr(pPath);
   wchar_t *wMode = str2wstr(pMode);
 
-#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+#if defined(ZIP_ENABLE_SHARABLE_FILE_OPEN) || _MSCVER <= 1200
   pFile = _wfreopen(wPath, wMode, pStream);
 #else
   res = _wfreopen_s(&pFile, wPath, wMode, pStream);
@@ -4867,7 +4883,8 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   free(wPath);
   free(wMode);
 
-#ifndef ZIP_ENABLE_SHARABLE_FILE_OPEN
+#if defined(ZIP_ENABLE_SHARABLE_FILE_OPEN) || _MSCVER <= 1200
+#else
   if (res) {
     return NULL;
   }
@@ -4876,9 +4893,19 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   return pFile;
 }
 
-static int mz_stat(const char *pPath, struct _stat64 *buffer) {
+static int mz_stat(const char *pPath,
+#if _MSV_VER > 1200
+                   struct _stat64 *buffer
+#else
+                   struct _stati64 *buffer
+#endif
+) {
   wchar_t *wPath = str2wstr(pPath);
+#if _MSV_VER > 1200
   int res = _wstat64(wPath, buffer);
+#else
+  int res = _wstati64(wPath, buffer);
+#endif
 
   free(wPath);
 
@@ -4898,9 +4925,21 @@ static int mz_mkdir(const char *pDirname) {
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
+
+#if _MSV_VER > 1200
+
 #define MZ_FTELL64 _ftelli64
 #define MZ_FSEEK64 _fseeki64
 #define MZ_FILE_STAT_STRUCT _stat64
+
+#else
+
+#define MZ_FTELL64 ftell // there is _telli64 but no _ftelli64, like WTF???
+#define MZ_FSEEK64 fseek
+#define MZ_FILE_STAT_STRUCT _stati64
+
+#endif
+
 #define MZ_FILE_STAT mz_stat
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
@@ -5013,9 +5052,9 @@ static int mz_mkdir(const char *pDirname) {
 #endif /* #ifdef MINIZ_NO_STDIO */
 
 #ifndef CHMOD
-// Upon successful completion, a value of 0 is returned.
-// Otherwise, a value of -1 is returned and errno is set to indicate the error.
-// int chmod(const char *path, mode_t mode);
+/* Upon successful completion, a value of 0 is returned.
+ * Otherwise, a value of -1 is returned and errno is set to indicate the error.
+ * int chmod(const char *path, mode_t mode); */
 #define CHMOD(f, m) chmod(f, m)
 #endif
 
@@ -5255,7 +5294,8 @@ static MZ_TIME_T mz_zip_dos_to_time_t(int dos_time, int dos_date) {
 #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
 static void mz_zip_time_t_to_dos_time(MZ_TIME_T time, mz_uint16 *pDOS_time,
                                       mz_uint16 *pDOS_date) {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) &&                                                       \
+    _MSC_VER > 1200 /* MSVC 6.0 does not have localtime_s (and errno_t) */
   struct tm tm_struct;
   struct tm *tm = &tm_struct;
   errno_t err = localtime_s(tm, &time);
@@ -6282,10 +6322,10 @@ static mz_bool mz_zip_file_stat_internal(mz_zip_archive *pZip,
 
             pStat->m_local_header_ofs = MZ_READ_LE64(pField_data);
             pField_data += sizeof(mz_uint64);
-            (void)pField_data; // unused
+            (void)pField_data; /* unused */
 
             field_data_remaining -= sizeof(mz_uint64);
-            (void)field_data_remaining; // unused
+            (void)field_data_remaining; /* unused */
           }
 
           break;
