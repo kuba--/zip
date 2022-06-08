@@ -626,6 +626,7 @@ typedef struct mz_dummy_time_t_tag {
 #define MZ_FREE(x) free(x)
 #define MZ_REALLOC(p, x) realloc(p, x)
 #endif
+#define MZ_CALLOC(n, x) MZ_MALLOC((n) * (x))
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
