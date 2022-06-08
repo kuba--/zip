@@ -2,7 +2,10 @@
 /test/build/
 /xcodeproj/
 .vscode/
+.idea/
 Testing/
+cmake-build-debug/
+cmake-build-release/
 
 # Object files
 *.o
