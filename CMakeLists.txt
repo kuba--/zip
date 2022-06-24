@@ -6,7 +6,13 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
+# Enable building tests only if the project is being built as a standalone one
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
+else ()
+    option(CMAKE_DISABLE_TESTING "Disable test creation" ON)
+endif ()
+
 option(CMAKE_ENABLE_SANITIZERS "Enable zip sanitizers" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
