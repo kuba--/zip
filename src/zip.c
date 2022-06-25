@@ -583,20 +583,15 @@ static ssize_t zip_file_move(MZ_FILE *m_pFile, const mz_uint64 to,
     return ZIP_ECAPSIZE;
   }
   if (MZ_FSEEK64(m_pFile, from, SEEK_SET)) {
-    MZ_FCLOSE(m_pFile);
     return ZIP_EFSEEK;
   }
-
   if (fread(move_buf, 1, length, m_pFile) != length) {
-    MZ_FCLOSE(m_pFile);
     return ZIP_EFREAD;
   }
   if (MZ_FSEEK64(m_pFile, to, SEEK_SET)) {
-    MZ_FCLOSE(m_pFile);
     return ZIP_EFSEEK;
   }
   if (fwrite(move_buf, 1, length, m_pFile) != length) {
-    MZ_FCLOSE(m_pFile);
     return ZIP_EFWRITE;
   }
   return (ssize_t)length;
