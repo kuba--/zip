@@ -692,12 +692,12 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
   int end = 0;
   int d_num = 0;
   while (i < entry_num) {
-    while ((!deleted_entry_index_array[i]) && (i < entry_num)) {
+    while ((i < entry_num) && (!deleted_entry_index_array[i])) {
       i++;
     }
     begin = i;
 
-    while ((deleted_entry_index_array[i]) && (i < entry_num)) {
+    while ((i < entry_num) && (deleted_entry_index_array[i])) {
       i++;
     }
     end = i;
@@ -706,14 +706,14 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
 
   i = 0;
   while (i < entry_num) {
-    while ((!deleted_entry_index_array[i]) && (i < entry_num)) {
+    while ((i < entry_num) && (!deleted_entry_index_array[i])) {
       i++;
     }
     begin = i;
     if (begin == entry_num) {
       break;
     }
-    while ((deleted_entry_index_array[i]) && (i < entry_num)) {
+    while ((i < entry_num) && (deleted_entry_index_array[i])) {
       i++;
     }
     end = i;
@@ -759,13 +759,13 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   }
 
   while (i < entry_num) {
-    while ((entry_mark[i].type == MZ_KEEP) && (i < entry_num)) {
+    while ((i < entry_num) && (entry_mark[i].type == MZ_KEEP)) {
       writen_num += entry_mark[i].lf_length;
       read_num = writen_num;
       i++;
     }
 
-    while ((entry_mark[i].type == MZ_DELETE) && (i < entry_num)) {
+    while ((i < entry_num) && (entry_mark[i].type == MZ_DELETE)) {
       deleted_entry_flag_array[i] = MZ_TRUE;
       read_num += entry_mark[i].lf_length;
       deleted_length += entry_mark[i].lf_length;
@@ -773,7 +773,7 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
       deleted_entry_num++;
     }
 
-    while ((entry_mark[i].type == MZ_MOVE) && (i < entry_num)) {
+    while ((i < entry_num) && (entry_mark[i].type == MZ_MOVE)) {
       move_length += entry_mark[i].lf_length;
       mz_uint8 *p = &MZ_ZIP_ARRAY_ELEMENT(
           &pState->m_central_dir, mz_uint8,
