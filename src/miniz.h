@@ -1130,11 +1130,18 @@ struct tinfl_decompressor_tag {
 extern "C" {
 #endif
 
+/* Note: MAX_PATH restrictions apply until Windows 10 version 1607 */
+#if defined(_WIN32)
+#   define MAX_FILE_PATH 256
+#else
+#   define MAX_FILE_PATH 512
+#endif
+
 enum {
   /* Note: These enums can be reduced as needed to save memory or stack space -
      they are pretty conservative. */
   MZ_ZIP_MAX_IO_BUF_SIZE = 8 * 1024,
-  MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = 512,
+  MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = MAX_FILE_PATH,
   MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE = 512
 };
 
