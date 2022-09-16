@@ -842,6 +842,15 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
     break;
 
   case 'r':
+    if (!mz_zip_reader_init_file_v2(
+            &(zip->archive), zipname,
+            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
+      // An archive file does not exist or cannot initialize
+      // zip_archive reader
+      goto cleanup;
+    }
+    break;
+
   case 'a':
   case 'd':
     if (!mz_zip_reader_init_file_v2_rpb(
