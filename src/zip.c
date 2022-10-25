@@ -179,18 +179,18 @@ static const char *zip_basename(const char *name) {
 
 static int zip_mkpath(char *path) {
   char *p;
-  char npath[MAX_PATH + 1];
+  char npath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
   int len = 0;
   int has_device = HAS_DEVICE(path);
 
-  memset(npath, 0, MAX_PATH + 1);
+  memset(npath, 0, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1);
   if (has_device) {
     // only on windows
     npath[0] = path[0];
     npath[1] = path[1];
     len = 2;
   }
-  for (p = path + len; *p && len < MAX_PATH; p++) {
+  for (p = path + len; *p && len < MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE; p++) {
     if (ISSLASH(*p) && ((!has_device && len > 0) || (has_device && len > 2))) {
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
@@ -303,8 +303,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
                                void *arg) {
   int err = 0;
   mz_uint i, n;
-  char path[MAX_PATH + 1];
-  char symlink_to[MAX_PATH + 1];
+  char path[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
+  char symlink_to[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
   mz_zip_archive_file_stat info;
   size_t dirlen = 0, filename_size = MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE;
   mz_uint32 xattr = 0;
@@ -313,14 +313,14 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
   memset(symlink_to, 0, sizeof(symlink_to));
 
   dirlen = strlen(dir);
-  if (dirlen + 1 > MAX_PATH) {
+  if (dirlen + 1 > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE) {
     return ZIP_EINVENTNAME;
   }
 
   memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
 
 #if defined(_MSC_VER)
-  strcpy_s(path, MAX_PATH, dir);
+  strcpy_s(path, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, dir);
 #else
   strcpy(path, dir);
 #endif
@@ -334,8 +334,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     ++dirlen;
   }
 
-  if (filename_size > MAX_PATH - dirlen) {
-    filename_size = MAX_PATH - dirlen;
+  if (filename_size > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE - dirlen) {
+    filename_size = MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE - dirlen;
   }
   // Get and print information about each file in the archive.
   n = mz_zip_reader_get_num_files(zip_archive);
@@ -375,9 +375,9 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
 #else
-      if (info.m_uncomp_size > MAX_PATH ||
+      if (info.m_uncomp_size > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE ||
           !mz_zip_reader_extract_to_mem_no_alloc(zip_archive, i, symlink_to,
-                                                 MAX_PATH, 0, NULL, 0)) {
+                                                 MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, 0, NULL, 0)) {
         err = ZIP_EMEMNOALLOC;
         goto out;
       }
