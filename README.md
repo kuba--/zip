@@ -1,10 +1,11 @@
-### A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
+# A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
+
 This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v2.2.0 API.
 
 [![Build](https://github.com/kuba--/zip/workflows/build/badge.svg)](https://github.com/kuba--/zip/actions?query=workflow%3Abuild)
 
+## The Idea
 
-# The Idea
 <img src="zip.png" name="zip" />
 ... Some day, I was looking for zip library written in C for my project, but I could not find anything simple enough and lightweight.
 Everything what I tried required 'crazy mental gymnastics' to integrate or had some limitations or was too heavy.
@@ -15,9 +16,10 @@ Miniz is a lossless, high performance data compression library in a single sourc
 
 It was the reason, why I decided to write zip module on top of the miniz. It required a little bit hacking and wrapping some functions, but I kept simplicity. So, you can grab these 3 files and compile them into your project. I hope that interface is also extremely simple, so you will not have any problems to understand it.
 
-# Examples
+## Examples
 
 * Create a new zip archive with default compression level.
+
 ```c
 struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 {
@@ -41,6 +43,7 @@ zip_close(zip);
 ```
 
 * Append to the existing zip archive.
+
 ```c
 struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
 {
@@ -55,6 +58,7 @@ zip_close(zip);
 ```
 
 * Extract a zip archive into a folder.
+
 ```c
 int on_extract_entry(const char *filename, void *arg) {
     static int i = 0;
@@ -69,6 +73,7 @@ zip_extract("foo.zip", "/tmp", on_extract_entry, &arg);
 ```
 
 * Extract a zip entry into memory.
+
 ```c
 void *buf = NULL;
 size_t bufsize;
@@ -87,6 +92,7 @@ free(buf);
 ```
 
 * Extract a zip entry into memory (no internal allocation).
+
 ```c
 unsigned char *buf;
 size_t bufsize;
@@ -108,6 +114,7 @@ free(buf);
 ```
 
 * Extract a zip entry into memory using callback.
+
 ```c
 struct buffer_t {
     char *data;
@@ -140,8 +147,8 @@ zip_close(zip);
 free(buf.data);
 ```
 
-
 * Extract a zip entry into a file.
+
 ```c
 struct zip_t *zip = zip_open("foo.zip", 0, 'r');
 {
@@ -197,6 +204,7 @@ free(buf);
 ```
 
 * List of all zip entries
+
 ```c
 struct zip_t *zip = zip_open("foo.zip", 0, 'r');
 int i, n = zip_entries_total(zip);
@@ -214,6 +222,7 @@ zip_close(zip);
 ```
 
 * Compress folder (recursively)
+
 ```c
 void zip_walk(struct zip_t *zip, const char *path) {
     DIR *dir;
@@ -246,6 +255,7 @@ void zip_walk(struct zip_t *zip, const char *path) {
 ```
 
 * Delete zip archive entries.
+
 ```c
 char *entries[] = {"unused.txt", "remove.ini", "delete.me"};
 
@@ -256,9 +266,10 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 zip_close(zip);
 ```
 
+## Bindings
 
-# Bindings
 Compile zip library as a dynamic library.
+
 ```shell
 $ mkdir build
 $ cd build
@@ -267,6 +278,7 @@ $ cmake --build .
 ```
 
 ### [Go](https://golang.org) (cgo)
+
 ```go
 package main
 
@@ -279,24 +291,25 @@ import "C"
 import "unsafe"
 
 func main() {
-	path := C.CString("/tmp/go.zip")
-	zip := C.zip_open(path, 6, 'w')
+ path := C.CString("/tmp/go.zip")
+ zip := C.zip_open(path, 6, 'w')
 
-	entryname := C.CString("test")
-	C.zip_entry_open(zip, entryname)
+ entryname := C.CString("test")
+ C.zip_entry_open(zip, entryname)
 
-	content := "test content"
-	buf := unsafe.Pointer(C.CString(content))
-	bufsize := C.size_t(len(content))
-	C.zip_entry_write(zip, buf, bufsize)
+ content := "test content"
+ buf := unsafe.Pointer(C.CString(content))
+ bufsize := C.size_t(len(content))
+ C.zip_entry_write(zip, buf, bufsize)
 
-	C.zip_entry_close(zip)
+ C.zip_entry_close(zip)
 
-	C.zip_close(zip)
+ C.zip_close(zip)
 }
 ```
 
 ### [Rust](https://www.rust-lang.org) (ffi)
+
 ```rust
 extern crate libc;
 use std::ffi::CString;
@@ -344,12 +357,15 @@ fn main() {
 ```
 
 ### [Ruby](http://www.ruby-lang.org) (ffi)
+
 Install _ffi_ gem.
+
 ```shell
 $ gem install ffi
 ```
 
 Bind in your module.
+
 ```ruby
 require 'ffi'
 
@@ -377,12 +393,15 @@ Zip.zip_close(ptr)
 ```
 
 ### [Python](https://www.python.org) (cffi)
+
 Install _cffi_ package
+
 ```shell
 $ pip install cffi
 ```
 
 Bind in your package.
+
 ```python
 import ctypes.util
 from cffi import FFI
@@ -411,6 +430,7 @@ Zip.zip_close(ptr)
 ```
 
 ### [Never](https://never-lang.readthedocs.io/) (ffi)
+
 ```never
 extern "libzip.so" func zip_open(zipname: string, level: int, mode: char) -> c_ptr
 extern "libzip.so" func zip_close(zip: c_ptr) -> void
@@ -440,7 +460,9 @@ func main() -> int
 ```
 
 ### [Ring](http://ring-lang.net)
+
 The language comes with RingZip based on this library
+
 ```ring
 load "ziplib.ring"
 
@@ -456,17 +478,17 @@ new Zip {
 }
 ```
 
-# Check out more cool projects which use this library:
-- [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
-- [Hermes JS Engine](https://github.com/facebook/hermes): Hermes is a JavaScript engine optimized for fast start-up of React Native apps on Android. It features ahead-of-time static optimization and compact bytecode.
-- [Monster Mash](https://github.com/google/monster-mash): New Sketch-Based Modeling and Animation Tool.
-- [Object-Oriented Graphics Rendering Engine](https://github.com/OGRECave/ogre): OGRE is a scene-oriented, flexible 3D engine written in C++ designed to make it easier and more intuitive for developers to produce games and demos utilising 3D hardware.
-- [Open Asset Import Library](https://github.com/assimp/assimp): A library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
-- [PowerToys](https://github.com/microsoft/PowerToys): Set of utilities for power users to tune and streamline their Windows 10 experience for greater productivity.
-- [The Ring Programming Language](https://ring-lang.github.io): Innovative and practical general-purpose multi-paradigm language.
-- [The V Programming Language](https://github.com/vlang/v): Simple, fast, safe, compiled. For developing maintainable software.
-- [TIC-80](https://github.com/nesbox/TIC-80): TIC-80 is a FREE and OPEN SOURCE fantasy computer for making, playing and sharing tiny games.
-- [Urho3D](https://github.com/urho3d/Urho3D): Urho3D is a free lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license. Greatly inspired by OGRE and Horde3D.
-- [Vcpkg](https://github.com/microsoft/vcpkg): Vcpkg helps you manage C and C++ libraries on Windows, Linux and MacOS.
-- [and more...](https://grep.app/search?q=kuba--/zip)
+## Check out more cool projects which use this library
 
+* [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
+* [Hermes JS Engine](https://github.com/facebook/hermes): Hermes is a JavaScript engine optimized for fast start-up of React Native apps on Android. It features ahead-of-time static optimization and compact bytecode.
+* [Monster Mash](https://github.com/google/monster-mash): New Sketch-Based Modeling and Animation Tool.
+* [Object-Oriented Graphics Rendering Engine](https://github.com/OGRECave/ogre): OGRE is a scene-oriented, flexible 3D engine written in C++ designed to make it easier and more intuitive for developers to produce games and demos utilising 3D hardware.
+* [Open Asset Import Library](https://github.com/assimp/assimp): A library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
+* [PowerToys](https://github.com/microsoft/PowerToys): Set of utilities for power users to tune and streamline their Windows 10 experience for greater productivity.
+* [The Ring Programming Language](https://ring-lang.github.io): Innovative and practical general-purpose multi-paradigm language.
+* [The V Programming Language](https://github.com/vlang/v): Simple, fast, safe, compiled. For developing maintainable software.
+* [TIC-80](https://github.com/nesbox/TIC-80): TIC-80 is a FREE and OPEN SOURCE fantasy computer for making, playing and sharing tiny games.
+* [Urho3D](https://github.com/urho3d/Urho3D): Urho3D is a free lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license. Greatly inspired by OGRE and Horde3D.
+* [Vcpkg](https://github.com/microsoft/vcpkg): Vcpkg helps you manage C and C++ libraries on Windows, Linux and MacOS.
+* [and more...](https://grep.app/search?q=kuba--/zip)
