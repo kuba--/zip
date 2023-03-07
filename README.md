@@ -1,10 +1,10 @@
-# A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
+## A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
 
 This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v2.2.0 API.
 
 [![Build](https://github.com/kuba--/zip/workflows/build/badge.svg)](https://github.com/kuba--/zip/actions?query=workflow%3Abuild)
 
-## The Idea
+### The Idea
 
 <img src="zip.png" name="zip" />
 ... Some day, I was looking for zip library written in C for my project, but I could not find anything simple enough and lightweight.
@@ -16,7 +16,7 @@ Miniz is a lossless, high performance data compression library in a single sourc
 
 It was the reason, why I decided to write zip module on top of the miniz. It required a little bit hacking and wrapping some functions, but I kept simplicity. So, you can grab these 3 files and compile them into your project. I hope that interface is also extremely simple, so you will not have any problems to understand it.
 
-## Examples
+### Examples
 
 * Create a new zip archive with default compression level.
 
@@ -266,7 +266,7 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 zip_close(zip);
 ```
 
-## Bindings
+### Bindings
 
 Compile zip library as a dynamic library.
 
@@ -277,7 +277,7 @@ $ cmake -DBUILD_SHARED_LIBS=true ..
 $ cmake --build .
 ```
 
-### [Go](https://golang.org) (cgo)
+#### [Go](https://golang.org) (cgo)
 
 ```go
 package main
@@ -308,7 +308,7 @@ func main() {
 }
 ```
 
-### [Rust](https://www.rust-lang.org) (ffi)
+#### [Rust](https://www.rust-lang.org) (ffi)
 
 ```rust
 extern crate libc;
@@ -356,7 +356,7 @@ fn main() {
 }
 ```
 
-### [Ruby](http://www.ruby-lang.org) (ffi)
+#### [Ruby](http://www.ruby-lang.org) (ffi)
 
 Install _ffi_ gem.
 
@@ -392,7 +392,7 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-### [Python](https://www.python.org) (cffi)
+#### [Python](https://www.python.org) (cffi)
 
 Install _cffi_ package
 
@@ -429,7 +429,7 @@ Zip.zip_entry_close(ptr)
 Zip.zip_close(ptr)
 ```
 
-### [Never](https://never-lang.readthedocs.io/) (ffi)
+#### [Never](https://never-lang.readthedocs.io/) (ffi)
 
 ```never
 extern "libzip.so" func zip_open(zipname: string, level: int, mode: char) -> c_ptr
@@ -459,7 +459,7 @@ func main() -> int
 }
 ```
 
-### [Ring](http://ring-lang.net)
+#### [Ring](http://ring-lang.net)
 
 The language comes with RingZip based on this library
 
@@ -478,7 +478,7 @@ new Zip {
 }
 ```
 
-## Check out more cool projects which use this library
+### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
 * [Hermes JS Engine](https://github.com/facebook/hermes): Hermes is a JavaScript engine optimized for fast start-up of React Native apps on Android. It features ahead-of-time static optimization and compact bytecode.
