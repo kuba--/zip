@@ -291,20 +291,20 @@ import "C"
 import "unsafe"
 
 func main() {
- path := C.CString("/tmp/go.zip")
- zip := C.zip_open(path, 6, 'w')
-
- entryname := C.CString("test")
- C.zip_entry_open(zip, entryname)
-
- content := "test content"
- buf := unsafe.Pointer(C.CString(content))
- bufsize := C.size_t(len(content))
- C.zip_entry_write(zip, buf, bufsize)
-
- C.zip_entry_close(zip)
-
- C.zip_close(zip)
+    path := C.CString("/tmp/go.zip")
+    zip := C.zip_open(path, 6, 'w')
+    
+    entryname := C.CString("test")
+    C.zip_entry_open(zip, entryname)
+    
+    content := "test content"
+    buf := unsafe.Pointer(C.CString(content))
+    bufsize := C.size_t(len(content))
+    C.zip_entry_write(zip, buf, bufsize)
+    
+    C.zip_entry_close(zip)
+    
+    C.zip_close(zip)
 }
 ```
 
