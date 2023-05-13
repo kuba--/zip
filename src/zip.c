@@ -909,7 +909,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   mz_uint num_alignment_padding_bytes, level;
   mz_zip_archive_file_stat stats;
   int err = 0;
-  mz_uint16 dos_time, dos_date;
+  mz_uint16 dos_time = 0, dos_date = 0;
   mz_uint32 extra_size = 0;
   mz_uint8 extra_data[MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE];
   mz_uint64 local_dir_header_ofs = 0;
