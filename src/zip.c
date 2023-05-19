@@ -441,7 +441,7 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
   }
 
   mz_zip_archive_file_stat file_stat;
-  mz_uint64 d_pos = ~0ULL;
+  mz_uint64 d_pos = UINT64_MAX;
   for (i = 0; i < n; ++i) {
     if ((err = zip_entry_openbyindex(zip, i))) {
       return (ssize_t)err;
