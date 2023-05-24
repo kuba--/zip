@@ -10,7 +10,7 @@ This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) lib
 ... Some day, I was looking for zip library written in C for my project, but I could not find anything simple enough and lightweight.
 Everything what I tried required 'crazy mental gymnastics' to integrate or had some limitations or was too heavy.
 I hate frameworks, factories and adding new dependencies. If I must to install all those dependencies and link new library, I'm getting almost sick.
-I wanted something powerfull and small enough, so I could add just a few files and compile them into my project.
+I wanted something powerful and small enough, so I could add just a few files and compile them into my project.
 And finally I found miniz.
 Miniz is a lossless, high performance data compression library in a single source file. I only needed simple interface to append buffers or files to the current zip-entry. Thanks to this feature I'm able to merge many files/buffers and compress them on-the-fly.
 
