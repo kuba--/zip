@@ -293,17 +293,17 @@ import "unsafe"
 func main() {
     path := C.CString("/tmp/go.zip")
     zip := C.zip_open(path, 6, 'w')
-    
+
     entryname := C.CString("test")
     C.zip_entry_open(zip, entryname)
-    
+
     content := "test content"
     buf := unsafe.Pointer(C.CString(content))
     bufsize := C.size_t(len(content))
     C.zip_entry_write(zip, buf, bufsize)
-    
+
     C.zip_entry_close(zip)
-    
+
     C.zip_close(zip)
 }
 ```
@@ -490,5 +490,4 @@ new Zip {
 * [The V Programming Language](https://github.com/vlang/v): Simple, fast, safe, compiled. For developing maintainable software.
 * [TIC-80](https://github.com/nesbox/TIC-80): TIC-80 is a FREE and OPEN SOURCE fantasy computer for making, playing and sharing tiny games.
 * [Urho3D](https://github.com/urho3d/Urho3D): Urho3D is a free lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license. Greatly inspired by OGRE and Horde3D.
-* [Vcpkg](https://github.com/microsoft/vcpkg): Vcpkg helps you manage C and C++ libraries on Windows, Linux and MacOS.
 * [and more...](https://grep.app/search?q=kuba--/zip)
