@@ -882,12 +882,21 @@ cleanup:
 
 void zip_close(struct zip_t *zip) {
   if (zip) {
+    mz_zip_archive *pZip = &(zip->archive);
     // Always finalize, even if adding failed for some reason, so we have a
     // valid central directory.
-    mz_zip_writer_finalize_archive(&(zip->archive));
-    zip_archive_truncate(&(zip->archive));
-    mz_zip_writer_end(&(zip->archive));
-    mz_zip_reader_end(&(zip->archive));
+    if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING) {
+        mz_zip_writer_finalize_archive(pZip);
+    }
+
+    if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING || 
+        pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
+        zip_archive_truncate(pZip);
+        mz_zip_writer_end(pZip);
+    }
+    if (pZip->m_zip_mode == MZ_ZIP_MODE_READING) {
+        mz_zip_reader_end(pZip);
+    }
 
     CLEANUP(zip);
   }
