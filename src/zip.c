@@ -116,7 +116,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
-static const char *const zip_errlist[30] = {
+static const char *const zip_errlist[33] = {
     NULL,
     "not initialized\0",
     "invalid entry name\0",
@@ -147,11 +147,14 @@ static const char *const zip_errlist[30] = {
     "fseek error\0",
     "fread error\0",
     "fwrite error\0",
+    "cannot initialize reader\0",
+    "cannot initialize writer\0",
+    "cannot initialize writer from reader\0",
 };
 
 const char *zip_strerror(int errnum) {
   errnum = -errnum;
-  if (errnum <= 0 || errnum >= 30) {
+  if (errnum <= 0 || errnum >= 33) {
     return NULL;
   }
 
@@ -354,8 +357,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     }
 
 #if defined(_MSC_VER)
-    strncpy_s(&path[dirlen], filename_size, info.m_filename,
-              filename_size);
+    strncpy_s(&path[dirlen], filename_size, info.m_filename, filename_size);
 #else
     strncpy(&path[dirlen], info.m_filename, filename_size);
 #endif
@@ -376,8 +378,9 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     defined(__MINGW32__)
 #else
       if (info.m_uncomp_size > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE ||
-          !mz_zip_reader_extract_to_mem_no_alloc(zip_archive, i, symlink_to,
-                                                 MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, 0, NULL, 0)) {
+          !mz_zip_reader_extract_to_mem_no_alloc(
+              zip_archive, i, symlink_to, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, 0,
+              NULL, 0)) {
         err = ZIP_EMEMNOALLOC;
         goto out;
       }
@@ -812,23 +815,27 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
 }
 
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
-  struct zip_t *zip = NULL;
+  struct zip_t *zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
+  if (zip_noallocopen(&zip, zipname, level, mode) < 0) {
+    CLEANUP(zip);
+    return NULL;
+  }
+  return zip;
+}
+
+int zip_noallocopen(struct zip_t **pzip, const char *zipname, int level,
+                    char mode) {
+  struct zip_t *zip = *pzip;
 
   if (!zipname || strlen(zipname) < 1) {
-    // zip_t archive name is empty or NULL
-    goto cleanup;
+    return ZIP_EINVZIPNAME;
   }
 
   if (level < 0)
     level = MZ_DEFAULT_LEVEL;
   if ((level & 0xF) > MZ_UBER_COMPRESSION) {
-    // Wrong compression level
-    goto cleanup;
+    return ZIP_EINVLVL;
   }
-
-  zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
-  if (!zip)
-    goto cleanup;
 
   zip->level = (mz_uint)level;
   switch (mode) {
@@ -837,7 +844,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
     if (!mz_zip_writer_init_file_v2(&(zip->archive), zipname, 0,
                                     MZ_ZIP_FLAG_WRITE_ZIP64)) {
       // Cannot initialize zip_archive writer
-      goto cleanup;
+      return ZIP_EWINIT;
     }
     break;
 
@@ -847,7 +854,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
             zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
-      goto cleanup;
+      return ZIP_ERINIT;
     }
     break;
 
@@ -858,26 +865,22 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
             zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
-      goto cleanup;
+      return ZIP_ERINIT;
     }
     if ((mode == 'a' || mode == 'd')) {
       if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), zipname,
                                                       0)) {
         mz_zip_reader_end(&(zip->archive));
-        goto cleanup;
+        return ZIP_EWRINIT;
       }
     }
     break;
 
   default:
-    goto cleanup;
+    return ZIP_EINVMODE;
   }
 
-  return zip;
-
-cleanup:
-  CLEANUP(zip);
-  return NULL;
+  return 0;
 }
 
 void zip_close(struct zip_t *zip) {
@@ -886,16 +889,16 @@ void zip_close(struct zip_t *zip) {
     // Always finalize, even if adding failed for some reason, so we have a
     // valid central directory.
     if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING) {
-        mz_zip_writer_finalize_archive(pZip);
+      mz_zip_writer_finalize_archive(pZip);
     }
 
-    if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING || 
+    if (pZip->m_zip_mode == MZ_ZIP_MODE_WRITING ||
         pZip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
-        zip_archive_truncate(pZip);
-        mz_zip_writer_end(pZip);
+      zip_archive_truncate(pZip);
+      mz_zip_writer_end(pZip);
     }
     if (pZip->m_zip_mode == MZ_ZIP_MODE_READING) {
-        mz_zip_reader_end(pZip);
+      mz_zip_reader_end(pZip);
     }
 
     CLEANUP(zip);

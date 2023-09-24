@@ -92,6 +92,9 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EFSEEK -27      // fseek error
 #define ZIP_EFREAD -28      // fread error
 #define ZIP_EFWRITE -29     // fwrite error
+#define ZIP_ERINIT -30      // cannot initialize reader
+#define ZIP_EWINIT -31      // cannot initialize writer
+#define ZIP_EWRINIT -32     // cannot initialize writer from reader
 
 /**
  * Looks up the error message string corresponding to an error number.
@@ -124,6 +127,21 @@ struct zip_t;
 extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level,
                                          char mode);
 
+/**
+ * Opens pre-allocated zip archive with compression level using the given mode.
+ *
+ * @param zip pre-allocated zip archive.
+ * @param zipname zip archive file name.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode.
+ *        - 'r': opens a file for reading/extracting (the file must exists).
+ *        - 'w': creates an empty file for writing.
+ *        - 'a': appends to an existing archive.
+ *
+ * @return the return code - 0 on success, negative number (< 0) on error.
+ */
+extern ZIP_EXPORT int zip_noallocopen(struct zip_t **zip, const char *zipname,
+                                      int level, char mode);
 /**
  * Closes the zip archive, releases resources - always finalize.
  *
