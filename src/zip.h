@@ -124,23 +124,25 @@ struct zip_t;
  *
  * @return the zip archive handler or NULL on error
  */
-extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level, char mode);
+extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level,
+                                         char mode);
 
 /**
-  * Opens zip archive with compression level using the given mode.
-  * The function additionally returns @param errnum -
-  *
-  * @param zipname zip archive file name.
-  * @param level compression level (0-9 are the standard zlib-style levels).
-  * @param mode file access mode.
-  *        - 'r': opens a file for reading/extracting (the file must exists).
-  *        - 'w': creates an empty file for writing.
-  *        - 'a': appends to an existing archive.
-  * @param errnum 0 on success, negative number (< 0) on error.
-  *
-  * @return the zip archive handler or NULL on error
-  */
-extern ZIP_EXPORT struct zip_t *zip_openwitherror(const char *zipname, int level, char mode, int *errnum);
+ * Opens zip archive with compression level using the given mode.
+ * The function additionally returns @param errnum -
+ *
+ * @param zipname zip archive file name.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode.
+ *        - 'r': opens a file for reading/extracting (the file must exists).
+ *        - 'w': creates an empty file for writing.
+ *        - 'a': appends to an existing archive.
+ * @param errnum 0 on success, negative number (< 0) on error.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *
+zip_openwitherror(const char *zipname, int level, char mode, int *errnum);
 
 /**
  * Closes the zip archive, releases resources - always finalize.
@@ -423,7 +425,8 @@ zip_stream_extract(const char *stream, size_t size, const char *dir,
  *
  * @return the zip archive handler or NULL on error
  */
-extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size, int level, char mode);
+extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
+                                                int level, char mode);
 
 /**
  * Opens zip archive stream into memory.
@@ -440,7 +443,10 @@ extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
  *
  * @return the zip archive handler or NULL on error
  */
-extern ZIP_EXPORT struct zip_t *zip_stream_openwitherror(const char *stream, size_t size, int level, char mode, int *errnum);
+extern ZIP_EXPORT struct zip_t *zip_stream_openwitherror(const char *stream,
+                                                         size_t size, int level,
+                                                         char mode,
+                                                         int *errnum);
 
 /**
  * Copy zip archive stream output buffer.
