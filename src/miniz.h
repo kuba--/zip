@@ -4986,7 +4986,7 @@ static int mz_mkdir(const char *pDirname) {
 
 #else
 #pragma message(                                                               \
-    "Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
+        "Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
