@@ -92,6 +92,9 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EFSEEK -27      // fseek error
 #define ZIP_EFREAD -28      // fread error
 #define ZIP_EFWRITE -29     // fwrite error
+#define ZIP_ERINIT -30      // cannot initialize reader
+#define ZIP_EWINIT -31      // cannot initialize writer
+#define ZIP_EWRINIT -32     // cannot initialize writer from reader
 
 /**
  * Looks up the error message string corresponding to an error number.
@@ -123,6 +126,23 @@ struct zip_t;
  */
 extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level,
                                          char mode);
+
+/**
+ * Opens zip archive with compression level using the given mode.
+ * The function additionally returns @param errnum -
+ *
+ * @param zipname zip archive file name.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode.
+ *        - 'r': opens a file for reading/extracting (the file must exists).
+ *        - 'w': creates an empty file for writing.
+ *        - 'a': appends to an existing archive.
+ * @param errnum 0 on success, negative number (< 0) on error.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *
+zip_openwitherror(const char *zipname, int level, char mode, int *errnum);
 
 /**
  * Closes the zip archive, releases resources - always finalize.
@@ -397,11 +417,36 @@ zip_stream_extract(const char *stream, size_t size, const char *dir,
  *
  * @param stream zip archive stream.
  * @param size stream size.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode.
+ *        - 'r': opens a file for reading/extracting (the file must exists).
+ *        - 'w': creates an empty file for writing.
+ *        - 'a': appends to an existing archive.
  *
  * @return the zip archive handler or NULL on error
  */
 extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
                                                 int level, char mode);
+
+/**
+ * Opens zip archive stream into memory.
+ * The function additionally returns @param errnum -
+ *
+ * @param stream zip archive stream.
+ * @param size stream size.*
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode.
+ *        - 'r': opens a file for reading/extracting (the file must exists).
+ *        - 'w': creates an empty file for writing.
+ *        - 'a': appends to an existing archive.
+ * @param errnum 0 on success, negative number (< 0) on error.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *zip_stream_openwitherror(const char *stream,
+                                                         size_t size, int level,
+                                                         char mode,
+                                                         int *errnum);
 
 /**
  * Copy zip archive stream output buffer.
