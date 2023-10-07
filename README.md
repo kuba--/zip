@@ -277,6 +277,25 @@ $ cmake -DBUILD_SHARED_LIBS=true ..
 $ cmake --build .
 ```
 
+#### [Zig](https://ziglang.org)
+
+```zig
+const c = @cImport({
+    @cInclude("zip.h");
+});
+
+pub fn main() void {
+    var zip = c.zip_open("/tmp/zig.zip", 6, 'w');
+    defer c.zip_close(zip);
+
+    _ = c.zip_entry_open(zip, "test");
+    defer _ = c.zip_entry_close(zip);
+
+    const content = "test content";
+    _ = c.zip_entry_write(zip, content, content.len);
+}
+```
+
 #### [Go](https://golang.org) (cgo)
 
 ```go
