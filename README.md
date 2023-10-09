@@ -501,6 +501,39 @@ pub fn main() void {
 }
 ```
 
+#### [Odin](https://odin-lang.org)
+
+```odin
+package main
+
+foreign import lib "system:zip"
+
+import "core:c"
+
+foreign lib {
+    zip_open :: proc(zipname : cstring, level : c.int, mode : c.char) -> rawptr ---
+
+    zip_close :: proc(zip : rawptr) ---
+
+    zip_entry_open :: proc(zip : rawptr, entryname : cstring) -> c.int ---
+
+    zip_entry_close :: proc(zip : rawptr) -> c.int ---
+
+    zip_entry_write :: proc(zip : rawptr, buf : rawptr, bufsize : c.size_t) -> c.int ---
+}
+
+main :: proc() {
+    zip_file := zip_open("odin.zip", 6, 'w')
+    defer zip_close(zip_file)
+
+    zip_entry_open(zip_file, "test")
+    defer zip_entry_close(zip_file)
+
+    content := "test content"
+    zip_entry_write(zip_file, &content, len(content))
+}
+```
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
