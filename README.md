@@ -478,6 +478,25 @@ new Zip {
 }
 ```
 
+#### [Zig](https://ziglang.org)
+
+```zig
+const c = @cImport({
+    @cInclude("zip.h");
+});
+
+pub fn main() void {
+    var zip = c.zip_open("/tmp/zig.zip", 6, 'w');
+    defer c.zip_close(zip);
+
+    _ = c.zip_entry_open(zip, "test");
+    defer _ = c.zip_entry_close(zip);
+
+    const content = "test content";
+    _ = c.zip_entry_write(zip, content, content.len);
+}
+```
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
