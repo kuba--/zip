@@ -480,6 +480,10 @@ new Zip {
 
 #### [Zig](https://ziglang.org)
 
+```shell
+$ zig build-exe main.zig -lc -lzip
+```
+
 ```zig
 const c = @cImport({
     @cInclude("zip.h");
