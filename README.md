@@ -277,6 +277,12 @@ $ cmake -DBUILD_SHARED_LIBS=true ..
 $ cmake --build .
 ```
 
+Language    | Project
+----------  | -------
+Odin        | [thechampagne/zip-odin](https://github.com/thechampagne/zip-odin)
+
+Below there are examples in various languages without using a binding.
+
 #### [Go](https://golang.org) (cgo)
 
 ```go
