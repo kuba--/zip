@@ -277,12 +277,6 @@ $ cmake -DBUILD_SHARED_LIBS=true ..
 $ cmake --build .
 ```
 
-Language    | Project
-----------  | -------
-Odin        | [thechampagne/zip-odin](https://github.com/thechampagne/zip-odin)
-
-Below there are examples in various languages without using a binding.
-
 #### [Go](https://golang.org) (cgo)
 
 ```go
@@ -508,6 +502,7 @@ pub fn main() void {
 ```
 
 #### [Odin](https://odin-lang.org)
+> Third party binding: [thechampagne/zip-odin](https://github.com/thechampagne/zip-odin)
 
 ```odin
 package main
