@@ -535,6 +535,28 @@ main :: proc() {
 }
 ```
 
+#### [Nim](https://nim-lang.org)
+> Third party binding: [thechampagne/nimzip](https://github.com/thechampagne/nimzip)
+
+```nim
+proc zip_open*(zipname: cstring, level: cint, mode: char): pointer {.importc.}
+proc zip_close*(zip: pointer) {.importc.}
+proc zip_entry_open*(zip: pointer, entryname: cstring): cint {.importc.}
+proc zip_entry_close*(zip: pointer): cint {.importc.}
+proc zip_entry_write*(zip: pointer, buf: pointer, bufsize: csize_t): cint {.importc.}
+
+when isMainModule:
+  var zip = zip_open("/tmp/nim.zip", 6, 'w')
+      
+  discard zip_entry_open(zip, "test")
+      
+  let content: cstring = "test content"
+  discard zip_entry_write(zip, content, csize_t(len(content)))
+
+  discard zip_entry_close(zip)
+  zip_close(zip)
+```
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
