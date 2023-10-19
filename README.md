@@ -539,11 +539,11 @@ main :: proc() {
 > Third party binding: [thechampagne/nimzip](https://github.com/thechampagne/nimzip)
 
 ```nim
-proc zip_open*(zipname: cstring, level: cint, mode: char): pointer {.importc.}
-proc zip_close*(zip: pointer) {.importc.}
-proc zip_entry_open*(zip: pointer, entryname: cstring): cint {.importc.}
-proc zip_entry_close*(zip: pointer): cint {.importc.}
-proc zip_entry_write*(zip: pointer, buf: pointer, bufsize: csize_t): cint {.importc.}
+proc zip_open(zipname: cstring, level: cint, mode: char): pointer {.importc.}
+proc zip_close(zip: pointer) {.importc.}
+proc zip_entry_open(zip: pointer, entryname: cstring): cint {.importc.}
+proc zip_entry_close(zip: pointer): cint {.importc.}
+proc zip_entry_write(zip: pointer, buf: pointer, bufsize: csize_t): cint {.importc.}
 
 when isMainModule:
   var zip = zip_open("/tmp/nim.zip", 6, 'w')
