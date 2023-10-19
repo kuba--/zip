@@ -538,6 +538,10 @@ main :: proc() {
 #### [Nim](https://nim-lang.org)
 > Third party binding: [thechampagne/nimzip](https://github.com/thechampagne/nimzip)
 
+```shell
+$ nim c --passL:-lzip main.nim
+```
+
 ```nim
 proc zip_open(zipname: cstring, level: cint, mode: char): pointer {.importc.}
 proc zip_close(zip: pointer) {.importc.}
