@@ -502,6 +502,7 @@ pub fn main() void {
 ```
 
 #### [Odin](https://odin-lang.org)
+> Third party binding: [thechampagne/zip-odin](https://github.com/thechampagne/zip-odin)
 
 ```odin
 package main
