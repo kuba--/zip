@@ -278,7 +278,7 @@ $ cmake --build .
 ```
 
 #### [Go](https://golang.org) (cgo)
-> Third party binding: [c-go-zip](https://github.com/kuba--/c-go-zip)
+> Third party binding: [kuba--/c-go-zip](https://github.com/kuba--/c-go-zip)
 
 ```go
 package main
