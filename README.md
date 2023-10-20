@@ -565,6 +565,10 @@ when isMainModule:
 #### [D](https://dlang.org)
 > Third party binding: [thechampagne/zip-d](https://github.com/thechampagne/zip-d)
 
+```shell
+$ dmd -L-lzip main.d
+```
+
 ```d
 extern(C) void* zip_open(const(char)* zipname, int level, char mode);
 extern(C) void zip_close(void* zip);
