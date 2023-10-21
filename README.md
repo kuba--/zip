@@ -589,6 +589,39 @@ void main()
 }
 ```
 
+#### [Pascal](https://en.wikipedia.org/wiki/Pascal_(programming_language))
+> Third party binding: [thechampagne/zip-pascal](https://github.com/thechampagne/zip-pascal)
+
+```pas
+program main;
+
+{$linklib c}
+{$linklib zip}
+
+uses ctypes;
+
+function zip_open(zipname:Pchar; level:longint; mode:char):pointer;cdecl;external;
+procedure zip_close(zip:pointer);cdecl;external;
+function zip_entry_open(zip:pointer; entryname:Pchar):longint;cdecl;external;
+function zip_entry_close(zip:pointer):longint;cdecl;external;
+function zip_entry_write(zip:pointer; buf:pointer; bufsize:csize_t):longint;cdecl;external;
+
+const
+   content: Pchar = 'test content'; 
+var
+   zip : pointer;
+
+begin
+   zip := zip_open('/tmp/pascal.zip', 6, 'w');
+
+   zip_entry_open(zip, 'test');
+
+   zip_entry_write(zip, content, strlen(content));
+   zip_entry_close(zip);
+   zip_close(zip);
+end.
+```
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
