@@ -666,7 +666,6 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
 
   if (next && l_size == 0) {
     memmove(pState->m_central_dir.m_p, next, r_size);
-    pState->m_central_dir.m_p = MZ_REALLOC(pState->m_central_dir.m_p, r_size);
     {
       int i;
       for (i = end; i < entry_num; i++) {
@@ -735,8 +734,7 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
     d_num += end - begin;
   }
 
-  pState->m_central_dir_offsets.m_size =
-      sizeof(mz_uint32) * (entry_num - d_num);
+  pState->m_central_dir_offsets.m_size = entry_num - d_num;
   return 0;
 }
 
