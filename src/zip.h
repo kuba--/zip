@@ -391,6 +391,16 @@ extern ZIP_EXPORT ssize_t zip_entries_delete(struct zip_t *zip,
                                              char *const entries[], size_t len);
 
 /**
+ * Deletes zip archive entries.
+ *
+ * @param zip zip archive handler.
+ * @param entries array of zip archive entries indices to be deleted.
+ * @param len the number of entries to be deleted.
+ * @return the number of deleted entries, or negative number (< 0) on error.
+ */
+extern ZIP_EXPORT ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[], size_t len);
+
+/**
  * Extracts a zip archive stream into directory.
  *
  * If on_extract is not NULL, the callback will be called after

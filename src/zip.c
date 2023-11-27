@@ -490,6 +490,62 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
   return err;
 }
 
+static ssize_t zip_entry_markbyindex(struct zip_t *zip,
+                              struct zip_entry_mark_t *entry_mark,
+                              const ssize_t n, size_t entries[],
+                              const size_t len) {
+  ssize_t i = 0;
+  ssize_t err = 0;
+  if (!zip || !entry_mark || !entries) {
+    return ZIP_ENOINIT;
+  }
+
+  mz_zip_archive_file_stat file_stat;
+  mz_uint64 d_pos = UINT64_MAX;
+  for (i = 0; i < n; ++i) {
+    if ((err = zip_entry_openbyindex(zip, i))) {
+      return (ssize_t)err;
+    }
+
+    mz_bool matches = MZ_FALSE;
+    {
+      size_t j;
+      for (j = 0; j < len; ++j) {
+        if ((size_t)i ==  entries[j]) {
+          matches = MZ_TRUE;
+          break;
+        }
+      }
+    }
+    if (matches) {
+      entry_mark[i].type = MZ_DELETE;
+    } else {
+      entry_mark[i].type = MZ_KEEP;
+    }
+
+    if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
+      return ZIP_ENOENT;
+    }
+
+    zip_entry_close(zip);
+
+    entry_mark[i].m_local_header_ofs = file_stat.m_local_header_ofs;
+    entry_mark[i].file_index = (ssize_t)-1;
+    entry_mark[i].lf_length = 0;
+    if ((entry_mark[i].type) == MZ_DELETE &&
+        (d_pos > entry_mark[i].m_local_header_ofs)) {
+      d_pos = entry_mark[i].m_local_header_ofs;
+    }
+  }
+
+  for (i = 0; i < n; ++i) {
+    if ((entry_mark[i].m_local_header_ofs > d_pos) &&
+        (entry_mark[i].type != MZ_DELETE)) {
+      entry_mark[i].type = MZ_MOVE;
+    }
+  }
+  return err;
+}
 static ssize_t zip_index_next(mz_uint64 *local_header_ofs_array,
                               ssize_t cur_index) {
   ssize_t new_index = 0, i;
@@ -575,6 +631,20 @@ static ssize_t zip_entry_set(struct zip_t *zip,
   ssize_t err = 0;
 
   if ((err = zip_entry_mark(zip, entry_mark, n, entries, len)) < 0) {
+    return err;
+  }
+  if ((err = zip_entry_finalize(zip, entry_mark, n)) < 0) {
+    return err;
+  }
+  return 0;
+}
+
+static ssize_t zip_entry_setbyindex(struct zip_t *zip,
+                             struct zip_entry_mark_t *entry_mark, ssize_t n,
+                             size_t entries[], const size_t len) {
+  ssize_t err = 0;
+
+  if ((err = zip_entry_markbyindex(zip, entry_mark, n, entries, len)) < 0) {
     return err;
   }
   if ((err = zip_entry_finalize(zip, entry_mark, n)) < 0) {
@@ -1623,6 +1693,41 @@ ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
   zip->archive.m_zip_mode = MZ_ZIP_MODE_READING;
 
   err = zip_entry_set(zip, entry_mark, n, entries, len);
+  if (err < 0) {
+    CLEANUP(entry_mark);
+    return err;
+  }
+
+  err = zip_entries_delete_mark(zip, entry_mark, (int)n);
+  CLEANUP(entry_mark);
+  return err;
+}
+
+ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[], size_t len)
+{
+  ssize_t n = 0;
+  ssize_t err = 0;
+  struct zip_entry_mark_t *entry_mark = NULL;
+
+  if (zip == NULL || (entries == NULL && len != 0)) {
+    return ZIP_ENOINIT;
+  }
+
+  if (entries == NULL && len == 0) {
+    return 0;
+  }
+
+  n = zip_entries_total(zip);
+
+  entry_mark = (struct zip_entry_mark_t *)calloc(
+      (size_t)n, sizeof(struct zip_entry_mark_t));
+  if (!entry_mark) {
+    return ZIP_EOOMEM;
+  }
+
+  zip->archive.m_zip_mode = MZ_ZIP_MODE_READING;
+
+  err = zip_entry_setbyindex(zip, entry_mark, n, entries, len);
   if (err < 0) {
     CLEANUP(entry_mark);
     return err;
