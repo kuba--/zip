@@ -258,10 +258,14 @@ void zip_walk(struct zip_t *zip, const char *path) {
 
 ```c
 char *entries[] = {"unused.txt", "remove.ini", "delete.me"};
+// size_t indices[] = {0, 1, 2};
 
 struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 {
     zip_entries_delete(zip, entries, 3);
+
+    // you can also delete by index, instead of by name
+    // zip_entries_deletebyindex(zip, indices, 3);
 }
 zip_close(zip);
 ```
@@ -552,9 +556,9 @@ proc zip_entry_write(zip: pointer, buf: pointer, bufsize: csize_t): cint {.impor
 
 when isMainModule:
   var zip = zip_open("/tmp/nim.zip", 6, 'w')
-      
+
   discard zip_entry_open(zip, "test")
-      
+
   let content: cstring = "test content"
   discard zip_entry_write(zip, content, csize_t(len(content)))
 
@@ -607,7 +611,7 @@ function zip_entry_close(zip:pointer):longint;cdecl;external;
 function zip_entry_write(zip:pointer; buf:pointer; bufsize:csize_t):longint;cdecl;external;
 
 const
-   content: Pchar = 'test content'; 
+   content: Pchar = 'test content';
 var
    zip : pointer;
 
