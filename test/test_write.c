@@ -5,6 +5,14 @@
 
 #include "minunit.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define MKTEMP _mktemp
+#define UNLINK _unlink
+#else
+#define MKTEMP mkstemp
+#define UNLINK unlink
+#endif
+
 static char ZIPNAME[L_tmpnam + 1] = {0};
 static char WFILE[L_tmpnam + 1] = {0};
 
@@ -12,13 +20,13 @@ void test_setup(void) {
   strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
   strncpy(WFILE, "w-XXXXXX\0", L_tmpnam);
 
-  mktemp(ZIPNAME);
-  mktemp(WFILE);
+  MKTEMP(ZIPNAME);
+  MKTEMP(WFILE);
 }
 
 void test_teardown(void) {
-  remove(WFILE);
-  remove(ZIPNAME);
+  UNLINK(WFILE);
+  UNLINK(ZIPNAME);
 }
 
 #define CRC32DATA1 2220805626
@@ -31,6 +39,24 @@ MU_TEST(test_write) {
   mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
   mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_index(zip));
+  mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
+  mu_check(CRC32DATA1 == zip_entry_crc32(zip));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(1, zip_is64(zip));
+
+  zip_close(zip);
+}
+
+MU_TEST(test_write_utf) {
+  struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "тест/Если-б-не-было-войны.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(
+      0, strcmp(zip_entry_name(zip), "тест/Если-б-не-было-войны.txt"));
   mu_assert_int_eq(0, zip_entry_index(zip));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
@@ -71,6 +97,7 @@ MU_TEST_SUITE(test_write_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_write);
+  MU_RUN_TEST(test_write_utf);
   MU_RUN_TEST(test_fwrite);
 }
 

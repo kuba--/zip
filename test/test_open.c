@@ -5,11 +5,17 @@
 
 #include "minunit.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define MKTEMP _mktemp
+#else
+#define MKTEMP mkstemp
+#endif
+
 static char ZIPNAME[L_tmpnam + 1] = {0};
 
 void test_setup(void) {
   strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
-  mktemp(ZIPNAME);
+  MKTEMP(ZIPNAME);
 }
 
 void test_teardown(void) { remove(ZIPNAME); }

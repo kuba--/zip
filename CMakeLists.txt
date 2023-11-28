@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(zip
   LANGUAGES C
-  VERSION "0.2.3")
+  VERSION "0.3.0")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 

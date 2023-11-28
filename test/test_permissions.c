@@ -6,6 +6,14 @@
 
 #include "minunit.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define MKTEMP _mktemp
+#define UNLINK _unlink
+#else
+#define MKTEMP mkstemp
+#define UNLINK unlink
+#endif
+
 static char ZIPNAME[L_tmpnam + 1] = {0};
 static char XFILE[L_tmpnam + 1] = {0};
 static char RFILE[L_tmpnam + 1] = {0};
@@ -17,17 +25,17 @@ void test_setup(void) {
   strncpy(RFILE, "r-XXXXXX\0", L_tmpnam);
   strncpy(WFILE, "w-XXXXXX\0", L_tmpnam);
 
-  mktemp(ZIPNAME);
-  mktemp(XFILE);
-  mktemp(RFILE);
-  mktemp(WFILE);
+  MKTEMP(ZIPNAME);
+  MKTEMP(XFILE);
+  MKTEMP(RFILE);
+  MKTEMP(WFILE);
 }
 
 void test_teardown(void) {
-  remove(WFILE);
-  remove(RFILE);
-  remove(XFILE);
-  remove(ZIPNAME);
+  UNLINK(WFILE);
+  UNLINK(RFILE);
+  UNLINK(XFILE);
+  UNLINK(ZIPNAME);
 }
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -41,7 +49,7 @@ void test_teardown(void) {
 #define XMODE 0100777
 #define RMODE 0100444
 #define WMODE 0100666
-#define UNIXMODE 0100644
+#define UNIXMODE 0100600
 
 MU_TEST(test_exe_permissions) {
   struct MZ_FILE_STAT_STRUCT file_stats;
