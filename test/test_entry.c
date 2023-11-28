@@ -272,7 +272,6 @@ MU_TEST(test_entries_deletebyindex) {
   zip_close(zip);
 }
 
-
 MU_TEST(test_entries_deleteinvalid) {
   size_t entries[] = {111, 222, 333, 444};
 
