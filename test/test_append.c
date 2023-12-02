@@ -5,6 +5,14 @@
 
 #include "minunit.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#define MKTEMP _mktemp
+#define UNLINK _unlink
+#else
+#define MKTEMP mkstemp
+#define UNLINK unlink
+#endif
+
 static char ZIPNAME[L_tmpnam + 1] = {0};
 static int total_entries = 0;
 
@@ -12,7 +20,7 @@ static int total_entries = 0;
 
 void test_setup(void) {
   strncpy(ZIPNAME, "z-XXXXXX\0", L_tmpnam);
-  mktemp(ZIPNAME);
+  MKTEMP(ZIPNAME);
 
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 
@@ -24,7 +32,7 @@ void test_setup(void) {
   zip_close(zip);
 }
 
-void test_teardown(void) { remove(ZIPNAME); }
+void test_teardown(void) { UNLINK(ZIPNAME); }
 
 #define TESTDATA2 "Some test data 2...\0"
 #define CRC32DATA2 2532008468
