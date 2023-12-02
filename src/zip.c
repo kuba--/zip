@@ -491,9 +491,9 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
 }
 
 static ssize_t zip_entry_markbyindex(struct zip_t *zip,
-                              struct zip_entry_mark_t *entry_mark,
-                              const ssize_t n, size_t entries[],
-                              const size_t len) {
+                                     struct zip_entry_mark_t *entry_mark,
+                                     const ssize_t n, size_t entries[],
+                                     const size_t len) {
   ssize_t i = 0;
   ssize_t err = 0;
   if (!zip || !entry_mark || !entries) {
@@ -511,7 +511,7 @@ static ssize_t zip_entry_markbyindex(struct zip_t *zip,
     {
       size_t j;
       for (j = 0; j < len; ++j) {
-        if ((size_t)i ==  entries[j]) {
+        if ((size_t)i == entries[j]) {
           matches = MZ_TRUE;
           break;
         }
@@ -640,8 +640,9 @@ static ssize_t zip_entry_set(struct zip_t *zip,
 }
 
 static ssize_t zip_entry_setbyindex(struct zip_t *zip,
-                             struct zip_entry_mark_t *entry_mark, ssize_t n,
-                             size_t entries[], const size_t len) {
+                                    struct zip_entry_mark_t *entry_mark,
+                                    ssize_t n, size_t entries[],
+                                    const size_t len) {
   ssize_t err = 0;
 
   if ((err = zip_entry_markbyindex(zip, entry_mark, n, entries, len)) < 0) {
@@ -1703,8 +1704,8 @@ ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
   return err;
 }
 
-ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[], size_t len)
-{
+ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[],
+                                  size_t len) {
   ssize_t n = 0;
   ssize_t err = 0;
   struct zip_entry_mark_t *entry_mark = NULL;
