@@ -284,6 +284,25 @@ extern ZIP_EXPORT unsigned long long zip_entry_comp_size(struct zip_t *zip);
 extern ZIP_EXPORT unsigned int zip_entry_crc32(struct zip_t *zip);
 
 /**
+ * Returns byte offset of the current zip entry
+ * in the archive's central directory.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the offset in bytes.
+ */
+extern ZIP_EXPORT unsigned long long zip_entry_dir_offset(struct zip_t *zip);
+
+/**
+ * Returns the current zip entry's local header file offset in bytes.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the entry's local header file offset in bytes.
+ */
+extern ZIP_EXPORT unsigned long long zip_entry_header_offset(struct zip_t *zip);
+
+/**
  * Compresses an input buffer for the current zip entry.
  *
  * @param zip zip archive handler.

@@ -13,6 +13,10 @@
 #define UNLINK unlink
 #endif
 
+#define MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE                                  \
+  (sizeof(unsigned short) * 2 + sizeof(unsigned long long) * 3)
+#define MZ_ZIP_LOCAL_DIR_HEADER_SIZE 30
+
 static char ZIPNAME[L_tmpnam + 1] = {0};
 
 #define CRC32DATA1 2220805626
@@ -160,8 +164,10 @@ MU_TEST(test_entry_openbyindex) {
 
   mu_assert_int_eq(0, zip_entry_openbyindex(zip, 1));
   mu_assert_int_eq(1, zip_entry_index(zip));
+
   mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
   mu_check(CRC32DATA2 == zip_entry_crc32(zip));
+
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-2.txt"));
   mu_assert_int_eq(0, zip_entry_close(zip));
 
@@ -169,6 +175,7 @@ MU_TEST(test_entry_openbyindex) {
   mu_assert_int_eq(0, zip_entry_index(zip));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
+
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
   mu_assert_int_eq(0, zip_entry_close(zip));
 
@@ -380,6 +387,31 @@ MU_TEST(test_entries_delete) {
   zip_close(zip);
 }
 
+MU_TEST(test_entry_offset) {
+  struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+  mu_check(zip != NULL);
+
+  unsigned long long off = 0ULL;
+  int i = 0, n = zip_entries_total(zip);
+  for (; i < n; i++) {
+    mu_assert_int_eq(0, zip_entry_openbyindex(zip, i));
+    mu_assert_int_eq(i, zip_entry_index(zip));
+
+    mu_assert_int_eq(off, zip_entry_header_offset(zip));
+
+    off = zip_entry_header_offset(zip) + MZ_ZIP_LOCAL_DIR_HEADER_SIZE +
+          strlen(zip_entry_name(zip)) + MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE +
+          zip_entry_comp_size(zip);
+    fprintf(stdout, "\n[%d: %s]: header: %llu, dir: %llu, size: %llu (%llu)\n",
+            i, zip_entry_name(zip), zip_entry_header_offset(zip),
+            zip_entry_dir_offset(zip), zip_entry_comp_size(zip), off);
+
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -391,6 +423,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete);
+  MU_RUN_TEST(test_entry_offset);
 }
 
 #define UNUSED(x) (void)x
