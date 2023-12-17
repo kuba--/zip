@@ -87,7 +87,7 @@ struct zip_entry_t {
   mz_uint64 uncomp_size;
   mz_uint64 comp_size;
   mz_uint32 uncomp_crc32;
-  mz_uint64 offset;
+  mz_uint64 dir_offset;
   mz_uint8 header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
   mz_uint64 header_offset;
   mz_uint16 method;
@@ -1072,7 +1072,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     zip->entry.comp_size = stats.m_comp_size;
     zip->entry.uncomp_size = stats.m_uncomp_size;
     zip->entry.uncomp_crc32 = stats.m_crc32;
-    zip->entry.offset = stats.m_central_dir_ofs;
+    zip->entry.dir_offset = stats.m_central_dir_ofs;
     zip->entry.header_offset = stats.m_local_header_ofs;
     zip->entry.method = stats.m_method;
     zip->entry.external_attr = stats.m_external_attr;
@@ -1089,7 +1089,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   zip->entry.comp_size = 0;
   zip->entry.uncomp_size = 0;
   zip->entry.uncomp_crc32 = MZ_CRC32_INIT;
-  zip->entry.offset = zip->archive.m_archive_size;
+  zip->entry.dir_offset = zip->archive.m_archive_size;
   zip->entry.header_offset = zip->archive.m_archive_size;
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
   zip->entry.method = level ? MZ_DEFLATED : 0;
@@ -1116,7 +1116,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     goto cleanup;
   }
 
-  if (!mz_zip_writer_write_zeros(pzip, zip->entry.offset,
+  if (!mz_zip_writer_write_zeros(pzip, zip->entry.dir_offset,
                                  num_alignment_padding_bytes)) {
     // Cannot memset zip entry header
     err = ZIP_EMEMSET;
@@ -1146,7 +1146,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     goto cleanup;
   }
 
-  zip->entry.header_offset = zip->entry.offset + num_alignment_padding_bytes;
+  zip->entry.header_offset =
+      zip->entry.dir_offset + num_alignment_padding_bytes;
 
   if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.header_offset,
                      zip->entry.header,
@@ -1160,28 +1161,29 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     MZ_ASSERT(
         (zip->entry.header_offset & (pzip->m_file_offset_alignment - 1)) == 0);
   }
-  zip->entry.offset += num_alignment_padding_bytes + sizeof(zip->entry.header);
+  zip->entry.dir_offset +=
+      num_alignment_padding_bytes + sizeof(zip->entry.header);
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, zip->entry.name,
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, zip->entry.name,
                      entrylen) != entrylen) {
     // Cannot write data to zip entry
     err = ZIP_EWRTENT;
     goto cleanup;
   }
 
-  zip->entry.offset += entrylen;
+  zip->entry.dir_offset += entrylen;
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, extra_data,
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, extra_data,
                      extra_size) != extra_size) {
     // Cannot write ZIP64 data to zip entry
     err = ZIP_EWRTENT;
     goto cleanup;
   }
-  zip->entry.offset += extra_size;
+  zip->entry.dir_offset += extra_size;
 
   if (level) {
     zip->entry.state.m_pZip = pzip;
-    zip->entry.state.m_cur_archive_file_ofs = zip->entry.offset;
+    zip->entry.state.m_cur_archive_file_ofs = zip->entry.dir_offset;
     zip->entry.state.m_comp_size = 0;
 
     if (tdefl_init(&(zip->entry.comp), mz_zip_writer_add_put_buf_callback,
@@ -1277,7 +1279,7 @@ int zip_entry_openbyindex(struct zip_t *zip, size_t index) {
   zip->entry.comp_size = stats.m_comp_size;
   zip->entry.uncomp_size = stats.m_uncomp_size;
   zip->entry.uncomp_crc32 = stats.m_crc32;
-  zip->entry.offset = stats.m_central_dir_ofs;
+  zip->entry.dir_offset = stats.m_central_dir_ofs;
   zip->entry.header_offset = stats.m_local_header_ofs;
   zip->entry.method = stats.m_method;
   zip->entry.external_attr = stats.m_external_attr;
@@ -1321,7 +1323,7 @@ int zip_entry_close(struct zip_t *zip) {
       goto cleanup;
     }
     zip->entry.comp_size = zip->entry.state.m_comp_size;
-    zip->entry.offset = zip->entry.state.m_cur_archive_file_ofs;
+    zip->entry.dir_offset = zip->entry.state.m_cur_archive_file_ofs;
     zip->entry.method = MZ_DEFLATED;
   }
 
@@ -1335,13 +1337,14 @@ int zip_entry_close(struct zip_t *zip) {
   MZ_WRITE_LE64(local_dir_footer + 8, zip->entry.comp_size);
   MZ_WRITE_LE64(local_dir_footer + 16, zip->entry.uncomp_size);
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, local_dir_footer,
+  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset,
+                     local_dir_footer,
                      local_dir_footer_size) != local_dir_footer_size) {
     // Cannot write zip entry header
     err = ZIP_EWRTHDR;
     goto cleanup;
   }
-  zip->entry.offset += local_dir_footer_size;
+  zip->entry.dir_offset += local_dir_footer_size;
 
   pExtra_data = extra_data;
   extra_size = mz_zip_writer_create_zip64_extra_data(
@@ -1372,7 +1375,7 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   pzip->m_total_files++;
-  pzip->m_archive_size = zip->entry.offset;
+  pzip->m_archive_size = zip->entry.dir_offset;
 
 cleanup:
   if (zip) {
@@ -1431,6 +1434,14 @@ unsigned int zip_entry_crc32(struct zip_t *zip) {
   return zip ? zip->entry.uncomp_crc32 : 0;
 }
 
+unsigned long long zip_entry_dir_offset(struct zip_t *zip) {
+  return zip ? zip->entry.dir_offset : 0;
+}
+
+unsigned long long zip_entry_header_offset(struct zip_t *zip) {
+  return zip ? zip->entry.header_offset : 0;
+}
+
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
   mz_uint level;
   mz_zip_archive *pzip = NULL;
@@ -1449,12 +1460,12 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
 
     level = zip->level & 0xF;
     if (!level) {
-      if ((pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.offset, buf,
+      if ((pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, buf,
                           bufsize) != bufsize)) {
         // Cannot write buffer
         return ZIP_EWRTENT;
       }
-      zip->entry.offset += bufsize;
+      zip->entry.dir_offset += bufsize;
       zip->entry.comp_size += bufsize;
     } else {
       status = tdefl_compress_buffer(&(zip->entry.comp), buf, bufsize,
