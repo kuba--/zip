@@ -325,7 +325,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #if defined(_MSC_VER)
   strcpy_s(path, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, dir);
 #else
-  strcpy(path, dir);
+  strncpy(path, dir, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
 #endif
 
   if (!ISSLASH(path[dirlen - 1])) {
