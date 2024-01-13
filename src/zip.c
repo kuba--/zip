@@ -654,6 +654,34 @@ static ssize_t zip_entry_setbyindex(struct zip_t *zip,
   return 0;
 }
 
+static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to, const mz_uint64 from, const size_t length) {
+  uint8_t *dst = NULL, *src = NULL, *end = NULL;
+
+  if(!pBuf) {
+    return ZIP_EINVIDX;
+  }
+
+  end = (uint8_t *)pBuf + bufSize;
+
+  if(to > bufSize) {
+    return ZIP_EINVIDX;
+  }
+
+  if(from > bufSize) {
+    return ZIP_EINVIDX;
+  }
+
+  dst = (uint8_t *)pBuf + to;
+  src = (uint8_t *)pBuf + from;
+
+  if(((dst + length) > end) || ((src + length) > end)) {
+    return ZIP_EINVIDX;
+  }
+
+  memmove(dst, src, length);
+  return length;
+}
+
 static ssize_t zip_file_move(MZ_FILE *m_pFile, const mz_uint64 to,
                              const mz_uint64 from, const size_t length,
                              mz_uint8 *move_buf, const size_t capacity_size) {
@@ -675,10 +703,12 @@ static ssize_t zip_file_move(MZ_FILE *m_pFile, const mz_uint64 to,
   return (ssize_t)length;
 }
 
-static ssize_t zip_files_move(MZ_FILE *m_pFile, mz_uint64 writen_num,
+static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
                               mz_uint64 read_num, size_t length) {
   ssize_t n = 0;
   const size_t page_size = 1 << 12; // 4K
+  mz_zip_internal_state *pState = zip->archive.m_pState;
+
   mz_uint8 *move_buf = (mz_uint8 *)calloc(1, page_size);
   if (!move_buf) {
     return ZIP_EOOMEM;
@@ -688,8 +718,16 @@ static ssize_t zip_files_move(MZ_FILE *m_pFile, mz_uint64 writen_num,
   ssize_t move_count = 0;
   while ((mz_int64)length > 0) {
     move_count = (length >= page_size) ? page_size : length;
-    n = zip_file_move(m_pFile, writen_num, read_num, move_count, move_buf,
+
+    if(pState->m_pFile) {
+      n = zip_file_move(pState->m_pFile, writen_num, read_num, move_count, move_buf,
                       page_size);
+    } else if(pState->m_pMem) {
+      n = zip_mem_move(pState->m_pMem, pState->m_mem_size, writen_num, read_num, move_count);
+    } else {
+      return ZIP_ENOFILE;
+    }
+
     if (n < 0) {
       moved_length = n;
       goto cleanup;
@@ -831,9 +869,11 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   mz_zip_internal_state *pState = zip->archive.m_pState;
   zip->archive.m_zip_mode = MZ_ZIP_MODE_WRITING;
 
-  if ((!pState->m_pFile) || MZ_FSEEK64(pState->m_pFile, 0, SEEK_SET)) {
-    CLEANUP(deleted_entry_flag_array);
-    return ZIP_ENOENT;
+  if(pState->m_pFile) {
+    if (MZ_FSEEK64(pState->m_pFile, 0, SEEK_SET)) {
+      CLEANUP(deleted_entry_flag_array);
+      return ZIP_ENOENT;
+    }
   }
 
   while (i < entry_num) {
@@ -866,7 +906,7 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
       i++;
     }
 
-    n = zip_files_move(pState->m_pFile, writen_num, read_num, move_length);
+    n = zip_files_move(zip, writen_num, read_num, move_length);
     if (n != (ssize_t)move_length) {
       CLEANUP(deleted_entry_flag_array);
       return n;
