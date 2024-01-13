@@ -655,13 +655,13 @@ static ssize_t zip_entry_setbyindex(struct zip_t *zip,
 }
 
 static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to, const mz_uint64 from, const size_t length) {
-  void *dst = NULL, *src = NULL, *end = NULL;
+  uint8_t *dst = NULL, *src = NULL, *end = NULL;
 
   if(!pBuf) {
     return ZIP_EINVIDX;
   }
 
-  end = pBuf + bufSize;
+  end = (uint8_t *)pBuf + bufSize;
 
   if(to > bufSize) {
     return ZIP_EINVIDX;
@@ -671,8 +671,8 @@ static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to, cons
     return ZIP_EINVIDX;
   }
 
-  dst = pBuf + to;
-  src = pBuf + from;
+  dst = (uint8_t *)pBuf + to;
+  src = (uint8_t *)pBuf + from;
 
   if(((dst + length) > end) || ((src + length) > end)) {
     return ZIP_EINVIDX;
