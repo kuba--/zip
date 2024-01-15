@@ -410,7 +410,7 @@ MU_TEST(test_entries_delete_stream) {
   zdata = (uint8_t *)malloc(zsize);
   mu_check(zdata != NULL);
 
-  rc = fread(zdata, zsize, 1, fh);
+  rc = fread(zdata, sizeof(uint8_t), zsize, fh);
   mu_check(rc >= 1);
 
   fclose(fh);
@@ -424,8 +424,11 @@ MU_TEST(test_entries_delete_stream) {
   zip_stream_copy(zip, (void **)&modified_zdata, &zsize);
   mu_check(modified_zdata != NULL);
 
-  zip_stream_close(zip);
   free(zdata);
+  zdata = NULL;
+
+  // Note that zip_stream_close will free the zdata passed in zip_stream_open
+  zip_stream_close(zip);
   zdata = NULL;
 
   zip = zip_stream_open(modified_zdata, zsize, 0, 'r');
