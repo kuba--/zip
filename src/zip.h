@@ -95,6 +95,7 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_ERINIT -30      // cannot initialize reader
 #define ZIP_EWINIT -31      // cannot initialize writer
 #define ZIP_EWRINIT -32     // cannot initialize writer from reader
+#define ZIP_EINVZIPMEM -33  // invalid in-memory zip archive
 
 /**
  * Looks up the error message string corresponding to an error number.
@@ -143,6 +144,20 @@ extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level,
  */
 extern ZIP_EXPORT struct zip_t *
 zip_openwitherror(const char *zipname, int level, char mode, int *errnum);
+
+/**
+ * Opens in-memory zip archive with compression level in read-only mode.
+ * The function additionally returns @param errnum -
+ *
+ * @param data pointer to zip archive raw data
+ * @param size size of zip archive
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param errnum 0 on success, negative number (< 0) on error.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *
+zip_openwitherror_mem(const void *data, size_t size, int level, int *errnum);
 
 /**
  * Closes the zip archive, releases resources - always finalize.
