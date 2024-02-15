@@ -203,6 +203,12 @@ zip_stream_close(zip);
 free(buf);
 ```
 
+* Extract an in-memory zip archive to a directory.
+
+```c
+int ziperr = zip_stream_extract(zipstream, zipstreamsize, outdir, NULL, NULL);
+```
+
 * List of all zip entries
 
 ```c
