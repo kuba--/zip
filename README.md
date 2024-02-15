@@ -68,8 +68,13 @@ int on_extract_entry(const char *filename, void *arg) {
     return 0;
 }
 
+// From "foo.zip" on disk
 int arg = 2;
 zip_extract("foo.zip", "/tmp", on_extract_entry, &arg);
+
+// Or from memory
+arg = 2;
+zip_stream_extract(zipstream, zipstreamsize, "/tmp", on_extract_entry, &arg);
 ```
 
 * Extract a zip entry into memory.
