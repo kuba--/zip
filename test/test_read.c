@@ -127,70 +127,11 @@ MU_TEST(test_noallocread) {
   zip_close(zip);
 }
 
-MU_TEST(test_read_mem) {
-  char *buf = NULL;
-  ssize_t bufsize;
-  size_t buftmp;
-
-  void *zip_mem = NULL;
-  size_t zip_mem_size = 0;
-  {
-    FILE *f = fopen(ZIPNAME, "rb");
-    mu_check(f != NULL);
-
-    fseek(f, 0, SEEK_END);
-    zip_mem_size = ftell(f);
-    rewind(f);
-
-    zip_mem = malloc(zip_mem_size);
-    mu_check(zip_mem != NULL);
-
-    size_t read_size = fread(zip_mem, 1, zip_mem_size, f);
-    mu_assert_int_eq(zip_mem_size, read_size);
-    fclose(f);
-  }
-
-  int errnum = 0;
-  struct zip_t *zip = zip_openwitherror_mem(zip_mem, zip_mem_size, 0, &errnum);
-  mu_check(zip != NULL);
-  mu_assert_int_eq(1, zip_is64(zip));
-
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
-  mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
-  mu_check(CRC32DATA1 == zip_entry_crc32(zip));
-  bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
-  mu_assert_int_eq(strlen(TESTDATA1), bufsize);
-  mu_assert_int_eq((size_t)bufsize, buftmp);
-  mu_assert_int_eq(0, strncmp(buf, TESTDATA1, bufsize));
-  mu_assert_int_eq(0, zip_entry_close(zip));
-  free(buf);
-  buf = NULL;
-
-  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
-  mu_assert_int_eq(strlen(TESTDATA2), zip_entry_size(zip));
-  mu_check(CRC32DATA2 == zip_entry_crc32(zip));
-  bufsize = zip_entry_read(zip, (void **)&buf, NULL);
-  mu_assert_int_eq(strlen(TESTDATA2), (size_t)bufsize);
-  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, (size_t)bufsize));
-  mu_assert_int_eq(0, zip_entry_close(zip));
-  free(buf);
-  buf = NULL;
-
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\empty/"));
-  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/empty/"));
-  mu_assert_int_eq(0, zip_entry_size(zip));
-  mu_assert_int_eq(0, zip_entry_crc32(zip));
-  mu_assert_int_eq(0, zip_entry_close(zip));
-
-  zip_close(zip);
-}
-
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_read);
   MU_RUN_TEST(test_noallocread);
-  MU_RUN_TEST(test_read_mem);
 }
 
 #define UNUSED(x) (void)x

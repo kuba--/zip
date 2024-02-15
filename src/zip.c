@@ -116,7 +116,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
-static const char *const zip_errlist[34] = {
+static const char *const zip_errlist[33] = {
     NULL,
     "not initialized\0",
     "invalid entry name\0",
@@ -150,12 +150,11 @@ static const char *const zip_errlist[34] = {
     "cannot initialize reader\0",
     "cannot initialize writer\0",
     "cannot initialize writer from reader\0",
-    "invalid in-memory zip archive\0",
 };
 
 const char *zip_strerror(int errnum) {
   errnum = -errnum;
-  if (errnum <= 0 || errnum >= 34) {
+  if (errnum <= 0 || errnum >= 33) {
     return NULL;
   }
 
@@ -1002,49 +1001,6 @@ struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
 
   default:
     *errnum = ZIP_EINVMODE;
-    goto cleanup;
-  }
-
-  return zip;
-
-cleanup:
-  CLEANUP(zip);
-  return NULL;
-}
-
-struct zip_t *zip_openwitherror_mem(const void *data, size_t size, int level,
-                                    int *errnum) {
-  struct zip_t *zip = NULL;
-  *errnum = 0;
-
-  if (!data || size == 0) {
-    // zip_t archive memory is empty
-    *errnum = ZIP_EINVZIPMEM;
-    goto cleanup;
-  }
-
-  if (level < 0)
-    level = MZ_DEFAULT_LEVEL;
-  if ((level & 0xF) > MZ_UBER_COMPRESSION) {
-    // Wrong compression level
-    *errnum = ZIP_EINVLVL;
-    goto cleanup;
-  }
-
-  zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
-  if (!zip) {
-    // out of memory
-    *errnum = ZIP_EOOMEM;
-    goto cleanup;
-  }
-
-  zip->level = (mz_uint)level;
-  if (!mz_zip_reader_init_mem(
-      &(zip->archive), data, size,
-      zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
-    // Memory does not point to valid zip archive
-    // or cannot initialize zip_archive reader
-    *errnum = ZIP_ERINIT;
     goto cleanup;
   }
 
