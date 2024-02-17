@@ -35,21 +35,6 @@ jobs:
     - name: Test
       run: cmake --build build --target test
 
-  # freebsd:
-  #   runs-on: macos-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Build and Test
-  #     uses: vmactions/freebsd-vm@v0.1.2
-  #     with:
-  #       usesh: true
-  #       prepare: pkg install -y cmake tree lang/gcc
-  #       run: |
-  #         cmake .
-  #         cmake --build .
-  #         tree -sha .
-  #         ctest -VV
-
   windows-msvc:
     runs-on: "windows-latest"
     steps:
@@ -76,4 +61,6 @@ jobs:
         cmake --build build
         tree /a /f build
     - name: Test
-      run: cmake --build build --target test
+      run: |
+        cd build
+        ctest -VV -C "Debug" --output-on-failure
