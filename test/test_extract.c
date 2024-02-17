@@ -144,11 +144,47 @@ MU_TEST(test_extract_stream) {
   fclose(fp);
 }
 
+MU_TEST(test_extract_cstream) {
+  struct buffer_t buf;
+  FILE *ZIPFILE = fopen(ZIPNAME, "r");
+
+  struct zip_t *zip = zip_cstream_open(ZIPFILE, 0, 'r');
+  mu_check(zip != NULL);
+
+  memset((void *)&buf, 0, sizeof(struct buffer_t));
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_extract(zip, on_extract, &buf));
+  mu_assert_int_eq(strlen(TESTDATA1), buf.size);
+  mu_assert_int_eq(0, strncmp(buf.data, TESTDATA1, buf.size));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  free(buf.data);
+  buf.data = NULL;
+  buf.size = 0;
+
+  memset((void *)&buf, 0, sizeof(struct buffer_t));
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "dotfiles/.test"));
+  mu_assert_int_eq(0, zip_entry_extract(zip, on_extract, &buf));
+  mu_assert_int_eq(strlen(TESTDATA2), buf.size);
+  mu_assert_int_eq(0, strncmp(buf.data, TESTDATA2, buf.size));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  free(buf.data);
+  buf.data = NULL;
+  buf.size = 0;
+  fclose(ZIPFILE);
+
+  zip_cstream_close(zip);
+}
+
 MU_TEST_SUITE(test_extract_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_extract);
   MU_RUN_TEST(test_extract_stream);
+  MU_RUN_TEST(test_extract_cstream);
 }
 
 int main(int argc, char *argv[]) {

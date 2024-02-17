@@ -49,11 +49,31 @@ MU_TEST(test_stream_openwitherror) {
   zip_stream_close(zip);
 }
 
+MU_TEST(test_cstream_openwitherror) {
+  int errnum;
+  FILE *ZIPFILE = NULL;
+
+  struct zip_t *zip = zip_cstream_openwitherror(
+      ZIPFILE, ZIP_DEFAULT_COMPRESSION_LEVEL, 'r', &errnum);
+  mu_check(zip == NULL);
+  mu_assert_int_eq(ZIP_ENOFILE, errnum);
+
+  ZIPFILE = fopen(ZIPNAME, "w");
+  zip = zip_cstream_openwitherror(ZIPFILE, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w',
+                                  &errnum);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, errnum);
+
+  zip_cstream_close(zip);
+  fclose(ZIPFILE);
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_openwitherror);
   MU_RUN_TEST(test_stream_openwitherror);
+  MU_RUN_TEST(test_cstream_openwitherror);
 }
 
 #define UNUSED(x) (void)x
