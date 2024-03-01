@@ -57,7 +57,7 @@ MU_TEST(test_read) {
   mu_check(zip != NULL);
   mu_assert_int_eq(1, zip_is64(zip));
 
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
   bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
@@ -78,7 +78,7 @@ MU_TEST(test_read) {
   free(buf);
   buf = NULL;
 
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\empty/"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/empty/"));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/empty/"));
   mu_assert_int_eq(0, zip_entry_size(zip));
   mu_assert_int_eq(0, zip_entry_crc32(zip));
