@@ -18,7 +18,6 @@
 /* Win32, DOS, MSVC, MSVS */
 #include <direct.h>
 
-#define STRCLONE(STR) ((STR) ? _strdup(STR) : NULL)
 #define HAS_DEVICE(P)                                                          \
   ((((P)[0] >= 'A' && (P)[0] <= 'Z') || ((P)[0] >= 'a' && (P)[0] <= 'z')) &&   \
    (P)[1] == ':')
@@ -27,7 +26,6 @@
 #else
 
 #include <unistd.h> // needed for symlink()
-#define STRCLONE(STR) ((STR) ? strdup(STR) : NULL)
 
 #endif
 
@@ -215,6 +213,22 @@ static int zip_mkpath(char *path) {
   return 0;
 }
 
+static char *zip_strclone(const char *str, size_t n) {
+  char c;
+  size_t i;
+  char *rpl = (char *)calloc((1 + n), sizeof(char));
+  char *begin = rpl;
+  if (!rpl) {
+    return NULL;
+  }
+
+  for (i = 0; (i < n) && (c = *str++); ++i) {
+    *rpl++ = c;
+  }
+
+  return begin;
+}
+
 static char *zip_strrpl(const char *str, size_t n, char oldchar, char newchar) {
   char c;
   size_t i;
@@ -235,6 +249,8 @@ static char *zip_strrpl(const char *str, size_t n, char oldchar, char newchar) {
 }
 
 static char *zip_name_normalize(char *name, char *const nname, size_t len) {
+  const char *const dot = ".\0";
+  const char *const dot2 = "..\0";
   size_t offn = 0;
   size_t offnn = 0, ncpy = 0;
 
@@ -247,8 +263,8 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
 
   for (; offn < len; offn++) {
     if (ISSLASH(name[offn])) {
-      if (ncpy > 0 && strcmp(&nname[offnn], ".\0") &&
-          strcmp(&nname[offnn], "..\0")) {
+      if (ncpy > 0 && strcmp(&nname[offnn], dot) &&
+          strcmp(&nname[offnn], dot2)) {
         offnn += ncpy;
         nname[offnn++] = name[offn]; // append '/'
       }
@@ -260,29 +276,11 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
   }
 
   // at the end, extra check what we've already copied
-  if (ncpy == 0 || !strcmp(&nname[offnn], ".\0") ||
-      !strcmp(&nname[offnn], "..\0")) {
+  if (ncpy == 0 || !strcmp(&nname[offnn], dot) ||
+      !strcmp(&nname[offnn], dot2)) {
     nname[offnn] = 0;
   }
   return nname;
-}
-
-static mz_bool zip_name_match(const char *name1, const char *name2) {
-  char *nname2 = NULL;
-
-#ifdef ZIP_RAW_ENTRYNAME
-  nname2 = STRCLONE(name2);
-#else
-  nname2 = zip_strrpl(name2, strlen(name2), '\\', '/');
-#endif
-
-  if (!nname2) {
-    return MZ_FALSE;
-  }
-
-  mz_bool res = (strcmp(name1, nname2) == 0) ? MZ_TRUE : MZ_FALSE;
-  CLEANUP(nname2);
-  return res;
 }
 
 static int zip_archive_truncate(mz_zip_archive *pzip) {
@@ -454,7 +452,7 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
     {
       size_t j;
       for (j = 0; j < len; ++j) {
-        if (zip_name_match(zip->entry.name, entries[j])) {
+        if (strcmp(zip->entry.name, entries[j]) == 0) {
           name_matches = MZ_TRUE;
           break;
         }
@@ -959,6 +957,7 @@ struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
   }
 
   zip->level = (mz_uint)level;
+  zip->entry.index = -1;
   switch (mode) {
   case 'w':
     // Create a new archive.
@@ -1071,33 +1070,18 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     return ZIP_EINVENTNAME;
   }
 
-  /*
-    .ZIP File Format Specification Version: 6.3.3
-
-    4.4.17.1 The name of the file, with optional relative path.
-    The path stored MUST not contain a drive or
-    device letter, or a leading slash.  All slashes
-    MUST be forward slashes '/' as opposed to
-    backwards slashes '\' for compatibility with Amiga
-    and UNIX file systems etc.  If input came from standard
-    input, there is no file name field.
-  */
   if (zip->entry.name) {
     CLEANUP(zip->entry.name);
-  }
-#ifdef ZIP_RAW_ENTRYNAME
-  zip->entry.name = STRCLONE(entryname);
-#else
-  zip->entry.name = zip_strrpl(entryname, entrylen, '\\', '/');
-#endif
-
-  if (!zip->entry.name) {
-    // Cannot parse zip entry name
-    return ZIP_EINVENTNAME;
   }
 
   pzip = &(zip->archive);
   if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
+    zip->entry.name = zip_strclone(entryname, entrylen);
+    if (!zip->entry.name) {
+      // Cannot parse zip entry name
+      return ZIP_EINVENTNAME;
+    }
+
     zip->entry.index = (ssize_t)mz_zip_reader_locate_file(
         pzip, zip->entry.name, NULL,
         case_sensitive ? MZ_ZIP_FLAG_CASE_SENSITIVE : 0);
@@ -1123,6 +1107,23 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
 #endif
 
     return 0;
+  }
+
+  /*
+    .ZIP File Format Specification Version: 6.3.3
+
+    4.4.17.1 The name of the file, with optional relative path.
+    The path stored MUST not contain a drive or
+    device letter, or a leading slash.  All slashes
+    MUST be forward slashes '/' as opposed to
+    backwards slashes '\' for compatibility with Amiga
+    and UNIX file systems etc.  If input came from standard
+    input, there is no file name field.
+  */
+  zip->entry.name = zip_strrpl(entryname, entrylen, '\\', '/');
+  if (!zip->entry.name) {
+    // Cannot parse zip entry name
+    return ZIP_EINVENTNAME;
   }
 
   level = zip->level & 0xF;
@@ -1288,26 +1289,11 @@ int zip_entry_openbyindex(struct zip_t *zip, size_t index) {
   namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
   pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
 
-  /*
-    .ZIP File Format Specification Version: 6.3.3
-
-    4.4.17.1 The name of the file, with optional relative path.
-    The path stored MUST not contain a drive or
-    device letter, or a leading slash.  All slashes
-    MUST be forward slashes '/' as opposed to
-    backwards slashes '\' for compatibility with Amiga
-    and UNIX file systems etc.  If input came from standard
-    input, there is no file name field.
-  */
   if (zip->entry.name) {
     CLEANUP(zip->entry.name);
   }
-#ifdef ZIP_RAW_ENTRYNAME
-  zip->entry.name = STRCLONE(pFilename);
-#else
-  zip->entry.name = zip_strrpl(pFilename, namelen, '\\', '/');
-#endif
 
+  zip->entry.name = zip_strclone(pFilename, namelen);
   if (!zip->entry.name) {
     // local entry name is NULL
     return ZIP_EINVENTNAME;
@@ -1397,7 +1383,7 @@ int zip_entry_close(struct zip_t *zip) {
       (zip->entry.header_offset >= MZ_UINT32_MAX) ? &zip->entry.header_offset
                                                   : NULL);
 
-  if ((entrylen) && (zip->entry.name[entrylen - 1] == '/') &&
+  if ((entrylen) && ISSLASH(zip->entry.name[entrylen - 1]) &&
       !zip->entry.uncomp_size) {
     /* Set DOS Subdirectory attribute bit. */
     zip->entry.external_attr |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
@@ -1422,6 +1408,7 @@ int zip_entry_close(struct zip_t *zip) {
 cleanup:
   if (zip) {
     zip->entry.m_time = 0;
+    zip->entry.index = -1;
     CLEANUP(zip->entry.name);
   }
   return err;
@@ -1432,7 +1419,6 @@ const char *zip_entry_name(struct zip_t *zip) {
     // zip_t handler is not initialized
     return NULL;
   }
-
   return zip->entry.name;
 }
 
@@ -1446,6 +1432,7 @@ ssize_t zip_entry_index(struct zip_t *zip) {
 }
 
 int zip_entry_isdir(struct zip_t *zip) {
+  mz_uint16 entrylen;
   if (!zip) {
     // zip_t handler is not initialized
     return ZIP_ENOINIT;
@@ -1456,8 +1443,8 @@ int zip_entry_isdir(struct zip_t *zip) {
     return ZIP_EINVIDX;
   }
 
-  return (int)mz_zip_reader_is_file_a_directory(&zip->archive,
-                                                (mz_uint)zip->entry.index);
+  entrylen = (mz_uint16)strlen(zip->entry.name);
+  return ISSLASH(zip->entry.name[entrylen - 1]);
 }
 
 unsigned long long zip_entry_size(struct zip_t *zip) {

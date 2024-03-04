@@ -99,11 +99,12 @@ MU_TEST(test_entry_name) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  mu_check(zip_entry_name(zip) == NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
+  const char *name = zip_entry_name(zip);
+  mu_check(NULL != name);
 
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
-  mu_check(NULL != zip_entry_name(zip));
-  mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
+  const char *name2 = "test/test-1.txt";
+  mu_assert_int_eq(0, strcmp(name, name2));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
   mu_assert_int_eq(0, zip_entry_index(zip));
@@ -141,7 +142,7 @@ MU_TEST(test_entry_index) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  mu_assert_int_eq(0, zip_entry_open(zip, "test\\test-1.txt"));
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
   mu_assert_int_eq(0, zip_entry_index(zip));
   mu_assert_int_eq(0, strcmp(zip_entry_name(zip), "test/test-1.txt"));
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
@@ -399,6 +400,7 @@ MU_TEST(test_entry_offset) {
 
     mu_assert_int_eq(off, zip_entry_header_offset(zip));
 
+    printf("\n'%s'\n", zip_entry_name(zip));
     off = zip_entry_header_offset(zip) + MZ_ZIP_LOCAL_DIR_HEADER_SIZE +
           strlen(zip_entry_name(zip)) + MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE +
           zip_entry_comp_size(zip);
