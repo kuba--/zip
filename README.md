@@ -631,6 +631,26 @@ begin
 end.
 ```
 
+#### [lua](https://www.lua.org/)
+> Third party binding: [gynt/luamemzip](https://github.com/gynt/luamemzip)
+
+```lua
+-- Loads the luamemzip.dll
+zip = require("luamemzip")
+
+content = "Test content"
+
+z = zip.zip_stream_open(nil, 6, 'w')
+
+zip.zip_entry_open(z, "test.content")
+zip.zip_entry_write(z, content)
+zip.zip_entry_close(z)
+
+data = zip.zip_stream_copy(z)
+
+zip.zip_close(z)
+```
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.
