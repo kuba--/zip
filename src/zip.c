@@ -248,38 +248,50 @@ static char *zip_strrpl(const char *str, size_t n, char oldchar, char newchar) {
   return begin;
 }
 
+static inline int zip_strchr_match(const char *const str, size_t len, char c) {
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    if (str[i] != c) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 static char *zip_name_normalize(char *name, char *const nname, size_t len) {
-  const char *const dot = ".\0";
-  const char *const dot2 = "..\0";
-  size_t offn = 0;
-  size_t offnn = 0, ncpy = 0;
+  size_t offn = 0, ncpy = 0;
+  char c;
 
   if (name == NULL || nname == NULL || len <= 0) {
     return NULL;
   }
   // skip trailing '/'
-  while (ISSLASH(*name))
+  while (ISSLASH(*name)) {
     name++;
+  }
 
-  for (; offn < len; offn++) {
-    if (ISSLASH(name[offn])) {
-      if (ncpy > 0 && strcmp(&nname[offnn], dot) &&
-          strcmp(&nname[offnn], dot2)) {
-        offnn += ncpy;
-        nname[offnn++] = name[offn]; // append '/'
+  while ((c = *name++)) {
+    if (ISSLASH(c)) {
+      if (ncpy > 0 && !zip_strchr_match(&nname[offn], ncpy, '.')) {
+        offn += ncpy;
+        nname[offn++] = c; // append '/'
       }
       ncpy = 0;
     } else {
-      nname[offnn + ncpy] = name[offn];
-      ncpy++;
+      nname[offn + ncpy] = c;
+      if (c) {
+        ncpy++;
+      }
     }
   }
 
-  // at the end, extra check what we've already copied
-  if (ncpy == 0 || !strcmp(&nname[offnn], dot) ||
-      !strcmp(&nname[offnn], dot2)) {
-    nname[offnn] = 0;
+  if (!zip_strchr_match(&nname[offn], ncpy, '.')) {
+    nname[offn + ncpy] = '\0';
+  } else {
+    nname[offn] = '\0';
   }
+
   return nname;
 }
 
