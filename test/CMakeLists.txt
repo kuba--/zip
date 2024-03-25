@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.14)
 find_package(Sanitizers)
 
 # tests
+set(test_static_out test_static.out)
+add_executable(${test_static_out} test_static.c)
+add_test(NAME ${test_static_out} COMMAND ${test_static_out})
+add_sanitizers(${test_static_out})
+
 set(test_write_out test_write.out)
 add_executable(${test_write_out} test_write.c)
 target_link_libraries(${test_write_out} zip)
