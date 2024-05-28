@@ -1352,6 +1352,7 @@ typedef enum {
 typedef struct {
   mz_uint64 m_archive_size;
   mz_uint64 m_central_directory_file_ofs;
+  mz_uint64 m_archive_ofs;
 
   /* We only support up to UINT32_MAX files in zip64 mode. */
   mz_uint32 m_total_files;
@@ -5614,7 +5615,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip,
                                               mz_uint flags) {
   mz_uint cdir_size = 0, cdir_entries_on_this_disk = 0, num_this_disk = 0,
           cdir_disk_index = 0;
-  mz_uint64 cdir_ofs = 0;
+  mz_uint64 cdir_ofs = 0, eocd_ofs = 0, archive_ofs = 0;
   mz_int64 cur_file_ofs = 0;
   const mz_uint8 *p;
 
@@ -5645,6 +5646,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip,
           MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE, &cur_file_ofs))
     return mz_zip_set_error(pZip, MZ_ZIP_FAILED_FINDING_CENTRAL_DIR);
 
+  eocd_ofs = cur_file_ofs;
   /* Read and verify the end of central directory record. */
   if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pBuf,
                     MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE) !=
@@ -5753,7 +5755,23 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip,
   if ((cdir_ofs + (mz_uint64)cdir_size) > pZip->m_archive_size)
     return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
 
-  pZip->m_central_directory_file_ofs = cdir_ofs;
+  if ((cdir_ofs + (mz_uint64)cdir_size) > eocd_ofs)
+    return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+
+  /* The end of central dir follows the central dir, unless the zip file has
+   * some trailing data (e.g. it is appended to an executable file). */
+  archive_ofs = eocd_ofs - (cdir_ofs + cdir_size);
+  if (pZip->m_pState->m_zip64) {
+    if (archive_ofs < MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE +
+                          MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE)
+      return mz_zip_set_error(pZip, MZ_ZIP_INVALID_HEADER_OR_CORRUPTED);
+
+    archive_ofs -= MZ_ZIP64_END_OF_CENTRAL_DIR_HEADER_SIZE +
+                   MZ_ZIP64_END_OF_CENTRAL_DIR_LOCATOR_SIZE;
+  }
+
+  pZip->m_archive_ofs = archive_ofs;
+  pZip->m_central_directory_file_ofs = archive_ofs + cdir_ofs;
 
   if (pZip->m_total_files) {
     mz_uint i, n;
@@ -5773,7 +5791,7 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip,
         return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
     }
 
-    if (pZip->m_pRead(pZip->m_pIO_opaque, cdir_ofs,
+    if (pZip->m_pRead(pZip->m_pIO_opaque, archive_ofs + cdir_ofs,
                       pZip->m_pState->m_central_dir.m_p,
                       cdir_size) != cdir_size)
       return mz_zip_set_error(pZip, MZ_ZIP_FILE_READ_FAILED);
@@ -5823,7 +5841,8 @@ static mz_bool mz_zip_reader_read_central_dir(mz_zip_archive *pZip,
               return mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
 
             if (pZip->m_pRead(pZip->m_pIO_opaque,
-                              cdir_ofs + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
+                              archive_ofs + cdir_ofs +
+                                  MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
                                   filename_size,
                               buf, ext_data_size) != ext_data_size) {
               MZ_FREE(buf);
@@ -7099,7 +7118,8 @@ mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint file_index,
   pState->out_blk_remain = 0;
 
   /* Read and parse the local directory entry. */
-  pState->cur_file_ofs = pState->file_stat.m_local_header_ofs;
+  pState->cur_file_ofs =
+      pZip->m_archive_ofs + pState->file_stat.m_local_header_ofs;
   if (pZip->m_pRead(pZip->m_pIO_opaque, pState->cur_file_ofs, pLocal_header,
                     MZ_ZIP_LOCAL_DIR_HEADER_SIZE) !=
       MZ_ZIP_LOCAL_DIR_HEADER_SIZE) {
@@ -9760,10 +9780,11 @@ mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip) {
   central_dir_size = 0;
   if (pZip->m_total_files) {
     /* Write central directory */
-    central_dir_ofs = pZip->m_archive_size;
+    central_dir_ofs = pZip->m_archive_size - pZip->m_archive_ofs;
     central_dir_size = pState->m_central_dir.m_size;
     pZip->m_central_directory_file_ofs = central_dir_ofs;
-    if (pZip->m_pWrite(pZip->m_pIO_opaque, central_dir_ofs,
+    if (pZip->m_pWrite(pZip->m_pIO_opaque,
+                       pZip->m_archive_ofs + central_dir_ofs,
                        pState->m_central_dir.m_p,
                        (size_t)central_dir_size) != central_dir_size)
       return mz_zip_set_error(pZip, MZ_ZIP_FILE_WRITE_FAILED);
@@ -9773,7 +9794,8 @@ mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip) {
 
   if (pState->m_zip64) {
     /* Write zip64 end of central directory header */
-    mz_uint64 rel_ofs_to_zip64_ecdr = pZip->m_archive_size;
+    mz_uint64 rel_ofs_to_zip64_ecdr =
+        pZip->m_archive_size - pZip->m_archive_ofs;
 
     MZ_CLEAR_ARR(hdr);
     MZ_WRITE_LE32(hdr + MZ_ZIP64_ECDH_SIG_OFS,

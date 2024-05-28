@@ -1071,7 +1071,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     return ZIP_ENOINIT;
   }
 
-  local_dir_header_ofs = zip->archive.m_archive_size;
+  local_dir_header_ofs =
+      zip->archive.m_archive_size - zip->archive.m_archive_ofs;
 
   if (!entryname) {
     return ZIP_EINVENTNAME;
@@ -1144,8 +1145,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   zip->entry.comp_size = 0;
   zip->entry.uncomp_size = 0;
   zip->entry.uncomp_crc32 = MZ_CRC32_INIT;
-  zip->entry.dir_offset = zip->archive.m_archive_size;
-  zip->entry.header_offset = zip->archive.m_archive_size;
+  zip->entry.dir_offset = zip->archive.m_archive_size - pzip->m_archive_ofs;
+  zip->entry.header_offset = zip->archive.m_archive_size - pzip->m_archive_ofs;
   memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
   zip->entry.method = level ? MZ_DEFLATED : 0;
 
@@ -1171,7 +1172,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     goto cleanup;
   }
 
-  if (!mz_zip_writer_write_zeros(pzip, zip->entry.dir_offset,
+  if (!mz_zip_writer_write_zeros(pzip,
+                                 pzip->m_archive_ofs + zip->entry.dir_offset,
                                  num_alignment_padding_bytes)) {
     // Cannot memset zip entry header
     err = ZIP_EMEMSET;
@@ -1204,7 +1206,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   zip->entry.header_offset =
       zip->entry.dir_offset + num_alignment_padding_bytes;
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.header_offset,
+  if (pzip->m_pWrite(pzip->m_pIO_opaque,
+                     pzip->m_archive_ofs + zip->entry.header_offset,
                      zip->entry.header,
                      sizeof(zip->entry.header)) != sizeof(zip->entry.header)) {
     // Cannot write zip entry header
@@ -1219,8 +1222,9 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   zip->entry.dir_offset +=
       num_alignment_padding_bytes + sizeof(zip->entry.header);
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, zip->entry.name,
-                     entrylen) != entrylen) {
+  if (pzip->m_pWrite(pzip->m_pIO_opaque,
+                     pzip->m_archive_ofs + zip->entry.dir_offset,
+                     zip->entry.name, entrylen) != entrylen) {
     // Cannot write data to zip entry
     err = ZIP_EWRTENT;
     goto cleanup;
@@ -1228,7 +1232,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
 
   zip->entry.dir_offset += entrylen;
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, extra_data,
+  if (pzip->m_pWrite(pzip->m_pIO_opaque,
+                     pzip->m_archive_ofs + zip->entry.dir_offset, extra_data,
                      extra_size) != extra_size) {
     // Cannot write ZIP64 data to zip entry
     err = ZIP_EWRTENT;
@@ -1238,7 +1243,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
 
   if (level) {
     zip->entry.state.m_pZip = pzip;
-    zip->entry.state.m_cur_archive_file_ofs = zip->entry.dir_offset;
+    zip->entry.state.m_cur_archive_file_ofs =
+        pzip->m_archive_ofs + zip->entry.dir_offset;
     zip->entry.state.m_comp_size = 0;
 
     if (tdefl_init(&(zip->entry.comp), mz_zip_writer_add_put_buf_callback,
@@ -1363,7 +1369,8 @@ int zip_entry_close(struct zip_t *zip) {
       goto cleanup;
     }
     zip->entry.comp_size = zip->entry.state.m_comp_size;
-    zip->entry.dir_offset = zip->entry.state.m_cur_archive_file_ofs;
+    zip->entry.dir_offset =
+        zip->entry.state.m_cur_archive_file_ofs - pzip->m_archive_ofs;
     zip->entry.method = MZ_DEFLATED;
   }
 
@@ -1377,9 +1384,9 @@ int zip_entry_close(struct zip_t *zip) {
   MZ_WRITE_LE64(local_dir_footer + 8, zip->entry.comp_size);
   MZ_WRITE_LE64(local_dir_footer + 16, zip->entry.uncomp_size);
 
-  if (pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset,
-                     local_dir_footer,
-                     local_dir_footer_size) != local_dir_footer_size) {
+  if (pzip->m_pWrite(
+          pzip->m_pIO_opaque, pzip->m_archive_ofs + zip->entry.dir_offset,
+          local_dir_footer, local_dir_footer_size) != local_dir_footer_size) {
     // Cannot write zip entry header
     err = ZIP_EWRTHDR;
     goto cleanup;
@@ -1415,7 +1422,7 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   pzip->m_total_files++;
-  pzip->m_archive_size = zip->entry.dir_offset;
+  pzip->m_archive_size = pzip->m_archive_ofs + zip->entry.dir_offset;
 
 cleanup:
   if (zip) {
@@ -1501,7 +1508,8 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
 
     level = zip->level & 0xF;
     if (!level) {
-      if ((pzip->m_pWrite(pzip->m_pIO_opaque, zip->entry.dir_offset, buf,
+      if ((pzip->m_pWrite(pzip->m_pIO_opaque,
+                          pzip->m_archive_ofs + zip->entry.dir_offset, buf,
                           bufsize) != bufsize)) {
         // Cannot write buffer
         return ZIP_EWRTENT;
