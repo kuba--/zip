@@ -200,7 +200,11 @@ static int zip_mkpath(char *path) {
       }
 #endif
 
-      if (mkdir(npath) == -1) {
+#if defined(WIN32)
+      if (_mkdir(npath) == -1) {
+#else
+      if (mkdir(npath, 0777) == -1) {
+#endif
         if (errno != EEXIST) {
           return ZIP_EMKDIR;
         }
@@ -413,7 +417,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
       if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
-        if (CHMOD(path, (mode_t)xattr) < 0) {
+        if (chmod(path, (mode_t)xattr) < 0) {
           err = ZIP_ENOPERM;
           goto out;
         }
@@ -1684,7 +1688,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
 
   xattr = (info.m_external_attr >> 16) & 0xFFFF;
   if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
-    if (CHMOD(filename, (mode_t)xattr) < 0) {
+    if (chmod(filename, (mode_t)xattr) < 0) {
       return ZIP_ENOPERM;
     }
   }
