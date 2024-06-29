@@ -66,6 +66,17 @@ MU_TEST(test_exe_permissions) {
 
   mu_assert_int_eq(0, MZ_FILE_STAT(XFILE, &file_stats));
   mu_assert_int_eq(XMODE, file_stats.st_mode);
+
+#ifdef UNZIP_PROGRAM
+  remove(XFILE);
+
+  char command[128];
+  sprintf(command, "%s %s", UNZIP_PROGRAM, ZIPNAME);
+  mu_assert_int_eq(0, system(command));
+
+  mu_assert_int_eq(0, MZ_FILE_STAT(XFILE, &file_stats));
+  mu_assert_int_eq(XMODE, file_stats.st_mode);
+#endif
 }
 
 MU_TEST(test_read_permissions) {

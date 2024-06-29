@@ -8367,6 +8367,7 @@ static mz_bool mz_zip_writer_create_central_dir_header(
   (void)pZip;
   memset(pDst, 0, MZ_ZIP_CENTRAL_DIR_HEADER_SIZE);
   MZ_WRITE_LE32(pDst + MZ_ZIP_CDH_SIG_OFS, MZ_ZIP_CENTRAL_DIR_HEADER_SIG);
+  MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_MADE_BY_OFS, 0x031E);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_VERSION_NEEDED_OFS, method ? 20 : 0);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_BIT_FLAG_OFS, bit_flags);
   MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_METHOD_OFS, method);
