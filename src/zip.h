@@ -170,7 +170,7 @@ extern ZIP_EXPORT int zip_is64(struct zip_t *zip);
  *
  * @return the return code - 0 if successful, negative number (< 0) on error.
  */
-extern ZIP_EXPORT int zip_get_archive_offset(struct zip_t *zip, uint64_t *offset);
+extern ZIP_EXPORT int zip_offset(struct zip_t *zip, uint64_t *offset);
 
 /**
  * Opens an entry by name in the zip archive.

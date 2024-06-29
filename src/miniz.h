@@ -1729,9 +1729,9 @@ MINIZ_EXPORT mz_bool mz_zip_writer_add_read_buf_callback(
     mz_zip_archive *pZip, const char *pArchive_name,
     mz_file_read_func read_callback, void *callback_opaque, mz_uint64 max_size,
     const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size,
-    mz_uint level_and_flags, const char *user_extra_data_local,
-    mz_uint user_extra_data_local_len, const char *user_extra_data_central,
-    mz_uint user_extra_data_central_len);
+    mz_uint level_and_flags, mz_uint32 ext_attributes,
+    const char *user_extra_data_local, mz_uint user_extra_data_local_len,
+    const char *user_extra_data_central, mz_uint user_extra_data_central_len);
 
 #ifndef MINIZ_NO_STDIO
 /* Adds the contents of a disk file to an archive. This function also records
@@ -1741,14 +1741,15 @@ MINIZ_EXPORT mz_bool mz_zip_writer_add_read_buf_callback(
  * just set to MZ_DEFAULT_COMPRESSION. */
 MINIZ_EXPORT mz_bool mz_zip_writer_add_file(
     mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename,
-    const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
+    const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
+    mz_uint32 ext_attributes);
 
 /* Like mz_zip_writer_add_file(), except the file data is read from the
  * specified FILE stream. */
 MINIZ_EXPORT mz_bool mz_zip_writer_add_cfile(
     mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file,
     mz_uint64 max_size, const MZ_TIME_T *pFile_time, const void *pComment,
-    mz_uint16 comment_size, mz_uint level_and_flags,
+    mz_uint16 comment_size, mz_uint level_and_flags, mz_uint32 ext_attributes,
     const char *user_extra_data_local, mz_uint user_extra_data_local_len,
     const char *user_extra_data_central, mz_uint user_extra_data_central_len);
 #endif
@@ -2145,10 +2146,12 @@ int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len,
   mz_stream stream;
   memset(&stream, 0, sizeof(stream));
 
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__WATCOMC__)
   /* In case mz_ulong is 64-bits (argh I hate longs). */
+#else
   if ((mz_uint64)(source_len | *pDest_len) > 0xFFFFFFFFU)
     return MZ_PARAM_ERROR;
-
+#endif
   stream.next_in = pSource;
   stream.avail_in = (mz_uint32)source_len;
   stream.next_out = pDest;
@@ -2394,10 +2397,12 @@ int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len,
   int status;
   memset(&stream, 0, sizeof(stream));
 
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__WATCOMC__)
   /* In case mz_ulong is 64-bits (argh I hate longs). */
+#else
   if ((mz_uint64)(*pSource_len | *pDest_len) > 0xFFFFFFFFU)
     return MZ_PARAM_ERROR;
-
+#endif
   stream.next_in = pSource;
   stream.avail_in = (mz_uint32)*pSource_len;
   stream.next_out = pDest;
@@ -4965,20 +4970,36 @@ static FILE *mz_fopen(const char *pFilename, const char *pMode) {
   WCHAR *wFilename = mz_utf8z_to_widechar(pFilename);
   WCHAR *wMode = mz_utf8z_to_widechar(pMode);
   FILE *pFile = NULL;
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  pFile = _wfopen(wFilename, wMode);
+#else
   errno_t err = _wfopen_s(&pFile, wFilename, wMode);
+#endif
   free(wFilename);
   free(wMode);
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  return pFile;
+#else
   return err ? NULL : pFile;
+#endif
 }
 
 static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream) {
   WCHAR *wPath = mz_utf8z_to_widechar(pPath);
   WCHAR *wMode = mz_utf8z_to_widechar(pMode);
   FILE *pFile = NULL;
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  pFile = _wfreopen(wPath, wMode, pStream);
+#else
   errno_t err = _wfreopen_s(&pFile, wPath, wMode, pStream);
+#endif
   free(wPath);
   free(wMode);
+#ifdef ZIP_ENABLE_SHARABLE_FILE_OPEN
+  return pFile;
+#else
   return err ? NULL : pFile;
+#endif
 }
 
 #if defined(__MINGW32__)
@@ -4996,6 +5017,13 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
   return res;
 }
 #endif
+
+static int mz_mkdir(const char *pDirname) {
+  WCHAR *wDirname = mz_utf8z_to_widechar(pDirname);
+  int res = _wmkdir(wDirname);
+  free(wDirname);
+  return res;
+}
 
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
@@ -5016,8 +5044,9 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mz_mkdir(d)
 
-#elif defined(__WATCOMC__)
+#elif defined(__MINGW32__) || defined(__WATCOMC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
 #endif
@@ -5032,6 +5061,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) _mkdir(d)
 
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
@@ -5048,6 +5078,11 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#if defined(_WIN32) || defined(_WIN64)
+#define MZ_MKDIR(d) _mkdir(d)
+#else
+#define MZ_MKDIR(d) mkdir(d, 0755)
+#endif
 
 #elif defined(__USE_LARGEFILE64) /* gcc, clang */
 #ifndef MINIZ_NO_TIME
@@ -5064,6 +5099,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(p, m, s) freopen64(p, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) ||                            \
     (defined(__linux__) && defined(__x86_64__))
@@ -5081,6 +5117,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(p, m, s) freopen(p, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 
 #else
 #pragma message(                                                               \
@@ -5104,8 +5141,16 @@ static int mz_stat64(const char *path, struct __stat64 *buffer) {
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
+#define MZ_MKDIR(d) mkdir(d, 0755)
 #endif /* #ifdef _MSC_VER */
 #endif /* #ifdef MINIZ_NO_STDIO */
+
+#ifndef CHMOD
+// Upon successful completion, a value of 0 is returned.
+// Otherwise, a value of -1 is returned and errno is set to indicate the error.
+// int chmod(const char *path, mode_t mode);
+#define CHMOD(f, m) chmod(f, m)
+#endif
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
@@ -8687,12 +8732,12 @@ mz_bool mz_zip_writer_add_read_buf_callback(
     mz_zip_archive *pZip, const char *pArchive_name,
     mz_file_read_func read_callback, void *callback_opaque, mz_uint64 max_size,
     const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size,
-    mz_uint level_and_flags, const char *user_extra_data,
-    mz_uint user_extra_data_len, const char *user_extra_data_central,
-    mz_uint user_extra_data_central_len) {
+    mz_uint level_and_flags, mz_uint32 ext_attributes,
+    const char *user_extra_data, mz_uint user_extra_data_len,
+    const char *user_extra_data_central, mz_uint user_extra_data_central_len) {
   mz_uint16 gen_flags;
   mz_uint uncomp_crc32 = MZ_CRC32_INIT, level, num_alignment_padding_bytes;
-  mz_uint16 method = 0, dos_time = 0, dos_date = 0, ext_attributes = 0;
+  mz_uint16 method = 0, dos_time = 0, dos_date = 0;
   mz_uint64 local_dir_header_ofs, cur_archive_file_ofs = pZip->m_archive_size,
                                   uncomp_size = 0, comp_size = 0;
   size_t archive_name_size;
@@ -9083,20 +9128,20 @@ static size_t mz_file_read_func_stdio(void *pOpaque, mz_uint64 file_ofs,
 mz_bool mz_zip_writer_add_cfile(
     mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file,
     mz_uint64 max_size, const MZ_TIME_T *pFile_time, const void *pComment,
-    mz_uint16 comment_size, mz_uint level_and_flags,
+    mz_uint16 comment_size, mz_uint level_and_flags, mz_uint32 ext_attributes,
     const char *user_extra_data, mz_uint user_extra_data_len,
     const char *user_extra_data_central, mz_uint user_extra_data_central_len) {
   return mz_zip_writer_add_read_buf_callback(
       pZip, pArchive_name, mz_file_read_func_stdio, pSrc_file, max_size,
-      pFile_time, pComment, comment_size, level_and_flags, user_extra_data,
-      user_extra_data_len, user_extra_data_central,
+      pFile_time, pComment, comment_size, level_and_flags, ext_attributes,
+      user_extra_data, user_extra_data_len, user_extra_data_central,
       user_extra_data_central_len);
 }
 
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
                                const char *pSrc_filename, const void *pComment,
-                               mz_uint16 comment_size,
-                               mz_uint level_and_flags) {
+                               mz_uint16 comment_size, mz_uint level_and_flags,
+                               mz_uint32 ext_attributes) {
   MZ_FILE *pSrc_file = NULL;
   mz_uint64 uncomp_size = 0;
   MZ_TIME_T file_modified_time;
@@ -9119,9 +9164,9 @@ mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name,
   uncomp_size = MZ_FTELL64(pSrc_file);
   MZ_FSEEK64(pSrc_file, 0, SEEK_SET);
 
-  status = mz_zip_writer_add_cfile(pZip, pArchive_name, pSrc_file, uncomp_size,
-                                   pFile_time, pComment, comment_size,
-                                   level_and_flags, NULL, 0, NULL, 0);
+  status = mz_zip_writer_add_cfile(
+      pZip, pArchive_name, pSrc_file, uncomp_size, pFile_time, pComment,
+      comment_size, level_and_flags, ext_attributes, NULL, 0, NULL, 0);
 
   MZ_FCLOSE(pSrc_file);
 

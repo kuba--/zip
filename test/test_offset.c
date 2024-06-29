@@ -60,7 +60,7 @@ MU_TEST(test_read) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  zip_get_archive_offset(zip, &archive_offset);
+  zip_offset(zip, &archive_offset);
   mu_assert_int_eq(strlen(HEADERDATA1), archive_offset);
 
   mu_assert_int_eq(2, zip_entries_total(zip));
