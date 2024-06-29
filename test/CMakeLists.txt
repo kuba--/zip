@@ -41,6 +41,19 @@ add_sanitizers(${test_entry_out})
 set(test_permissions_out test_permissions.out)
 add_executable(${test_permissions_out} test_permissions.c)
 target_link_libraries(${test_permissions_out} zip)
+if(LINUX OR UNIX)
+    find_program(UNZIP_PROGRAM unzip)
+    if(UNZIP_PROGRAM)
+        message(STATUS "Found unzip: ${UNZIP_PROGRAM}")
+        if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
+          "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
+          "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+            target_compile_definitions(${test_permissions_out}
+              PRIVATE UNZIP_PROGRAM="${UNZIP_PROGRAM}"
+            )
+        endif()
+    endif()
+endif()
 add_test(NAME ${test_permissions_out} COMMAND ${test_permissions_out})
 add_sanitizers(${test_permissions_out})
 
