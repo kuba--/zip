@@ -304,7 +304,7 @@ static int zip_archive_truncate(mz_zip_archive *pzip) {
   if (pzip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
     if (pState->m_pFile) {
       int fd = fileno(pState->m_pFile);
-      return ftruncate(fd, file_size);
+      return ftruncate(fd, pState->m_file_archive_start_ofs + file_size);
     }
   }
   return 0;
@@ -382,8 +382,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
           19)) // if zip is produced on Unix or macOS (3 and 19 from
                // section 4.4.2.2 of zip standard)
         && info.m_external_attr &
-               (0x20 << 24)) { // and has sym link attribute (0x80 is file, 0x40
-                               // is directory)
+               (0x20 << 24)) { // and has sym link attribute (0x80 is file,
+                               // 0x40 is directory)
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
 #else
@@ -597,7 +597,6 @@ static int zip_index_update(struct zip_entry_mark_t *entry_mark,
 static int zip_entry_finalize(struct zip_t *zip,
                               struct zip_entry_mark_t *entry_mark,
                               const ssize_t n) {
-
   ssize_t i = 0;
   mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if (!local_header_ofs_array) {
@@ -993,24 +992,30 @@ struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
     break;
 
   case 'a':
-  case 'd':
-    if (!mz_zip_reader_init_file_v2_rpb(
-            &(zip->archive), zipname,
-            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
-      // An archive file does not exist or cannot initialize
-      // zip_archive reader
-      *errnum = ZIP_ERINIT;
+  case 'd': {
+    MZ_FILE *fp = MZ_FOPEN(zipname, "r+b");
+    if (!fp) {
+      *errnum = ZIP_EOPNFILE;
       goto cleanup;
     }
-    if ((mode == 'a' || mode == 'd')) {
-      if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), zipname,
-                                                      0)) {
-        *errnum = ZIP_EWRINIT;
-        mz_zip_reader_end(&(zip->archive));
-        goto cleanup;
-      }
+    if (!mz_zip_reader_init_cfile(
+            &(zip->archive), fp, 0,
+            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+      // An archive file does not exist or cannot initialize zip_archive
+      // reader
+      *errnum = ZIP_ERINIT;
+      fclose(fp);
+      goto cleanup;
     }
-    break;
+    if (!mz_zip_writer_init_from_reader_v2(&(zip->archive), zipname, 0)) {
+      *errnum = ZIP_EWRINIT;
+      fclose(fp);
+      mz_zip_reader_end(&(zip->archive));
+      goto cleanup;
+    }
+    // The file pointer is now owned by the archive object.
+    zip->archive.m_zip_type = MZ_ZIP_TYPE_FILE;
+  } break;
 
   default:
     *errnum = ZIP_EINVMODE;
@@ -1053,6 +1058,16 @@ int zip_is64(struct zip_t *zip) {
   }
 
   return (int)zip->archive.m_pState->m_zip64;
+}
+
+int zip_offset(struct zip_t *zip, uint64_t *offset) {
+  if (!zip || !zip->archive.m_pState) {
+    // zip_t handler or zip state is not initialized
+    return ZIP_ENOINIT;
+  }
+
+  *offset = mz_zip_get_archive_file_start_offset(&zip->archive);
+  return 0;
 }
 
 static int _zip_entry_open(struct zip_t *zip, const char *entryname,
@@ -1952,8 +1967,7 @@ struct zip_t *zip_cstream_openwitherror(FILE *stream, int level, char mode,
       goto cleanup;
     }
     if ((mode == 'a' || mode == 'd')) {
-      if (!mz_zip_writer_init_from_reader_v2_noreopen(&(zip->archive), NULL,
-                                                      0)) {
+      if (!mz_zip_writer_init_from_reader_v2(&(zip->archive), NULL, 0)) {
         *errnum = ZIP_EWRINIT;
         mz_zip_reader_end(&(zip->archive));
         goto cleanup;
