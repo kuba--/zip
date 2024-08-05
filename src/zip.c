@@ -598,6 +598,11 @@ static int zip_entry_finalize(struct zip_t *zip,
                               struct zip_entry_mark_t *entry_mark,
                               const ssize_t n) {
   ssize_t i = 0;
+
+  if(n == 0) {
+    return 0;
+  }
+
   mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if (!local_header_ofs_array) {
     return ZIP_EOOMEM;
@@ -618,6 +623,7 @@ static int zip_entry_finalize(struct zip_t *zip,
     CLEANUP(local_header_ofs_array);
     return ZIP_EOOMEM;
   }
+
   for (i = 0; i < n - 1; i++) {
     length[i] =
         (size_t)(local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
@@ -1851,8 +1857,18 @@ struct zip_t *zip_stream_openwitherror(const char *stream, size_t size,
   }
   zip->level = (mz_uint)level;
 
-  if ((stream != NULL) && (size > 0) && (mode == 'r')) {
-    if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
+  // for modes 'd' and 'w', would be better to use mz_zip_reader_init_writer, but there's no clean
+  // way to load the existing stream with that.
+  if ((stream != NULL) && (size > 0) && (mode == 'r' || mode == 'd' || mode == 'w')) {
+    uint8_t *stream_copy = (uint8_t *)malloc(size); 
+
+    if(!stream_copy) {
+      *errnum = ZIP_EOOMEM;
+      goto cleanup;
+    }
+    memcpy(stream_copy, stream, size);
+
+    if (!mz_zip_reader_init_mem(&(zip->archive), stream_copy, size, 0)) {
       *errnum = ZIP_ERINIT;
       goto cleanup;
     }

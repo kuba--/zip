@@ -5295,6 +5295,9 @@ mz_zip_array_range_check(const mz_zip_array *pArray, mz_uint index) {
   ((element_type *)((array_ptr)->m_p))[index]
 #endif
 
+static size_t mz_zip_heap_write_func(void *pOpaque, mz_uint64 file_ofs,
+                                     const void *pBuf, size_t n);
+
 static MZ_FORCEINLINE void mz_zip_array_init(mz_zip_array *pArray,
                                              mz_uint32 element_size) {
   memset(pArray, 0, sizeof(mz_zip_array));
@@ -6062,6 +6065,14 @@ static size_t mz_zip_mem_read_func(void *pOpaque, mz_uint64 file_ofs,
   return s;
 }
 
+// Intentionally wrap the mz_zip_heap_write_func logic into a different function since
+// there is logic that frees the original buffer during stream close if the writer
+// function is equal to mz_zip_heap_write_func.
+static size_t mz_zip_mem_write_func(void *pOpaque, mz_uint64 file_ofs,
+                                     const void *pBuf, size_t n) {
+  return mz_zip_heap_write_func(pOpaque, file_ofs, pBuf, n);
+}
+
 mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem,
                                size_t size, mz_uint flags) {
   if (!pMem)
@@ -6076,6 +6087,7 @@ mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem,
   pZip->m_zip_type = MZ_ZIP_TYPE_MEMORY;
   pZip->m_archive_size = size;
   pZip->m_pRead = mz_zip_mem_read_func;
+  pZip->m_pWrite = mz_zip_mem_write_func;
   pZip->m_pIO_opaque = pZip;
   pZip->m_pNeeds_keepalive = NULL;
 
