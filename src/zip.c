@@ -445,9 +445,9 @@ static inline void zip_archive_finalize(mz_zip_archive *pzip) {
 
 static ssize_t zip_entry_mark(struct zip_t *zip,
                               struct zip_entry_mark_t *entry_mark,
-                              const ssize_t n, char *const entries[],
+                              const size_t n, char *const entries[],
                               const size_t len) {
-  ssize_t i = 0;
+  size_t i = 0;
   ssize_t err = 0;
   if (!zip || !entry_mark || !entries) {
     return ZIP_ENOINIT;
@@ -476,7 +476,7 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
       entry_mark[i].type = MZ_KEEP;
     }
 
-    if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
+    if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
       return ZIP_ENOENT;
     }
 
@@ -502,9 +502,9 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
 
 static ssize_t zip_entry_markbyindex(struct zip_t *zip,
                                      struct zip_entry_mark_t *entry_mark,
-                                     const ssize_t n, size_t entries[],
+                                     const size_t n, size_t entries[],
                                      const size_t len) {
-  ssize_t i = 0;
+  size_t i = 0;
   ssize_t err = 0;
   if (!zip || !entry_mark || !entries) {
     return ZIP_ENOINIT;
@@ -521,7 +521,7 @@ static ssize_t zip_entry_markbyindex(struct zip_t *zip,
     {
       size_t j;
       for (j = 0; j < len; ++j) {
-        if ((size_t)i == entries[j]) {
+        if (i == entries[j]) {
           matches = MZ_TRUE;
           break;
         }
@@ -533,7 +533,7 @@ static ssize_t zip_entry_markbyindex(struct zip_t *zip,
       entry_mark[i].type = MZ_KEEP;
     }
 
-    if (!mz_zip_reader_file_stat(&zip->archive, i, &file_stat)) {
+    if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
       return ZIP_ENOENT;
     }
 
@@ -596,8 +596,8 @@ static int zip_index_update(struct zip_entry_mark_t *entry_mark,
 
 static int zip_entry_finalize(struct zip_t *zip,
                               struct zip_entry_mark_t *entry_mark,
-                              const ssize_t n) {
-  ssize_t i = 0;
+                              const size_t n) {
+  size_t i = 0;
   mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if (!local_header_ofs_array) {
     return ZIP_EOOMEM;
@@ -607,7 +607,7 @@ static int zip_entry_finalize(struct zip_t *zip,
     local_header_ofs_array[i] = entry_mark[i].m_local_header_ofs;
     ssize_t index = zip_sort(local_header_ofs_array, i);
 
-    if (index != i) {
+    if ((size_t)index != i) {
       zip_index_update(entry_mark, i, index);
     }
     entry_mark[i].file_index = index;
@@ -635,7 +635,7 @@ static int zip_entry_finalize(struct zip_t *zip,
 }
 
 static ssize_t zip_entry_set(struct zip_t *zip,
-                             struct zip_entry_mark_t *entry_mark, ssize_t n,
+                             struct zip_entry_mark_t *entry_mark, size_t n,
                              char *const entries[], const size_t len) {
   ssize_t err = 0;
 
@@ -650,7 +650,7 @@ static ssize_t zip_entry_set(struct zip_t *zip,
 
 static ssize_t zip_entry_setbyindex(struct zip_t *zip,
                                     struct zip_entry_mark_t *entry_mark,
-                                    ssize_t n, size_t entries[],
+                                    size_t n, size_t entries[],
                                     const size_t len) {
   ssize_t err = 0;
 
@@ -1751,6 +1751,9 @@ ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
   }
 
   n = zip_entries_total(zip);
+  if (n < 0) {
+    return n;
+  }
 
   entry_mark = (struct zip_entry_mark_t *)calloc(
       (size_t)n, sizeof(struct zip_entry_mark_t));
@@ -1760,7 +1763,7 @@ ssize_t zip_entries_delete(struct zip_t *zip, char *const entries[],
 
   zip->archive.m_zip_mode = MZ_ZIP_MODE_READING;
 
-  err = zip_entry_set(zip, entry_mark, n, entries, len);
+  err = zip_entry_set(zip, entry_mark, (size_t)n, entries, len);
   if (err < 0) {
     CLEANUP(entry_mark);
     return err;
@@ -1786,6 +1789,9 @@ ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[],
   }
 
   n = zip_entries_total(zip);
+  if (n < 0) {
+    return n;
+  }
 
   entry_mark = (struct zip_entry_mark_t *)calloc(
       (size_t)n, sizeof(struct zip_entry_mark_t));
@@ -1795,7 +1801,7 @@ ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[],
 
   zip->archive.m_zip_mode = MZ_ZIP_MODE_READING;
 
-  err = zip_entry_setbyindex(zip, entry_mark, n, entries, len);
+  err = zip_entry_setbyindex(zip, entry_mark, (size_t)n, entries, len);
   if (err < 0) {
     CLEANUP(entry_mark);
     return err;
