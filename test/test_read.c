@@ -129,11 +129,53 @@ MU_TEST(test_noallocread) {
   zip_close(zip);
 }
 
+MU_TEST(test_noallocreadwithoffset) {
+  size_t expected_size = strlen(TESTDATA2);
+  char *expected_data = calloc(expected_size, sizeof(char));
+
+  struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(1, zip_is64(zip));
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
+  zip_entry_noallocread(zip, (void *)expected_data, expected_size);
+
+  // Read the file in different chunk sizes
+  for (size_t i = 1; i <= expected_size; ++i) {
+    size_t buflen = i;
+    char *tmpbuf = calloc(buflen, sizeof(char));
+
+    for (size_t j = 0; j < expected_size; ++j) {
+      // we test starting from different offsets, to make sure we hit the
+      // "unaligned" code path
+      size_t offset = j;
+      while (offset < expected_size) {
+
+        ssize_t nread =
+            zip_entry_noallocreadwithoffset(zip, offset, buflen, tmpbuf);
+
+        mu_assert(nread <= buflen, "too many bytes read");
+        mu_assert(0u != nread, "no bytes read");
+
+        // check the data
+        for (ssize_t j = 0; j < nread; ++j) {
+          mu_assert_int_eq(expected_data[offset + j], tmpbuf[j]);
+        }
+
+        offset += nread;
+      }
+    }
+  }
+
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_read);
   MU_RUN_TEST(test_noallocread);
+  MU_RUN_TEST(test_noallocreadwithoffset);
 }
 
 #define UNUSED(x) (void)x
