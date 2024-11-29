@@ -219,7 +219,7 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
     zip_entry_open(zip, "foo-1.txt");
     {
         size_t offset = 4;
-        ssize_t nread = zip_entry_noallocread_offset(zip, offset, bufsize, (void *)buf);
+        ssize_t nread = zip_entry_noallocreadwithoffset(zip, offset, bufsize, (void *)buf);
     }
 
     zip_entry_close(zip);
