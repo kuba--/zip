@@ -1656,8 +1656,8 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   return (ssize_t)zip->entry.uncomp_size;
 }
 
-ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
-                                    size_t offset, size_t size, void *buf) {
+ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
+                                        size_t size, void *buf) {
   mz_zip_archive *pzip = NULL;
 
   if (!zip) {
@@ -1669,7 +1669,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
     return (ssize_t)ZIP_EINVAL;
   }
 
-  if ((offset+size) > (size_t)zip->entry.uncomp_size) {
+  if ((offset + size) > (size_t)zip->entry.uncomp_size) {
     size = (ssize_t)zip->entry.uncomp_size - offset;
   }
 
@@ -1680,26 +1680,26 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
     return (ssize_t)ZIP_ENOENT;
   }
 
-  mz_zip_reader_extract_iter_state* iter =
+  mz_zip_reader_extract_iter_state *iter =
       mz_zip_reader_extract_iter_new(pzip, (mz_uint)zip->entry.index, 0);
   if (!iter) {
     return (ssize_t)ZIP_ENORITER;
   }
 
-  mz_uint8* writebuf = (mz_uint8*)buf;
-  size_t    file_offset = 0;
-  size_t    write_cursor = 0;
-  size_t    to_read = size;
+  mz_uint8 *writebuf = (mz_uint8 *)buf;
+  size_t file_offset = 0;
+  size_t write_cursor = 0;
+  size_t to_read = size;
 
   // iterate until the requested offset is in range
-  while (file_offset < zip->entry.uncomp_size && to_read > 0)
-  {
-    size_t nread = mz_zip_reader_extract_iter_read(iter, (void*)&writebuf[write_cursor], to_read);
+  while (file_offset < zip->entry.uncomp_size && to_read > 0) {
+    size_t nread = mz_zip_reader_extract_iter_read(
+        iter, (void *)&writebuf[write_cursor], to_read);
 
     if (nread == 0)
       break;
 
-    if (offset < (file_offset+nread)) {
+    if (offset < (file_offset + nread)) {
       size_t read_cursor = offset - file_offset;
       MZ_ASSERT(read_cursor < size);
       size_t read_size = nread - read_cursor;
@@ -1709,8 +1709,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
       MZ_ASSERT(read_size <= size);
 
       // If it's an unaligned read (i.e. the first one)
-      if (read_cursor != 0)
-      {
+      if (read_cursor != 0) {
         memmove(&writebuf[write_cursor], &writebuf[read_cursor], read_size);
       }
 

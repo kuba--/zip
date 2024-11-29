@@ -376,8 +376,8 @@ extern ZIP_EXPORT ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
                                                 size_t bufsize);
 
 /**
- * Extracts the part of the current zip entry into a memory buffer using no memory
- * allocation for the buffer.
+ * Extracts the part of the current zip entry into a memory buffer using no
+ * memory allocation for the buffer.
  *
  * @param zip zip archive handler.
  * @param offset the offset of the entry (in bytes).
@@ -388,10 +388,13 @@ extern ZIP_EXPORT ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
  * @note each call will iterate from the start of the entry
  *
  * @return the return code - the number of bytes actually read on success.
- *         Otherwise a negative number (< 0) on error (e.g. offset is too large).
+ *         Otherwise a negative number (< 0) on error (e.g. offset is too
+ * large).
  */
 extern ZIP_EXPORT ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
-                                        size_t offset, size_t size, void *buf);
+                                                          size_t offset,
+                                                          size_t size,
+                                                          void *buf);
 
 /**
  * Extracts the current zip entry into output file.

@@ -129,7 +129,6 @@ MU_TEST(test_noallocread) {
   zip_close(zip);
 }
 
-
 MU_TEST(test_noallocreadwithoffset) {
   size_t expected_size = strlen(TESTDATA2);
   char *expected_data = calloc(expected_size, sizeof(char));
@@ -147,11 +146,13 @@ MU_TEST(test_noallocreadwithoffset) {
     char *tmpbuf = calloc(buflen, sizeof(char));
 
     for (size_t j = 0; j < expected_size; ++j) {
-      // we test starting from different offsets, to make sure we hit the "unaligned" code path
+      // we test starting from different offsets, to make sure we hit the
+      // "unaligned" code path
       size_t offset = j;
       while (offset < expected_size) {
 
-        ssize_t nread = zip_entry_noallocreadwithoffset(zip, offset, buflen, tmpbuf);
+        ssize_t nread =
+            zip_entry_noallocreadwithoffset(zip, offset, buflen, tmpbuf);
 
         mu_assert(nread <= buflen, "too many bytes read");
         mu_assert(0u != nread, "no bytes read");
