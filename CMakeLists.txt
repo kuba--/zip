@@ -16,6 +16,7 @@ endif ()
 option(CMAKE_ENABLE_SANITIZERS "Enable zip sanitizers" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
+option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
 	add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
@@ -73,6 +74,16 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
 endif (MSVC)
 
 ####
+
+# fuzz
+if (ZIP_BUILD_FUZZ)
+    if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
+        message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
+    endif()
+    add_subdirectory(fuzz)
+endif()
+###
+
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
 set(INCLUDE_INSTALL_DIR "include")
 
