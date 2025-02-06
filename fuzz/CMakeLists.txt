@@ -10,8 +10,6 @@ if (DEFINED ENV{CFLAGS})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{CFLAGS}")
 endif ()
 
-add_executable(zip_entry_read_fuzzer zip_entry_read_fuzzer.c)
-target_link_libraries(zip_entry_read_fuzzer PRIVATE ${PROJECT_NAME} $ENV{LIB_FUZZING_ENGINE})
 
 add_executable(zip_stream_copy_fuzzer zip_stream_copy_fuzzer.c)
 target_link_libraries(zip_stream_copy_fuzzer PRIVATE ${PROJECT_NAME} $ENV{LIB_FUZZING_ENGINE})
@@ -20,7 +18,6 @@ add_executable(zip_create_fuzzer zip_create_fuzzer.c)
 target_link_libraries(zip_create_fuzzer PRIVATE ${PROJECT_NAME} $ENV{LIB_FUZZING_ENGINE})
 
 if (DEFINED ENV{OUT})
-    install(TARGETS zip_entry_read_fuzzer DESTINATION $ENV{OUT})
     install(TARGETS zip_stream_copy_fuzzer DESTINATION $ENV{OUT})
     install(TARGETS zip_create_fuzzer DESTINATION $ENV{OUT})
 else ()
