@@ -4,25 +4,27 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static char *get_tmp_file_name() {
+  char *file_name = malloc(TMP_MAX);
+  tmpnam(file_name);
+  return file_name;
+}
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size) {
-  char *temp_name = tmpnam(NULL);
-  FILE *file = fopen(temp_name, "wb");
+  char *file_name = get_tmp_file_name();
+  char *zip_name = get_tmp_file_name();
+
+  FILE *file = fopen(file_name, "wb");
   fwrite(data, size, 1, file);
   fclose(file);
 
-  int n = strlen(temp_name);
-  char *temp_zip_name = malloc(n + 5);
-  memcpy(temp_zip_name, temp_name, n);
-  temp_zip_name[n] = '.';
-  temp_zip_name[n + 1] = 'z';
-  temp_zip_name[n + 2] = 'i';
-  temp_zip_name[n + 3] = 'p';
-  temp_zip_name[n + 4] = '\0';
-  const char *filenames[] = {temp_name};
-  zip_create(temp_zip_name, filenames, 1);
-  free(temp_zip_name);
+  const char *filenames[] = {file_name};
+  zip_create(zip_name, filenames, 1);
 
-  unlink(temp_name);
-  unlink(temp_zip_name);
+  unlink(file_name);
+  unlink(zip_name);
+
+  free(zip_name);
+  free(file_name);
   return 0;
 }
