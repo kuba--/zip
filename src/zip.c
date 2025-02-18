@@ -79,6 +79,8 @@
 #define UNX_IFCHR 0020000  /* Unix character special   (not Amiga) */
 #define UNX_IFIFO 0010000  /* Unix fifo    (BCC, not MSC or Amiga) */
 
+#define OSS_FUZZ_MEM_LIMIT (1ULL * 1024 * 1024 * 1024) // 1GB
+
 struct zip_entry_t {
   ssize_t index;
   char *name;
@@ -1625,6 +1627,17 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
     // the entry is a directory
     return (ssize_t)ZIP_EINVENTTYPE;
   }
+
+#ifdef OSS_FUZZ_BUILD
+  // Prevent OOM while fuzzing¬
+  mz_zip_archive_file_stat file_stat;
+  if (!mz_zip_reader_file_stat(pzip, idx, &file_stat)) {
+    return (ssize_t)ZIP_ENOENT;
+  }
+  if (file_stat.m_uncomp_size > OSS_FUZZ_MEM_LIMIT) {
+    return (ssize_t)ZIP_EOOMEM;
+  }
+#endif
 
   *buf = mz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
   if (*buf && bufsize) {
