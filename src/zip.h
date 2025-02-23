@@ -609,6 +609,18 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                   int (*on_extract_entry)(const char *filename,
                                                           void *arg),
                                   void *arg);
+
+#ifdef OSS_FUZZ_BUILD
+#define OSS_FUZZ_MEM_LIMIT (1ULL * 1024 * 1024 * 1024) // 1GB
+/**
+ * OSS-Fuzz specific validations (to be used in fuzz targets)
+ *
+ * @param zip: Zip stream to validate
+ * @return Whether the zip stream passes validations and the current fuzzing
+ * iteration should continue
+ */
+ssize_t fuzz_zip_validate_stream(struct zip_t *zip);
+#endif
 /** @} */
 #ifdef __cplusplus
 }

@@ -77,6 +77,7 @@ endif (MSVC)
 
 # fuzz
 if (ZIP_BUILD_FUZZ)
+    add_compile_definitions(OSS_FUZZ_BUILD=1)
     if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
         message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
     endif()

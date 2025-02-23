@@ -2170,3 +2170,33 @@ int zip_extract(const char *zipname, const char *dir,
 
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
+
+#ifdef OSS_FUZZ_BUILD
+ssize_t fuzz_zip_validate_stream(struct zip_t *zip) {
+  ssize_t rc = 0;
+  mz_zip_archive *pzip = NULL;
+  mz_uint idx = 0;
+
+  if (NULL == zip) {
+    rc = (ssize_t)ZIP_ENOINIT;
+    goto end;
+  }
+
+  pzip = &(zip->archive);
+  idx = (mz_uint)zip->entry.index;
+
+  // Prevent OOM while fuzzing¬
+  mz_zip_archive_file_stat file_stat;
+  if (!mz_zip_reader_file_stat(pzip, idx, &file_stat)) {
+    rc = (ssize_t)ZIP_ENOENT;
+    goto end;
+  }
+  if (file_stat.m_uncomp_size > OSS_FUZZ_MEM_LIMIT) {
+    rc = (ssize_t)ZIP_EOOMEM;
+    goto end;
+  }
+
+end:
+  return rc;
+}
+#endif
