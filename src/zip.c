@@ -79,8 +79,6 @@
 #define UNX_IFCHR 0020000  /* Unix character special   (not Amiga) */
 #define UNX_IFIFO 0010000  /* Unix fifo    (BCC, not MSC or Amiga) */
 
-#define OSS_FUZZ_MEM_LIMIT (1ULL * 1024 * 1024 * 1024) // 1GB
-
 struct zip_entry_t {
   ssize_t index;
   char *name;
@@ -1628,17 +1626,6 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
     return (ssize_t)ZIP_EINVENTTYPE;
   }
 
-#ifdef OSS_FUZZ_BUILD
-  // Prevent OOM while fuzzing¬
-  mz_zip_archive_file_stat file_stat;
-  if (!mz_zip_reader_file_stat(pzip, idx, &file_stat)) {
-    return (ssize_t)ZIP_ENOENT;
-  }
-  if (file_stat.m_uncomp_size > OSS_FUZZ_MEM_LIMIT) {
-    return (ssize_t)ZIP_EOOMEM;
-  }
-#endif
-
   *buf = mz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
   if (*buf && bufsize) {
     *bufsize = size;
@@ -2183,3 +2170,33 @@ int zip_extract(const char *zipname, const char *dir,
 
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
+
+#ifdef OSS_FUZZ_BUILD
+ssize_t fuzz_zip_validate_stream(struct zip_t *zip) {
+  ssize_t rc = 0;
+  mz_zip_archive *pzip = NULL;
+  mz_uint idx = 0;
+
+  if (NULL == zip) {
+    rc = (ssize_t)ZIP_ENOINIT;
+    goto end;
+  }
+
+  pzip = &(zip->archive);
+  idx = (mz_uint)zip->entry.index;
+
+  // Prevent OOM while fuzzing¬
+  mz_zip_archive_file_stat file_stat;
+  if (!mz_zip_reader_file_stat(pzip, idx, &file_stat)) {
+    rc = (ssize_t)ZIP_ENOENT;
+    goto end;
+  }
+  if (file_stat.m_uncomp_size > OSS_FUZZ_MEM_LIMIT) {
+    rc = (ssize_t)ZIP_EOOMEM;
+    goto end;
+  }
+
+end:
+  return rc;
+}
+#endif

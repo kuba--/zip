@@ -5,13 +5,12 @@
 set(CMAKE_C_STANDARD 23)
 
 add_definitions(-DNDEBUG)  # Do not want assertions
-add_compile_definitions(OSS_FUZZ_BUILD=1)
 
 if (DEFINED ENV{CFLAGS})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{CFLAGS}")
 endif ()
 
-add_executable(read_entry_fuzzer read_entry_fuzzer.c ../src/zip.c)
+add_executable(read_entry_fuzzer read_entry_fuzzer.c)
 target_link_libraries(read_entry_fuzzer PRIVATE ${PROJECT_NAME} $ENV{LIB_FUZZING_ENGINE})
 
 add_executable(create_zip_fuzzer create_zip_fuzzer.c)
