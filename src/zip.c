@@ -1208,7 +1208,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
       (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
 
   if (!mz_zip_writer_create_local_dir_header(
-          pzip, zip->entry.header, entrylen, (mz_uint16)extra_size, 0, 0, 0,
+          pzip, zip->entry.header, (mz_uint16)entrylen, (mz_uint16)extra_size, 0, 0, 0,
           zip->entry.method,
           MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8 |
               MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR,
@@ -1310,7 +1310,7 @@ int zip_entry_openbyindex(struct zip_t *zip, size_t index) {
   if (!(pHeader = &MZ_ZIP_ARRAY_ELEMENT(
             &pZip->m_pState->m_central_dir, mz_uint8,
             MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets,
-                                 mz_uint32, index)))) {
+                                 mz_uint32, (mz_uint)index)))) {
     // cannot find header in central directory
     return ZIP_ENOHDR;
   }
