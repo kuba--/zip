@@ -2,9 +2,14 @@ cmake_minimum_required(VERSION 3.14)
 
 project(zip
   LANGUAGES C
-  VERSION "0.3.0")
+  VERSION "2025.06.18")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+option(NEW_PROJECT_NAME "Rename project from '${PROJECT_NAME}'" "${PROJECT_NAME}")
+if (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
+    set(PROJECT_NAME "${NEW_PROJECT_NAME}")
+endif (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
 
 # Enable building tests only if the project is being built as a standalone one
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -27,29 +32,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
 	add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
 endif()
 
-# zip
-set(SRC src/miniz.h src/zip.h src/zip.c)
-
-add_library(${PROJECT_NAME} ${SRC})
-add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
-if(ZIP_STATIC_PIC)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
-endif()
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
-if(BUILD_SHARED_LIBS)
-  target_compile_definitions(${PROJECT_NAME}
-    PUBLIC ZIP_SHARED
-    PRIVATE ZIP_BUILD_SHARED
-  )
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<INSTALL_INTERFACE:include>
-)
-
 # test
 if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
@@ -67,10 +49,10 @@ if (MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
 
-elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
-        "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
-        "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration")
+elseif (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
+        CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+        CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration -Wno-long-long")
 endif (MSVC)
 
 ####
@@ -85,7 +67,7 @@ endif()
 ###
 
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
-set(INCLUDE_INSTALL_DIR "include")
+set(INCLUDE_INSTALL_DIR "include/${PROJECT_NAME}")
 
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -112,6 +94,8 @@ configure_package_config_file(
     INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
+add_subdirectory(src)
+
 install(
     FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
     DESTINATION "${CONFIG_INSTALL_DIR}"
@@ -130,7 +114,6 @@ install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION lib
         INCLUDES DESTINATION ${INCLUDE_INSTALL_DIR}
 )
-install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION ${INCLUDE_INSTALL_DIR}/zip)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
 if(NOT TARGET uninstall)
