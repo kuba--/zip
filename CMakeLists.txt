@@ -11,6 +11,13 @@ if (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
     set(PROJECT_NAME "${NEW_PROJECT_NAME}")
 endif (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
 
+include(GNUInstallDirs)
+set(INSTALL_PATH "${INCLUDE_INSTALL_DIR}")
+option(NEW_INSTALL_PATH "Include install path" "${INSTALL_PATH}")
+if (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
+    set(INSTALL_PATH "${NEW_INSTALL_PATH}")
+endif (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
+
 # Enable building tests only if the project is being built as a standalone one
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
@@ -112,7 +119,7 @@ install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        INCLUDES DESTINATION ${INCLUDE_INSTALL_DIR}
+        INCLUDES DESTINATION "${INSTALL_PATH}"
 )
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)

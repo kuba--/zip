@@ -6,7 +6,10 @@ set(Source_Files "zip.c")
 source_group("Source Files" FILES "${Source_Files}")
 
 add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
 
 if(ZIP_STATIC_PIC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
@@ -30,4 +33,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 set_property(TARGET "${PROJECT_NAME}" PROPERTY VERSION "${${PROJECT_NAME}_VERSION}")
 set_property(TARGET "${PROJECT_NAME}" PROPERTY SOVERSION "${${PROJECT_NAME}_VERSION_MAJOR}")
 
-install(FILES ${Header_Files} DESTINATION "${INCLUDE_INSTALL_DIR}/${PROJECT_NAME}")
+install(FILES ${Header_Files} DESTINATION "${INSTALL_PATH}")

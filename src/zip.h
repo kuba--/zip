@@ -36,8 +36,8 @@ extern "C" {
 #endif
 
 #if !defined(_POSIX_C_SOURCE) && defined(_MSC_VER)
-// 64-bit Windows is the only mainstream platform
-// where sizeof(long) != sizeof(void*)
+/* 64-bit Windows is the only mainstream platform
+   where sizeof(long) != sizeof(void*) */
 #ifdef _WIN64
 typedef long long ssize_t; /* byte count or error */
 #else
@@ -64,40 +64,40 @@ typedef long ssize_t; /* byte count or error */
 /**
  * Error codes
  */
-#define ZIP_ENOINIT -1      // not initialized
-#define ZIP_EINVENTNAME -2  // invalid entry name
-#define ZIP_ENOENT -3       // entry not found
-#define ZIP_EINVMODE -4     // invalid zip mode
-#define ZIP_EINVLVL -5      // invalid compression level
-#define ZIP_ENOSUP64 -6     // no zip 64 support
-#define ZIP_EMEMSET -7      // memset error
-#define ZIP_EWRTENT -8      // cannot write data to entry
-#define ZIP_ETDEFLINIT -9   // cannot initialize tdefl compressor
-#define ZIP_EINVIDX -10     // invalid index
-#define ZIP_ENOHDR -11      // header not found
-#define ZIP_ETDEFLBUF -12   // cannot flush tdefl buffer
-#define ZIP_ECRTHDR -13     // cannot create entry header
-#define ZIP_EWRTHDR -14     // cannot write entry header
-#define ZIP_EWRTDIR -15     // cannot write to central dir
-#define ZIP_EOPNFILE -16    // cannot open file
-#define ZIP_EINVENTTYPE -17 // invalid entry type
-#define ZIP_EMEMNOALLOC -18 // extracting data using no memory allocation
-#define ZIP_ENOFILE -19     // file not found
-#define ZIP_ENOPERM -20     // no permission
-#define ZIP_EOOMEM -21      // out of memory
-#define ZIP_EINVZIPNAME -22 // invalid zip archive name
-#define ZIP_EMKDIR -23      // make dir error
-#define ZIP_ESYMLINK -24    // symlink error
-#define ZIP_ECLSZIP -25     // close archive error
-#define ZIP_ECAPSIZE -26    // capacity size too small
-#define ZIP_EFSEEK -27      // fseek error
-#define ZIP_EFREAD -28      // fread error
-#define ZIP_EFWRITE -29     // fwrite error
-#define ZIP_ERINIT -30      // cannot initialize reader
-#define ZIP_EWINIT -31      // cannot initialize writer
-#define ZIP_EWRINIT -32     // cannot initialize writer from reader
-#define ZIP_EINVAL -33      // invalid argument
-#define ZIP_ENORITER -34    // cannot initialize reader iterator
+#define ZIP_ENOINIT -1      /* not initialized */
+#define ZIP_EINVENTNAME -2  /* invalid entry name */
+#define ZIP_ENOENT -3       /* entry not found */
+#define ZIP_EINVMODE -4     /* invalid zip mode */
+#define ZIP_EINVLVL -5      /* invalid compression level */
+#define ZIP_ENOSUP64 -6     /* no zip 64 support */
+#define ZIP_EMEMSET -7      /* memset error */
+#define ZIP_EWRTENT -8      /* cannot write data to entry */
+#define ZIP_ETDEFLINIT -9   /* cannot initialize tdefl compressor */
+#define ZIP_EINVIDX -10     /* invalid index */
+#define ZIP_ENOHDR -11      /* header not found */
+#define ZIP_ETDEFLBUF -12   /* cannot flush tdefl buffer */
+#define ZIP_ECRTHDR -13     /* cannot create entry header */
+#define ZIP_EWRTHDR -14     /* cannot write entry header */
+#define ZIP_EWRTDIR -15     /* cannot write to central dir */
+#define ZIP_EOPNFILE -16    /* cannot open file */
+#define ZIP_EINVENTTYPE -17 /* invalid entry type */
+#define ZIP_EMEMNOALLOC -18 /* extracting data using no memory allocation */
+#define ZIP_ENOFILE -19     /* file not found */
+#define ZIP_ENOPERM -20     /* no permission */
+#define ZIP_EOOMEM -21      /* out of memory */
+#define ZIP_EINVZIPNAME -22 /* invalid zip archive name */
+#define ZIP_EMKDIR -23      /* make dir error */
+#define ZIP_ESYMLINK -24    /* symlink error */
+#define ZIP_ECLSZIP -25     /* close archive error */
+#define ZIP_ECAPSIZE -26    /* capacity size too small */
+#define ZIP_EFSEEK -27      /* fseek error */
+#define ZIP_EFREAD -28      /* fread error */
+#define ZIP_EFWRITE -29     /* fwrite error */
+#define ZIP_ERINIT -30      /* cannot initialize reader */
+#define ZIP_EWINIT -31      /* cannot initialize writer */
+#define ZIP_EWRINIT -32     /* cannot initialize writer from reader */
+#define ZIP_EINVAL -33      /* invalid argument */
+#define ZIP_ENORITER -34    /* cannot initialize reader iterator */
 
 /**
  * Looks up the error message string corresponding to an error number.

@@ -79,7 +79,7 @@ MU_TEST(test_fwrite) {
   if (!(stream = fopen(filename, "w+")))
 #endif
   {
-    // Cannot open filename
+    /* Cannot open filename */
     mu_fail("Cannot open filename\n");
   }
   fwrite(TESTDATA1, sizeof(char), strlen(TESTDATA1), stream);

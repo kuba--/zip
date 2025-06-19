@@ -96,7 +96,7 @@ MU_TEST(test_read_permissions) {
   mu_assert_int_eq(0, MZ_FILE_STAT(RFILE, &file_stats));
   mu_assert_int_eq(RMODE, file_stats.st_mode);
 
-  // chmod from 444 to 666 to be able delete the file on windows
+  /* chmod from 444 to 666 to be able delete the file on windows */
   chmod(RFILE, WMODE);
 }
 
@@ -119,7 +119,7 @@ MU_TEST(test_write_permissions) {
 #define TESTDATA1 "Some test data 1...\0"
 
 MU_TEST(test_unix_permissions) {
-  // UNIX or APPLE
+  /* UNIX or APPLE */
   struct MZ_FILE_STAT_STRUCT file_stats;
 
   struct zip_t *zip = zip_open(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
