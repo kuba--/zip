@@ -17,19 +17,85 @@
 #include <string.h>
 #include <sys/types.h>
 
-#ifndef ZIP_SHARED
+#ifdef ZIP_STATIC_DEFINE
 #define ZIP_EXPORT
+#define ZIP_NO_EXPORT
 #else
-#ifdef _WIN32
-#ifdef ZIP_BUILD_SHARED
-#define ZIP_EXPORT __declspec(dllexport)
+#ifndef ZIP_EXPORT
+#ifdef ZIP_EXPORTS
+/* We are building this library */
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||          \
+    defined(__CYGWIN__)
+
+#ifdef ZIP_IMPLEMENTATION
+# define ZIP_EXPORT __declspec(dllexport)
 #else
-#define ZIP_EXPORT __declspec(dllimport)
+# define ZIP_EXPORT __declspec(dllimport)
 #endif
+
+
+#elif defined(__SUNPRO_C)
+#define ZIP_EXPORT __global
 #else
 #define ZIP_EXPORT __attribute__((visibility("default")))
+#endif /* defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||    \
+          defined(__CYGWIN__) */
+#else
+/* We are using this library */
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||          \
+    defined(__CYGWIN__)
+
+#ifdef ZIP_IMPLEMENTATION
+# define ZIP_EXPORT __declspec(dllexport)
+#else
+# define ZIP_EXPORT __declspec(dllimport)
 #endif
-#endif
+
+#elif defined(__SUNPRO_C)
+#define ZIP_EXPORT __global
+#else
+#define ZIP_EXPORT __attribute__((visibility("default")))
+#endif /* defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||    \
+          defined(__CYGWIN__) */
+#endif /* ZIP_EXPORTS */
+#endif /* ! ZIP_EXPORT */
+
+#ifndef ZIP_NO_EXPORT
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||          \
+    defined(__CYGWIN__) || defined(__SUNPRO_C)
+#define ZIP_NO_EXPORT
+#else
+#define ZIP_NO_EXPORT __attribute__((visibility("hidden")))
+#endif /* defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||    \
+          defined(__CYGWIN__) || defined(__SUNPRO_C) */
+#endif /* ! ZIP_NO_EXPORT */
+#endif /* ZIP_STATIC_DEFINE */
+
+#ifndef ZIP_DEPRECATED
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||          \
+    defined(__CYGWIN__)
+#define ZIP_DEPRECATED __declspec(deprecated)
+#elif defined(__SUNPRO_C)
+#define ZIP_DEPRECATED
+#else
+#define ZIP_DEPRECATED __attribute__((__deprecated__))
+#endif /* defined(_MSC_VER) || defined(__MINGW32__) || defined(__MSYS__) ||    \
+          defined(__CYGWIN__) */
+#endif /* ! ZIP_DEPRECATED */
+
+#ifndef ZIP_DEPRECATED_EXPORT
+#define ZIP_DEPRECATED_EXPORT ZIP_EXPORT ZIP_DEPRECATED
+#endif /* ! ZIP_DEPRECATED_EXPORT */
+
+#ifndef ZIP_DEPRECATED_NO_EXPORT
+#define ZIP_DEPRECATED_NO_EXPORT ZIP_NO_EXPORT ZIP_DEPRECATED
+#endif /* ! ZIP_DEPRECATED_NO_EXPORT */
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#ifndef ZIP_NO_DEPRECATED
+#define ZIP_NO_DEPRECATED
+#endif /* ! ZIP_NO_DEPRECATED */
+#endif /* 0 */
 
 #ifdef __cplusplus
 extern "C" {

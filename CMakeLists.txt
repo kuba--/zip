@@ -12,7 +12,7 @@ if (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
 endif (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
 
 include(GNUInstallDirs)
-set(INSTALL_PATH "${INCLUDE_INSTALL_DIR}")
+set(INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}")
 option(NEW_INSTALL_PATH "Include install path" "${INSTALL_PATH}")
 if (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
     set(INSTALL_PATH "${NEW_INSTALL_PATH}")
@@ -101,7 +101,42 @@ configure_package_config_file(
     INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
-add_subdirectory(src)
+# zip
+set(Header_Files "src/miniz.h" "src/zip.h")
+source_group("Header Files" FILES "${Header_Files}")
+
+set(Source_Files "src/zip.c")
+source_group("Source Files" FILES "${Source_Files}")
+
+add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+
+if(ZIP_STATIC_PIC)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(${PROJECT_NAME}
+            PUBLIC ZIP_SHARED
+            PRIVATE ZIP_BUILD_SHARED
+    )
+endif()
+
+include(GNUInstallDirs)
+target_include_directories(${PROJECT_NAME} PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
+)
+
+set_property(TARGET "${PROJECT_NAME}" PROPERTY VERSION "${${PROJECT_NAME}_VERSION}")
+set_property(TARGET "${PROJECT_NAME}" PROPERTY SOVERSION "${${PROJECT_NAME}_VERSION_MAJOR}")
+
+install(FILES ${Header_Files} DESTINATION "${INSTALL_PATH}")
 
 install(
     FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
