@@ -5152,9 +5152,9 @@ static int mz_mkdir(const char *pDirname) {
 #endif /* #ifdef MINIZ_NO_STDIO */
 
 #ifndef CHMOD
-// Upon successful completion, a value of 0 is returned.
-// Otherwise, a value of -1 is returned and errno is set to indicate the error.
-// int chmod(const char *path, mode_t mode);
+/* Upon successful completion, a value of 0 is returned.
+ * Otherwise, a value of -1 is returned and errno is set to indicate the error.
+ * int chmod(const char *path, mode_t mode); */
 #define CHMOD(f, m) chmod(f, m)
 #endif
 
@@ -10183,4 +10183,4 @@ mz_bool mz_zip_end(mz_zip_archive *pZip) {
 
 #endif /*#ifndef MINIZ_NO_ARCHIVE_APIS*/
 
-#endif // MINIZ_HEADER_FILE_ONLY
+#endif /* !MINIZ_HEADER_FILE_ONLY */
