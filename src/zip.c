@@ -1208,8 +1208,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
       (local_dir_header_ofs >= MZ_UINT32_MAX) ? &local_dir_header_ofs : NULL);
 
   if (!mz_zip_writer_create_local_dir_header(
-          pzip, zip->entry.header, (mz_uint16)entrylen, (mz_uint16)extra_size, 0, 0, 0,
-          zip->entry.method,
+          pzip, zip->entry.header, (mz_uint16)entrylen, (mz_uint16)extra_size,
+          0, 0, 0, zip->entry.method,
           MZ_ZIP_GENERAL_PURPOSE_BIT_FLAG_UTF8 |
               MZ_ZIP_LDH_BIT_FLAG_HAS_LOCATOR,
           dos_time, dos_date)) {
