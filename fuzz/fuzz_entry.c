@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size) {
-  /* Discard inputs larger than 1Mb. */
+  /* Discard inputs larger than 1MB. */
   static const size_t MaxSize = 1024 * 1024;
   if (size < 1 || size > MaxSize) {
     return 0;
