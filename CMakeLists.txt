@@ -6,6 +6,13 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+include(GNUInstallDirs)
+set(INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}")
+option(NEW_INSTALL_PATH "Include install path" "${INSTALL_PATH}")
+if (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
+    set(INSTALL_PATH "${NEW_INSTALL_PATH}")
+endif (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
+
 # Enable building tests only if the project is being built as a standalone one
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
@@ -27,29 +34,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
 	add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
 endif()
 
-# zip
-set(SRC src/miniz.h src/zip.h src/zip.c)
-
-add_library(${PROJECT_NAME} ${SRC})
-add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
-if(ZIP_STATIC_PIC)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
-endif()
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
-if(BUILD_SHARED_LIBS)
-  target_compile_definitions(${PROJECT_NAME}
-    PUBLIC ZIP_SHARED
-    PRIVATE ZIP_BUILD_SHARED
-  )
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<INSTALL_INTERFACE:include>
-)
-
 # test
 if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
@@ -61,17 +45,17 @@ if (CMAKE_ENABLE_SANITIZERS)
 endif()
 
 set(CMAKE_C_STANDARD 90)
-if (MSVC)
-  # Use secure functions by default and suppress warnings about "deprecated" functions
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
+add_library("${PROJECT_NAME}_compiler_flags" INTERFACE)
+target_compile_features("${PROJECT_NAME}_compiler_flags" INTERFACE "c_std_${CMAKE_C_STANDARD}")
 
-elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
-        "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
-        "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration")
-endif (MSVC)
+set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
+target_compile_options(
+        "${PROJECT_NAME}_compiler_flags"
+        INTERFACE
+        "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
+        "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+)
 
 ####
 
@@ -85,7 +69,6 @@ endif()
 ###
 
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
-set(INCLUDE_INSTALL_DIR "include")
 
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -112,6 +95,42 @@ configure_package_config_file(
     INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
+# zip
+set(Header_Files "src/miniz.h" "src/zip.h")
+source_group("Header Files" FILES "${Header_Files}")
+
+set(Source_Files "src/zip.c")
+source_group("Source Files" FILES "${Source_Files}")
+
+add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+target_link_libraries("${PROJECT_NAME}" PUBLIC "${PROJECT_NAME}_compiler_flags")
+set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+
+add_library(${NAMESPACE}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+if(ZIP_STATIC_PIC)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(${PROJECT_NAME}
+            PUBLIC ZIP_SHARED
+            PRIVATE ZIP_BUILD_SHARED
+    )
+endif()
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
+)
+
+set_property(TARGET "${PROJECT_NAME}" PROPERTY VERSION "${${PROJECT_NAME}_VERSION}")
+set_property(TARGET "${PROJECT_NAME}" PROPERTY SOVERSION "${${PROJECT_NAME}_VERSION_MAJOR}")
+
+install(FILES ${Header_Files} DESTINATION "${INSTALL_PATH}")
+
 install(
     FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
     DESTINATION "${CONFIG_INSTALL_DIR}"
@@ -123,14 +142,13 @@ install(
     DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS "${PROJECT_NAME}" "${PROJECT_NAME}_compiler_flags"
         EXPORT ${TARGETS_EXPORT_NAME}
-        RUNTIME DESTINATION bin
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        INCLUDES DESTINATION ${INCLUDE_INSTALL_DIR}
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
-install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION ${INCLUDE_INSTALL_DIR}/zip)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
 if(NOT TARGET uninstall)
