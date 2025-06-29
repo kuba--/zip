@@ -139,27 +139,29 @@ MU_TEST(test_noallocreadwithoffset) {
 
   mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
   {
+    size_t i;
     zip_entry_noallocread(zip, (void *)expected_data, expected_size);
 
-    // Read the file in different chunk sizes
-    for (size_t i = 1; i <= expected_size; ++i) {
-      size_t buflen = i;
+    /* Read the file in different chunk sizes */
+    for (i = 1; i <= expected_size; ++i) {
+      size_t buflen = i, j;
       char *tmpbuf = calloc(buflen, sizeof(char));
 
-      for (size_t j = 0; j < expected_size; ++j) {
-        // we test starting from different offsets, to make sure we hit the
-        // "unaligned" code path
+      for (j = 0; j < expected_size; ++j) {
+        /* we test starting from different offsets, to make sure we hit the
+         * "unaligned" code path */
         size_t offset = j;
         while (offset < expected_size) {
 
           ssize_t nread =
               zip_entry_noallocreadwithoffset(zip, offset, buflen, tmpbuf);
 
-          mu_assert(nread <= buflen, "too many bytes read");
+          mu_assert(-1 != nread, "nread unexpectedly -1");
+          mu_assert((size_t)nread <= buflen, "too many bytes read");
           mu_assert(0u != nread, "no bytes read");
 
-          // check the data
-          for (ssize_t j = 0; j < nread; ++j) {
+          /* check the data */
+          for (j = 0; j < (size_t)nread; ++j) {
             mu_assert_int_eq(expected_data[offset + j], tmpbuf[j]);
           }
 
