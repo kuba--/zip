@@ -154,11 +154,12 @@ MU_TEST(test_noallocreadwithoffset) {
         ssize_t nread =
             zip_entry_noallocreadwithoffset(zip, offset, buflen, tmpbuf);
 
-        mu_assert(nread <= buflen, "too many bytes read");
+        mu_assert(-1 != nread, "error whilst reading (nread is -1)");
         mu_assert(0u != nread, "no bytes read");
+        mu_assert((size_t)nread <= buflen, "too many bytes read");
 
         /* check the data */
-        for (j = 0; j < nread; ++j) {
+        for (j = 0; j < (size_t)nread; ++j) {
           mu_assert_int_eq(expected_data[offset + j], tmpbuf[j]);
         }
 

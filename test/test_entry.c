@@ -426,6 +426,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entry_read);
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
+  MU_RUN_TEST(test_entries_deleteinvalid);
   MU_RUN_TEST(test_entries_delete);
   MU_RUN_TEST(test_entry_offset);
 }

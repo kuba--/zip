@@ -2,14 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 
 project(zip
   LANGUAGES C
-  VERSION "2025.06.18")
+  VERSION "0.3.0")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
-
-option(NEW_PROJECT_NAME "Rename project from '${PROJECT_NAME}'" "${PROJECT_NAME}")
-if (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
-    set(PROJECT_NAME "${NEW_PROJECT_NAME}")
-endif (NOT (NEW_PROJECT_NAME STREQUAL PROJECT_NAME))
 
 include(GNUInstallDirs)
 set(INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}")
@@ -50,17 +45,17 @@ if (CMAKE_ENABLE_SANITIZERS)
 endif()
 
 set(CMAKE_C_STANDARD 90)
-if (MSVC)
-  # Use secure functions by default and suppress warnings about "deprecated" functions
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
+add_library("${PROJECT_NAME}_compiler_flags" INTERFACE)
+target_compile_features("${PROJECT_NAME}_compiler_flags" INTERFACE "c_std_${CMAKE_C_STANDARD}")
 
-elseif (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
-        CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
-        CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration -Wno-long-long")
-endif (MSVC)
+set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
+target_compile_options(
+        "${PROJECT_NAME}_compiler_flags"
+        INTERFACE
+        "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
+        "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+)
 
 ####
 
@@ -74,7 +69,6 @@ endif()
 ###
 
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
-set(INCLUDE_INSTALL_DIR "include/${PROJECT_NAME}")
 
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -109,10 +103,10 @@ set(Source_Files "src/zip.c")
 source_group("Source Files" FILES "${Source_Files}")
 
 add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+target_link_libraries("${PROJECT_NAME}" PUBLIC "${PROJECT_NAME}_compiler_flags")
 set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
 
-add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
+add_library(${NAMESPACE}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
@@ -126,7 +120,6 @@ if(BUILD_SHARED_LIBS)
     )
 endif()
 
-include(GNUInstallDirs)
 target_include_directories(${PROJECT_NAME} PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
@@ -149,12 +142,12 @@ install(
     DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS "${PROJECT_NAME}" "${PROJECT_NAME}_compiler_flags"
         EXPORT ${TARGETS_EXPORT_NAME}
-        RUNTIME DESTINATION bin
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        INCLUDES DESTINATION "${INSTALL_PATH}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
