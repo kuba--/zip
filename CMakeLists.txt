@@ -61,10 +61,10 @@ target_compile_options(
 
 # fuzz
 if (ZIP_BUILD_FUZZ)
-    if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-        message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
-    endif()
-    add_subdirectory(fuzz)
+  if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
+    message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
+  endif()
+  add_subdirectory(fuzz)
 endif()
 ###
 
