@@ -20,7 +20,6 @@ jobs:
       - uses: jidicula/clang-format-action@v4.15.0
         with:
           clang-format-version: '20'
-          check-path: 'src'
           fallback-style: 'LLVM'
       # commit the changes (if there are any)
       - name: Commit changes
