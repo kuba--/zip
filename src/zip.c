@@ -738,6 +738,7 @@ static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
       n = zip_mem_move(pState->m_pMem, pState->m_mem_size, writen_num, read_num,
                        move_count);
     } else {
+      CLEANUP(move_buf);
       return ZIP_ENOFILE;
     }
 
