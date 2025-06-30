@@ -8,6 +8,11 @@ permissions:
 jobs:
   format:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - 'src'
+          - 'test'
     steps:
       - uses: actions/checkout@v2
         with:
@@ -20,6 +25,7 @@ jobs:
       - uses: jidicula/clang-format-action@v4.15.0
         with:
           clang-format-version: '20'
+          check-path: ${{ matrix.path }}
           fallback-style: 'LLVM'
       # commit the changes (if there are any)
       - name: Commit changes
