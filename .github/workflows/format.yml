@@ -11,8 +11,10 @@ jobs:
     strategy:
       matrix:
         path:
+          - '.'
           - 'src'
           - 'test'
+          - 'fuzz'
     steps:
       - uses: actions/checkout@v2
         with:
