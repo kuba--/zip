@@ -4,6 +4,6 @@ Apply `clang-format` to the source files before commit:
 ```sh
 for file in $(git ls-files | \grep -E '\.(c|h)$' | \grep -v -- '#')
 do
-    clang-format -i $file
+    clang-format -i $file --style=LLVM
 done
 ```

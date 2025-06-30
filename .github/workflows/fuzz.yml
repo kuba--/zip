@@ -3,7 +3,7 @@ name: fuzz
 on: [pull_request]
 
 jobs:
-  Fuzzing:
+  fuzzing:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
