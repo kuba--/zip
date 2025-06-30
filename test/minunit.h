@@ -296,8 +296,8 @@ static double mu_timer_cpu(void) {
   FILETIME kernelTime;
   FILETIME userTime;
 
-  /* This approach has a resolution of 1/64 second. Unfortunately, Windows' API
-   * does not offer better */
+  /* This approach has a resolution of 1/64 second. Unfortunately, Windows'
+   * API does not offer better */
   if (GetProcessTimes(GetCurrentProcess(), &createTime, &exitTime, &kernelTime,
                       &userTime) != 0) {
     ULARGE_INTEGER userSystemTime;
