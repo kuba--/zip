@@ -3,7 +3,7 @@ name: clang-format
 on: [pull_request]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   format:
@@ -29,9 +29,4 @@ jobs:
           clang-format-version: '20'
           check-path: ${{ matrix.path }}
           fallback-style: 'LLVM'
-      # commit the changes (if there are any)
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4.1.2
-        with:
-          commit_message: apply clang-format changes
-          branch: ${{ github.head_ref }}
+
