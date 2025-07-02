@@ -22,7 +22,7 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
   if (name == NULL || nname == NULL || len <= 0) {
     return NULL;
   }
-  // skip trailing '/'
+  /* skip trailing '/' */
   while (ISSLASH(*name)) {
     name++;
   }
@@ -31,7 +31,7 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
     if (ISSLASH(c)) {
       if (ncpy > 0 && !zip_strchr_match(&nname[offn], ncpy, '.')) {
         offn += ncpy;
-        nname[offn++] = c; // append '/'
+        nname[offn++] = c; /* append '/' */
       }
       ncpy = 0;
     } else {

@@ -32,7 +32,7 @@ struct zip_t *zip = zip_open("foo.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
 
     zip_entry_open(zip, "foo-2.txt");
     {
-        // merge 3 files into one entry and compress them on-the-fly.
+        /* merge 3 files into one entry and compress them on-the-fly. */
         zip_entry_fwrite(zip, "foo-2.1.txt");
         zip_entry_fwrite(zip, "foo-2.2.txt");
         zip_entry_fwrite(zip, "foo-2.3.txt");
@@ -68,11 +68,11 @@ int on_extract_entry(const char *filename, void *arg) {
     return 0;
 }
 
-// From "foo.zip" on disk
+/* From "foo.zip" on disk */
 int arg = 2;
 zip_extract("foo.zip", "/tmp", on_extract_entry, &arg);
 
-// Or from memory
+/* Or from memory */
 arg = 2;
 zip_stream_extract(zipstream, zipstreamsize, "/tmp", on_extract_entry, &arg);
 ```
@@ -261,7 +261,7 @@ void zip_walk(struct zip_t *zip, const char *path) {
     assert(dir);
 
     while ((entry = readdir(dir))) {
-      // skip "." and ".."
+      /* skip "." and ".." */
       if (!strcmp(entry->d_name, ".\0") || !strcmp(entry->d_name, "..\0"))
         continue;
 
@@ -284,14 +284,15 @@ void zip_walk(struct zip_t *zip, const char *path) {
 
 ```c
 char *entries[] = {"unused.txt", "remove.ini", "delete.me"};
-// size_t indices[] = {0, 1, 2};
+/* size_t indices[] = {0, 1, 2}; */
 
 struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 {
     zip_entries_delete(zip, entries, 3);
 
-    // you can also delete by index, instead of by name
-    // zip_entries_deletebyindex(zip, indices, 3);
+    /* you can also delete by index, instead of by name
+     * zip_entries_deletebyindex(zip, indices, 3);
+     */
 }
 zip_close(zip);
 ```

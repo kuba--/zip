@@ -3,6 +3,7 @@
 /xcodeproj/
 /infer-out/
 .vscode/
+.idea/
 Testing/
 
 # Object files
