@@ -6,13 +6,6 @@ project(zip
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include(GNUInstallDirs)
-set(INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}")
-option(NEW_INSTALL_PATH "Include install path" "${INSTALL_PATH}")
-if (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
-    set(INSTALL_PATH "${NEW_INSTALL_PATH}")
-endif (NOT (NEW_INSTALL_PATH STREQUAL INSTALL_PATH))
-
 # Enable building tests only if the project is being built as a standalone one
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     option(CMAKE_DISABLE_TESTING "Disable test creation" OFF)
@@ -27,22 +20,22 @@ option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
 	add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
-endif()
+endif(ZIP_ENABLE_SHARABLE_FILE_OPEN)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
 	# large file support
 	add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
-endif()
+endif(CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 # test
 if (NOT CMAKE_DISABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
-endif()
+endif(NOT CMAKE_DISABLE_TESTING)
 if (CMAKE_ENABLE_SANITIZERS)
   find_package(Sanitizers)
   add_sanitizers(${PROJECT_NAME})
-endif()
+endif(CMAKE_ENABLE_SANITIZERS)
 
 set(CMAKE_C_STANDARD 90)
 add_library("${PROJECT_NAME}_compiler_flags" INTERFACE)
@@ -57,16 +50,15 @@ target_compile_options(
         "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
-####
-
-# fuzz
+########
+# fuzz #
+########
 if (ZIP_BUILD_FUZZ)
   if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
     message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
-  endif()
+  endif(NOT DEFINED ENV{LIB_FUZZING_ENGINE})
   add_subdirectory(fuzz)
-endif()
-###
+endif(ZIP_BUILD_FUZZ)
 
 set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
 
@@ -110,7 +102,7 @@ add_library(${NAMESPACE}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
-endif()
+endif(ZIP_STATIC_PIC)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
 if(BUILD_SHARED_LIBS)
@@ -118,18 +110,18 @@ if(BUILD_SHARED_LIBS)
             PUBLIC ZIP_SHARED
             PRIVATE ZIP_BUILD_SHARED
     )
-endif()
+endif(BUILD_SHARED_LIBS)
 
+include(GNUInstallDirs)
 target_include_directories(${PROJECT_NAME} PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
 )
 
 set_property(TARGET "${PROJECT_NAME}" PROPERTY VERSION "${${PROJECT_NAME}_VERSION}")
 set_property(TARGET "${PROJECT_NAME}" PROPERTY SOVERSION "${${PROJECT_NAME}_VERSION_MAJOR}")
 
-install(FILES ${Header_Files} DESTINATION "${INSTALL_PATH}")
+install(FILES ${Header_Files} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 install(
     FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
@@ -159,7 +151,7 @@ if(NOT TARGET uninstall)
 
     add_custom_target(uninstall
         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
-endif()
+endif(NOT TARGET uninstall)
 
 if(ZIP_BUILD_DOCS)
     find_package(Doxygen REQUIRED)
@@ -168,4 +160,4 @@ if(ZIP_BUILD_DOCS)
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen" VERBATIM)
-endif()
+endif(ZIP_BUILD_DOCS)
