@@ -34,17 +34,17 @@ if (NOT CMAKE_DISABLE_TESTING)
 endif(NOT CMAKE_DISABLE_TESTING)
 if (CMAKE_ENABLE_SANITIZERS)
   find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME})
+  add_sanitizers(${CMAKE_PROJECT_NAME})
 endif(CMAKE_ENABLE_SANITIZERS)
 
 set(CMAKE_C_STANDARD 90)
-add_library("${PROJECT_NAME}_compiler_flags" INTERFACE)
-target_compile_features("${PROJECT_NAME}_compiler_flags" INTERFACE "c_std_${CMAKE_C_STANDARD}")
+add_library("${CMAKE_PROJECT_NAME}_compiler_flags" INTERFACE)
+target_compile_features("${CMAKE_PROJECT_NAME}_compiler_flags" INTERFACE "c_std_${CMAKE_C_STANDARD}")
 
 set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
 set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
 target_compile_options(
-        "${PROJECT_NAME}_compiler_flags"
+        "${CMAKE_PROJECT_NAME}_compiler_flags"
         INTERFACE
         "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
         "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
@@ -60,15 +60,15 @@ if (ZIP_BUILD_FUZZ)
   add_subdirectory(fuzz)
 endif(ZIP_BUILD_FUZZ)
 
-set(CONFIG_INSTALL_DIR "lib/cmake/${PROJECT_NAME}")
+set(CONFIG_INSTALL_DIR "lib/cmake/${CMAKE_PROJECT_NAME}")
 
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 # Configuration
-set(VERSION_CONFIG "${GENERATED_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
-set(PROJECT_CONFIG "${GENERATED_DIR}/${PROJECT_NAME}Config.cmake")
-set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
-set(NAMESPACE "${PROJECT_NAME}::")
+set(VERSION_CONFIG "${GENERATED_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake")
+set(PROJECT_CONFIG "${GENERATED_DIR}/${CMAKE_PROJECT_NAME}Config.cmake")
+set(TARGETS_EXPORT_NAME "${CMAKE_PROJECT_NAME}Targets")
+set(NAMESPACE "${CMAKE_PROJECT_NAME}::")
 
 # Include module with function 'write_basic_package_version_file'
 include(CMakePackageConfigHelpers)
@@ -80,7 +80,7 @@ write_basic_package_version_file(
 
 # Use variables:
 #   * TARGETS_EXPORT_NAME
-#   * PROJECT_NAME
+#   * CMAKE_PROJECT_NAME
 configure_package_config_file(
     "cmake/Config.cmake.in"
     "${PROJECT_CONFIG}"
@@ -94,32 +94,32 @@ source_group("Header Files" FILES "${Header_Files}")
 set(Source_Files "src/zip.c")
 source_group("Source Files" FILES "${Source_Files}")
 
-add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
-target_link_libraries("${PROJECT_NAME}" PUBLIC "${PROJECT_NAME}_compiler_flags")
-set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+add_library(${CMAKE_PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+target_link_libraries("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_PROJECT_NAME}_compiler_flags")
+set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
 
-add_library(${NAMESPACE}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+add_library(${NAMESPACE}::${CMAKE_PROJECT_NAME} ALIAS ${CMAKE_PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
-    set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif(ZIP_STATIC_PIC)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
 if(BUILD_SHARED_LIBS)
-    target_compile_definitions(${PROJECT_NAME}
+    target_compile_definitions(${CMAKE_PROJECT_NAME}
             PUBLIC ZIP_SHARED
             PRIVATE ZIP_BUILD_SHARED
     )
 endif(BUILD_SHARED_LIBS)
 
 include(GNUInstallDirs)
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${CMAKE_PROJECT_NAME}>"
 )
 
-set_property(TARGET "${PROJECT_NAME}" PROPERTY VERSION "${${PROJECT_NAME}_VERSION}")
-set_property(TARGET "${PROJECT_NAME}" PROPERTY SOVERSION "${${PROJECT_NAME}_VERSION_MAJOR}")
+set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY VERSION "${${CMAKE_PROJECT_NAME}_VERSION}")
+set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY SOVERSION "${${CMAKE_PROJECT_NAME}_VERSION_MAJOR}")
 
 install(FILES ${Header_Files} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
@@ -134,7 +134,7 @@ install(
     DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
-install(TARGETS "${PROJECT_NAME}" "${PROJECT_NAME}_compiler_flags"
+install(TARGETS "${CMAKE_PROJECT_NAME}" "${CMAKE_PROJECT_NAME}_compiler_flags"
         EXPORT ${TARGETS_EXPORT_NAME}
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
