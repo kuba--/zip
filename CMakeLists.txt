@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(zip
-        LANGUAGES C
-        VERSION "0.3.0")
+  LANGUAGES C
+  VERSION "0.3.0")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -45,7 +45,6 @@ target_compile_options(
         "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
         "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
-
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
@@ -55,14 +54,15 @@ endif()
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(${PROJECT_NAME}
-            PUBLIC ZIP_SHARED
-            PRIVATE ZIP_BUILD_SHARED
-    )
+    PUBLIC ZIP_SHARED
+    PRIVATE ZIP_BUILD_SHARED
+  )
 endif()
 
+include(GNUInstallDirs)
 target_include_directories(${PROJECT_NAME} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 # test
@@ -76,6 +76,10 @@ if (CMAKE_ENABLE_SANITIZERS)
 endif()
 
 set(CMAKE_C_STANDARD 90)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 
 ####
 
@@ -89,7 +93,6 @@ endif()
 ###
 
 set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-set(CMAKE_INSTALL_INCLUDEDIR "include")
 
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -104,54 +107,54 @@ include(CMakePackageConfigHelpers)
 
 # Note: PROJECT_VERSION is used as a VERSION
 write_basic_package_version_file(
-        "${VERSION_CONFIG}" COMPATIBILITY SameMajorVersion
+    "${VERSION_CONFIG}" COMPATIBILITY SameMajorVersion
 )
 
 # Use variables:
 #   * TARGETS_EXPORT_NAME
 #   * PROJECT_NAME
 configure_package_config_file(
-        "cmake/Config.cmake.in"
-        "${PROJECT_CONFIG}"
-        INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
+    "cmake/Config.cmake.in"
+    "${PROJECT_CONFIG}"
+    INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
 install(
-        FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
-        DESTINATION "${CONFIG_INSTALL_DIR}"
+    FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
+    DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
 install(
-        EXPORT "${TARGETS_EXPORT_NAME}"
-        NAMESPACE "${NAMESPACE}"
-        DESTINATION "${CONFIG_INSTALL_DIR}"
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    NAMESPACE "${NAMESPACE}"
+    DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
 install(TARGETS ${PROJECT_NAME}
         EXPORT ${TARGETS_EXPORT_NAME}
-        RUNTIME DESTINATION bin
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/zip)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
 if(NOT TARGET uninstall)
     configure_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
-            IMMEDIATE @ONLY)
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+        IMMEDIATE @ONLY)
 
     add_custom_target(uninstall
-            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
 endif()
 
 if(ZIP_BUILD_DOCS)
     find_package(Doxygen REQUIRED)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
-            ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen" VERBATIM)
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif()
