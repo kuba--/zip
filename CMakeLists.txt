@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(zip
-  LANGUAGES C
-  VERSION "0.3.0")
+        LANGUAGES C
+        VERSION "0.3.0")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -19,73 +19,13 @@ option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
-	add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
-endif(ZIP_ENABLE_SHARABLE_FILE_OPEN)
+    add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
+endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-	# large file support
-	add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
-endif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-
-# test
-if (NOT CMAKE_DISABLE_TESTING)
-  enable_testing()
-  add_subdirectory(test)
-endif(NOT CMAKE_DISABLE_TESTING)
-if (CMAKE_ENABLE_SANITIZERS)
-  find_package(Sanitizers)
-  add_sanitizers(${CMAKE_PROJECT_NAME})
-endif(CMAKE_ENABLE_SANITIZERS)
-
-set(CMAKE_C_STANDARD 90)
-add_library("${CMAKE_PROJECT_NAME}_compiler_flags" INTERFACE)
-target_compile_features("${CMAKE_PROJECT_NAME}_compiler_flags" INTERFACE "c_std_${CMAKE_C_STANDARD}")
-
-set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
-set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
-target_compile_options(
-        "${CMAKE_PROJECT_NAME}_compiler_flags"
-        INTERFACE
-        "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
-        "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
-)
-
-########
-# fuzz #
-########
-if (ZIP_BUILD_FUZZ)
-  if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-    message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
-  endif(NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-  add_subdirectory(fuzz)
-endif(ZIP_BUILD_FUZZ)
-
-set(CONFIG_INSTALL_DIR "lib/cmake/${CMAKE_PROJECT_NAME}")
-
-set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-
-# Configuration
-set(VERSION_CONFIG "${GENERATED_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake")
-set(PROJECT_CONFIG "${GENERATED_DIR}/${CMAKE_PROJECT_NAME}Config.cmake")
-set(TARGETS_EXPORT_NAME "${CMAKE_PROJECT_NAME}Targets")
-set(NAMESPACE "${CMAKE_PROJECT_NAME}::")
-
-# Include module with function 'write_basic_package_version_file'
-include(CMakePackageConfigHelpers)
-
-# Note: PROJECT_VERSION is used as a VERSION
-write_basic_package_version_file(
-    "${VERSION_CONFIG}" COMPATIBILITY SameMajorVersion
-)
-
-# Use variables:
-#   * TARGETS_EXPORT_NAME
-#   * CMAKE_PROJECT_NAME
-configure_package_config_file(
-    "cmake/Config.cmake.in"
-    "${PROJECT_CONFIG}"
-    INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
-)
+    # large file support
+    add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
+endif()
 
 # zip
 set(Header_Files "src/miniz.h" "src/zip.h")
@@ -94,70 +34,124 @@ source_group("Header Files" FILES "${Header_Files}")
 set(Source_Files "src/zip.c")
 source_group("Source Files" FILES "${Source_Files}")
 
-add_library(${CMAKE_PROJECT_NAME} "${Header_Files}" "${Source_Files}")
-target_link_libraries("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_PROJECT_NAME}_compiler_flags")
-set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+add_library(${PROJECT_NAME} "${Header_Files}" "${Source_Files}")
+set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
 
-add_library(${NAMESPACE}::${CMAKE_PROJECT_NAME} ALIAS ${CMAKE_PROJECT_NAME})
+set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
+target_compile_options(
+        "${PROJECT_NAME}"
+        INTERFACE
+        "$<${gcc_like}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wshadow;-Wformat=2;-Wunused;-Wno-long-long;-pedantic>>"
+        "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+)
+
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
-    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
-endif(ZIP_STATIC_PIC)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
 
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
 if(BUILD_SHARED_LIBS)
-    target_compile_definitions(${CMAKE_PROJECT_NAME}
+    target_compile_definitions(${PROJECT_NAME}
             PUBLIC ZIP_SHARED
             PRIVATE ZIP_BUILD_SHARED
     )
-endif(BUILD_SHARED_LIBS)
+endif()
 
-include(GNUInstallDirs)
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>"
+target_include_directories(${PROJECT_NAME} PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY VERSION "${${CMAKE_PROJECT_NAME}_VERSION}")
-set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY SOVERSION "${${CMAKE_PROJECT_NAME}_VERSION_MAJOR}")
+# test
+if (NOT CMAKE_DISABLE_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif()
+if (CMAKE_ENABLE_SANITIZERS)
+    find_package(Sanitizers)
+    add_sanitizers(${PROJECT_NAME})
+endif()
 
-install(FILES ${Header_Files} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+set(CMAKE_C_STANDARD 90)
 
-install(
-    FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
-    DESTINATION "${CONFIG_INSTALL_DIR}"
+####
+
+# fuzz
+if (ZIP_BUILD_FUZZ)
+    if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
+        message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
+    endif()
+    add_subdirectory(fuzz)
+endif()
+###
+
+set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+set(CMAKE_INSTALL_INCLUDEDIR "include")
+
+set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# Configuration
+set(VERSION_CONFIG "${GENERATED_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+set(PROJECT_CONFIG "${GENERATED_DIR}/${PROJECT_NAME}Config.cmake")
+set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+set(NAMESPACE "${PROJECT_NAME}::")
+
+# Include module with function 'write_basic_package_version_file'
+include(CMakePackageConfigHelpers)
+
+# Note: PROJECT_VERSION is used as a VERSION
+write_basic_package_version_file(
+        "${VERSION_CONFIG}" COMPATIBILITY SameMajorVersion
+)
+
+# Use variables:
+#   * TARGETS_EXPORT_NAME
+#   * PROJECT_NAME
+configure_package_config_file(
+        "cmake/Config.cmake.in"
+        "${PROJECT_CONFIG}"
+        INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
 install(
-    EXPORT "${TARGETS_EXPORT_NAME}"
-    NAMESPACE "${NAMESPACE}"
-    DESTINATION "${CONFIG_INSTALL_DIR}"
+        FILES "${PROJECT_CONFIG}" "${VERSION_CONFIG}"
+        DESTINATION "${CONFIG_INSTALL_DIR}"
 )
 
-install(TARGETS "${CMAKE_PROJECT_NAME}" "${CMAKE_PROJECT_NAME}_compiler_flags"
+install(
+        EXPORT "${TARGETS_EXPORT_NAME}"
+        NAMESPACE "${NAMESPACE}"
+        DESTINATION "${CONFIG_INSTALL_DIR}"
+)
+
+install(TARGETS ${PROJECT_NAME}
         EXPORT ${TARGETS_EXPORT_NAME}
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        RUNTIME DESTINATION bin
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/zip)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)
 if(NOT TARGET uninstall)
     configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
-        IMMEDIATE @ONLY)
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+            IMMEDIATE @ONLY)
 
     add_custom_target(uninstall
-        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
-endif(NOT TARGET uninstall)
+            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
+endif()
 
 if(ZIP_BUILD_DOCS)
     find_package(Doxygen REQUIRED)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
-        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen" VERBATIM)
-endif(ZIP_BUILD_DOCS)
+            ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif()
