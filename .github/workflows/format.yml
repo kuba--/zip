@@ -1,0 +1,32 @@
+name: clang-format
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - '.'
+          - 'src'
+          - 'test'
+          - 'fuzz'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # check out HEAD on the branch
+          ref: ${{ github.head_ref }}
+          # make sure the parent commit is grabbed as well, because
+          # that's what will get formatted (i.e. the most recent commit)
+          fetch-depth: 2
+      # format the latest commit
+      - uses: jidicula/clang-format-action@v4.15.0
+        with:
+          clang-format-version: '20'
+          check-path: ${{ matrix.path }}
+          fallback-style: 'LLVM'
+
