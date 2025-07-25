@@ -52,6 +52,7 @@ set_target_properties(
         VISIBILITY_INLINES_HIDDEN ON
         C_STANDARD 90
 )
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME kubazip)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)

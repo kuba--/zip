@@ -28,11 +28,10 @@
     defined(__CYGWIN__)
 
 #ifdef ZIP_IMPLEMENTATION
-# define ZIP_EXPORT __declspec(dllexport)
+#define ZIP_EXPORT __declspec(dllexport)
 #else
-# define ZIP_EXPORT __declspec(dllimport)
+#define ZIP_EXPORT __declspec(dllimport)
 #endif
-
 
 #elif defined(__SUNPRO_C)
 #define ZIP_EXPORT __global
@@ -46,9 +45,9 @@
     defined(__CYGWIN__)
 
 #ifdef ZIP_IMPLEMENTATION
-# define ZIP_EXPORT __declspec(dllexport)
+#define ZIP_EXPORT __declspec(dllexport)
 #else
-# define ZIP_EXPORT __declspec(dllimport)
+#define ZIP_EXPORT __declspec(dllimport)
 #endif
 
 #elif defined(__SUNPRO_C)

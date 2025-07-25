@@ -101,11 +101,7 @@ struct zip_t {
   struct zip_entry_t entry;
 };
 
-enum zip_modify_t {
-  MZ_KEEP = 0,
-  MZ_DELETE = 1,
-  MZ_MOVE = 2
-};
+enum zip_modify_t { MZ_KEEP = 0, MZ_DELETE = 1, MZ_MOVE = 2 };
 
 struct zip_entry_mark_t {
   ssize_t file_index;
@@ -616,17 +612,17 @@ static int zip_entry_finalize(struct zip_t *zip,
   }
 
   {
-    size_t *length = (size_t *) calloc(n, sizeof(size_t));
+    size_t *length = (size_t *)calloc(n, sizeof(size_t));
     if (!length) {
       CLEANUP(local_header_ofs_array);
       return ZIP_EOOMEM;
     }
     for (i = 0; i < n - 1; i++) {
       length[i] =
-          (size_t) (local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
+          (size_t)(local_header_ofs_array[i + 1] - local_header_ofs_array[i]);
     }
     length[n - 1] =
-        (size_t) (zip->archive.m_archive_size - local_header_ofs_array[n - 1]);
+        (size_t)(zip->archive.m_archive_size - local_header_ofs_array[n - 1]);
 
     for (i = 0; i < n; i++) {
       entry_mark[i].lf_length = length[entry_mark[i].file_index];
@@ -919,7 +915,7 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
         }
         {
           mz_uint32 offset = MZ_READ_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS);
-          offset -= (mz_uint32) deleted_length;
+          offset -= (mz_uint32)deleted_length;
           MZ_WRITE_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS, offset);
         }
         i++;
@@ -1694,7 +1690,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   }
 
   {
-    mz_uint8 *writebuf = (mz_uint8 *) buf;
+    mz_uint8 *writebuf = (mz_uint8 *)buf;
     size_t file_offset = 0;
     size_t write_cursor = 0;
     size_t to_read = size;
@@ -1702,7 +1698,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
     /* iterate until the requested offset is in range */
     while (file_offset < zip->entry.uncomp_size && to_read > 0) {
       size_t nread = mz_zip_reader_extract_iter_read(
-        iter, (void *) &writebuf[write_cursor], to_read);
+          iter, (void *)&writebuf[write_cursor], to_read);
 
       if (nread == 0)
         break;
@@ -1730,7 +1726,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
     }
 
     mz_zip_reader_extract_iter_free(iter);
-    return (ssize_t) write_cursor;
+    return (ssize_t)write_cursor;
   }
 }
 
