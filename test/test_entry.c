@@ -224,7 +224,8 @@ MU_TEST(test_list_entries) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
 
-  int i = 0, n = zip_entries_total(zip);
+  int i = 0;
+  int n = zip_entries_total(zip);
   for (; i < n; ++i) {
     mu_assert_int_eq(0, zip_entry_openbyindex(zip, i));
     fprintf(stdout, "[%d]: %s", i, zip_entry_name(zip));
@@ -395,7 +396,8 @@ MU_TEST(test_entry_offset) {
   mu_check(zip != NULL);
 
   unsigned long long off = 0ULL;
-  int i = 0, n = zip_entries_total(zip);
+  int i = 0;
+  int n = zip_entries_total(zip);
   for (; i < n; i++) {
     mu_assert_int_eq(0, zip_entry_openbyindex(zip, i));
     mu_assert_int_eq(i, zip_entry_index(zip));

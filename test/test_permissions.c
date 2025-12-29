@@ -144,7 +144,7 @@ MU_TEST(test_mtime) {
   const char *filename = "test.data";
   FILE *stream = NULL;
   struct zip_t *zip = NULL;
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
   if (0 != fopen_s(&stream, filename, "w+"))
 #else
   if (!(stream = fopen(filename, "w+")))

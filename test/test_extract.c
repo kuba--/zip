@@ -121,7 +121,7 @@ MU_TEST(test_extract_stream) {
   fprintf(stdout, "zip_stream_extract: %s\n", zip_strerror(ZIP_ENOINIT));
 
   FILE *fp = NULL;
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
   if (0 != fopen_s(&fp, ZIPNAME, "rb+"))
 #else
   if (!(fp = fopen(ZIPNAME, "rb+")))

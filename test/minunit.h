@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #include <Windows.h>
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
@@ -216,7 +216,7 @@ static void (*minunit_teardown)(void) = NULL;
  * between two calls to this function.
  */
 static double mu_timer_real(void) {
-#if defined(_WIN32)
+#ifdef _WIN32
   /* Windows 2000 and later. ---------------------------------- */
   LARGE_INTEGER Time;
   LARGE_INTEGER Frequency;
@@ -289,7 +289,7 @@ static double mu_timer_real(void) {
  * in seconds, or -1.0 if an error occurred.
  */
 static double mu_timer_cpu(void) {
-#if defined(_WIN32)
+#ifdef _WIN32
   /* Windows -------------------------------------------------- */
   FILETIME createTime;
   FILETIME exitTime;
@@ -332,7 +332,7 @@ static double mu_timer_cpu(void) {
   }
 #endif
 
-#if defined(RUSAGE_SELF)
+#ifdef RUSAGE_SELF
   {
     struct rusage rusage;
     if (getrusage(RUSAGE_SELF, &rusage) != -1)
@@ -341,7 +341,7 @@ static double mu_timer_cpu(void) {
   }
 #endif
 
-#if defined(_SC_CLK_TCK)
+#ifdef _SC_CLK_TCK
   {
     const double ticks = (double)sysconf(_SC_CLK_TCK);
     struct tms tms;
@@ -350,7 +350,7 @@ static double mu_timer_cpu(void) {
   }
 #endif
 
-#if defined(CLOCKS_PER_SEC)
+#ifdef CLOCKS_PER_SEC
   {
     clock_t cl = clock();
     if (cl != (clock_t)-1)
