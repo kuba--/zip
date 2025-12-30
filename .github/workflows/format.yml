@@ -11,10 +11,10 @@ jobs:
     strategy:
       matrix:
         path:
-          - '.'
-          - 'src'
-          - 'test'
-          - 'fuzz'
+          - "."
+          - "src"
+          - "test"
+          - "fuzz"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -26,7 +26,6 @@ jobs:
       # format the latest commit
       - uses: jidicula/clang-format-action@v4.15.0
         with:
-          clang-format-version: '20'
+          clang-format-version: "21"
           check-path: ${{ matrix.path }}
-          fallback-style: 'LLVM'
-
+          fallback-style: "LLVM"

@@ -947,6 +947,7 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
 struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
                                 int *errnum) {
   struct zip_t *zip = NULL;
+  mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
   *errnum = 0;
 
   if (!zipname || strlen(zipname) < 1) {
@@ -974,16 +975,17 @@ struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
   zip->entry.index = -1;
   switch (mode) {
   case 'w':
+  case ('w' - 64): {
     // Create a new archive.
-    if (!mz_zip_writer_init_file_v2(&(zip->archive), zipname, 0,
-                                    MZ_ZIP_FLAG_WRITE_ZIP64)) {
+    if (!mz_zip_writer_init_file_v2(&(zip->archive), zipname, 0, wflags)) {
       // Cannot initialize zip_archive writer
       *errnum = ZIP_EWINIT;
       goto cleanup;
     }
-    break;
+  } break;
 
   case 'r':
+  case ('r' - 64): {
     if (!mz_zip_reader_init_file_v2(
             &(zip->archive), zipname,
             zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY, 0, 0)) {
@@ -992,10 +994,12 @@ struct zip_t *zip_openwitherror(const char *zipname, int level, char mode,
       *errnum = ZIP_ERINIT;
       goto cleanup;
     }
-    break;
+  } break;
 
   case 'a':
-  case 'd': {
+  case 'd':
+  case ('a' - 64):
+  case ('d' - 64): {
     MZ_FILE *fp = MZ_FOPEN(zipname, "r+b");
     if (!fp) {
       *errnum = ZIP_EOPNFILE;
@@ -1912,6 +1916,7 @@ struct zip_t *zip_stream_open(const char *stream, size_t size, int level,
 
 struct zip_t *zip_stream_openwitherror(const char *stream, size_t size,
                                        int level, char mode, int *errnum) {
+  mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
   struct zip_t *zip = (struct zip_t *)calloc((size_t)1, sizeof(struct zip_t));
   if (!zip) {
     // out of memory
@@ -1929,19 +1934,34 @@ struct zip_t *zip_stream_openwitherror(const char *stream, size_t size,
   }
   zip->level = (mz_uint)level;
 
-  if ((stream != NULL) && (size > 0) && (mode == 'r')) {
-    if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
-      *errnum = ZIP_ERINIT;
+  switch (mode) {
+  case 'r':
+  case ('r' - 64): {
+    if (stream && size > 0) {
+      if (!mz_zip_reader_init_mem(&(zip->archive), stream, size, 0)) {
+        *errnum = ZIP_ERINIT;
+        goto cleanup;
+      }
+    } else {
+      *errnum = ZIP_EINVMODE;
       goto cleanup;
     }
-  } else if ((stream == NULL) && (size == 0) && (mode == 'w')) {
-    // Create a new archive.
-    if (!mz_zip_writer_init_heap(&(zip->archive), 0, 1024)) {
-      // Cannot initialize zip_archive writer
-      *errnum = ZIP_EWINIT;
+  } break;
+
+  case 'w':
+  case ('w' - 64): {
+    if (stream == NULL && size == 0) {
+      if (!mz_zip_writer_init_heap_v2(&(zip->archive), 0, 1024, wflags)) {
+        *errnum = ZIP_EWINIT;
+        goto cleanup;
+      }
+    } else {
+      *errnum = ZIP_EINVMODE;
       goto cleanup;
     }
-  } else {
+  } break;
+
+  default:
     *errnum = ZIP_EINVMODE;
     goto cleanup;
   }
@@ -1988,6 +2008,7 @@ struct zip_t *zip_cstream_open(FILE *stream, int level, char mode) {
 
 struct zip_t *zip_cstream_openwitherror(FILE *stream, int level, char mode,
                                         int *errnum) {
+  mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
   struct zip_t *zip = NULL;
   *errnum = 0;
   if (!stream) {
@@ -2014,15 +2035,16 @@ struct zip_t *zip_cstream_openwitherror(FILE *stream, int level, char mode,
   zip->level = (mz_uint)level;
   switch (mode) {
   case 'w':
+  case ('w' - 64): {
     // Create a new archive.
-    if (!mz_zip_writer_init_cfile(&(zip->archive), stream,
-                                  MZ_ZIP_FLAG_WRITE_ZIP64)) {
+    if (!mz_zip_writer_init_cfile(&(zip->archive), stream, wflags)) {
       // Cannot initialize zip_archive writer
       *errnum = ZIP_EWINIT;
       goto cleanup;
     }
-    break;
+  } break;
 
+  case ('r' - 64):
   case 'r':
     if (!mz_zip_reader_init_cfile(
             &(zip->archive), stream, 0,
@@ -2034,8 +2056,10 @@ struct zip_t *zip_cstream_openwitherror(FILE *stream, int level, char mode,
     }
     break;
 
+  case ('a' - 64):
+  case ('d' - 64):
   case 'a':
-  case 'd':
+  case 'd': {
     if (!mz_zip_reader_init_cfile(
             &(zip->archive), stream, 0,
             zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
@@ -2044,14 +2068,12 @@ struct zip_t *zip_cstream_openwitherror(FILE *stream, int level, char mode,
       *errnum = ZIP_ERINIT;
       goto cleanup;
     }
-    if ((mode == 'a' || mode == 'd')) {
-      if (!mz_zip_writer_init_from_reader_v2(&(zip->archive), NULL, 0)) {
-        *errnum = ZIP_EWRINIT;
-        mz_zip_reader_end(&(zip->archive));
-        goto cleanup;
-      }
+    if (!mz_zip_writer_init_from_reader_v2(&(zip->archive), NULL, 0)) {
+      *errnum = ZIP_EWRINIT;
+      mz_zip_reader_end(&(zip->archive));
+      goto cleanup;
     }
-    break;
+  } break;
 
   default:
     *errnum = ZIP_EINVMODE;
@@ -2074,6 +2096,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   struct MZ_FILE_STAT_STRUCT file_stat;
   mz_uint32 ext_attributes = 0;
   mz_uint16 modes;
+  mz_uint flags = MZ_ZIP_FLAG_WRITE_ZIP64;
 
   if (!zipname || strlen(zipname) < 1) {
     // zip_t archive name is empty or NULL
@@ -2086,7 +2109,7 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
     return ZIP_EMEMSET;
   }
 
-  if (!mz_zip_writer_init_file(&zip_archive, zipname, 0)) {
+  if (!mz_zip_writer_init_file_v2(&zip_archive, zipname, 0, flags)) {
     // Cannot initialize zip_archive writer
     return ZIP_ENOINIT;
   }
@@ -2164,10 +2187,56 @@ int zip_extract(const char *zipname, const char *dir,
   }
 
   // Now try to open the archive.
-  if (!mz_zip_reader_init_file(&zip_archive, zipname, 0)) {
+  if (!mz_zip_reader_init_file_v2(&zip_archive, zipname, 0, 0, 0)) {
     // Cannot initialize zip_archive reader
     return ZIP_ENOINIT;
   }
 
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
+
+/* Open a zip archive with ZIP64 support explicitly disabled in the mode.
+ * This wrapper delegates to the public API, clearing any ZIP64-related flag
+ * from the mode parameter before calling zip_openwitherror. It does not add
+ * any additional ZIP64 or file-size validation beyond what the underlying
+ * API functions already perform.
+ */
+struct zip_t *zip_no64_openwitherror(const char *zipname, int level, char mode,
+                                     int *errnum) {
+  return zip_openwitherror(zipname, level, (mode - 64), errnum);
+}
+
+struct zip_t *zip_no64_open(const char *zipname, int level, char mode) {
+  int err = 0;
+  return zip_no64_openwitherror(zipname, level, mode, &err);
+}
+
+void zip_no64_close(struct zip_t *zip) { zip_close(zip); }
+
+extern ZIP_EXPORT struct zip_t *
+zip_no64_stream_openwitherror(const char *stream, size_t size, int level,
+                              char mode, int *errnum) {
+  return zip_stream_openwitherror(stream, size, level, (mode - 64), errnum);
+}
+
+extern ZIP_EXPORT struct zip_t *
+zip_no64_stream_open(const char *stream, size_t size, int level, char mode) {
+  int err = 0;
+  return zip_no64_stream_openwitherror(stream, size, level, mode, &err);
+}
+
+extern ZIP_EXPORT void zip_no64_stream_close(struct zip_t *zip) {
+  zip_stream_close(zip);
+}
+
+struct zip_t *zip_no64_cstream_openwitherror(FILE *stream, int level, char mode,
+                                             int *errnum) {
+  return zip_cstream_openwitherror(stream, level, (mode - 64), errnum);
+}
+
+struct zip_t *zip_no64_cstream_open(FILE *stream, int level, char mode) {
+  int errnum = 0;
+  return zip_no64_cstream_openwitherror(stream, level, mode, &errnum);
+}
+
+void zip_no64_cstream_close(struct zip_t *zip) { zip_cstream_close(zip); }
