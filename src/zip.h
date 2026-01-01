@@ -612,63 +612,6 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                                           void *arg),
                                   void *arg);
 
-/**
- * Open zip archive in a no-ZIP64 mode.
- *
- * This function mirrors `zip_open`/`zip_openwitherror` semantics but is
- * stricter about ZIP64.
- *
- * @param zipname path to the archive file
- * @param level compression level (same semantics as `zip_open`)
- * @param mode 'r', 'w', 'a', 'd' same semantics as `zip_open`
- * @return pointer to zip handler or NULL on error
- */
-extern ZIP_EXPORT struct zip_t *zip_no64_open(const char *zipname, int level,
-                                              char mode);
-
-/**
- * Open zip archive in a no-ZIP64 mode and return an error code on failure.
- *
- * Same semantics as `zip_no64_open`, but returns more details via `errnum`.
- *
- * @param zipname path to the archive file
- * @param level compression level (same semantics as `zip_open`)
- * @param mode 'r', 'w', 'a', 'd' same semantics as `zip_open`
- * @param errnum pointer filled with 0 on success or a negative error code
- *               (use `zip_strerror` to obtain human readable message).
- *               In particular, `ZIP_ENOSUP64` is returned if ZIP64 is found
- *               or required.
- * @return pointer to zip handler or NULL on error
- */
-extern ZIP_EXPORT struct zip_t *
-zip_no64_openwitherror(const char *zipname, int level, char mode, int *errnum);
-
-/**
- * Close archive opened by `zip_no64_open*`.
- *
- * This is provided for API symmetry; behavior matches `zip_close`.
- *
- * @param zip handler obtained from `zip_no64_open*`
- */
-extern ZIP_EXPORT void zip_no64_close(struct zip_t *zip);
-
-extern ZIP_EXPORT struct zip_t *
-zip_no64_stream_open(const char *stream, size_t size, int level, char mode);
-
-extern ZIP_EXPORT struct zip_t *
-zip_no64_stream_openwitherror(const char *stream, size_t size, int level,
-                              char mode, int *errnum);
-
-extern ZIP_EXPORT void zip_no64_stream_close(struct zip_t *zip);
-
-extern ZIP_EXPORT struct zip_t *
-zip_no64_cstream_openwitherror(FILE *stream, int level, char mode, int *errnum);
-
-extern ZIP_EXPORT struct zip_t *zip_no64_cstream_open(FILE *stream, int level,
-                                                      char mode);
-
-extern ZIP_EXPORT void zip_no64_cstream_close(struct zip_t *zip);
-
 /** @} */
 #ifdef __cplusplus
 }
