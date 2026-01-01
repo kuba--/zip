@@ -29,7 +29,6 @@ endif()
 
 # zip
 set(SRC src/miniz.h src/zip.h src/zip.c)
-
 add_library(${PROJECT_NAME} ${SRC})
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
@@ -130,6 +129,7 @@ install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION lib
         INCLUDES DESTINATION ${INCLUDE_INSTALL_DIR}
 )
+
 install(FILES ${PROJECT_SOURCE_DIR}/src/zip.h DESTINATION ${INCLUDE_INSTALL_DIR}/zip)
 
 # uninstall target (https://gitlab.kitware.com/cmake/community/wikis/FAQ#can-i-do-make-uninstall-with-cmake)

@@ -3,6 +3,7 @@
 /xcodeproj/
 /infer-out/
 .vscode/
+.cache/
 Testing/
 
 # Object files
@@ -57,4 +58,3 @@ zip.dir/
 test/test.exe.vcxproj.filters
 test/test.exe.vcxproj
 test/test.exe.dir/
-
