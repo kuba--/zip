@@ -672,6 +672,23 @@ data = zip.zip_stream_copy(z)
 zip.zip_close(z)
 ```
 
+### No ZIP64
+
+By default, opening an archive for writing with the literal mode character `'w'` will enable ZIP64 output. 
+Internally the library sets a write flag when the mode equals the literal `'w'`:
+
+```zip/src/zip.c#L948-956
+mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
+```
+
+To ensure the produced ZIP archive is _NOT ZIP64_, use the alternate mode value that selects the same semantic mode but does not compare equal to the literal `'w'`. 
+The implementation accepts an alternate value in the switch labels (so the same behavior is selected), but only the literal `'w'` triggers the automatic ZIP64 flag.
+
+Convention:
+- Use `'w' - 64` (integer value 55) when calling `zip_open`, `zip_stream_open`, etc., to select write mode without enabling ZIP64.
+- The same pattern applies to other modes: use `'r' - 64`, `'a' - 64`, `'d' - 64` to pick the non-ZIP64 variants.
+
+
 ### Check out more cool projects which use this library
 
 * [Filament](https://github.com/google/filament): Filament is a real-time physically based rendering engine for Android, iOS, Linux, macOS, Windows, and WebGL. It is designed to be as small as possible and as efficient as possible on Android.

@@ -6,69 +6,69 @@ jobs:
   ubuntu:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Tools
-      run: sudo apt-get -y install tree ninja-build
-    - name: Configure
-      run: |
-        cmake -DSANITIZE_ADDRESS=On -S . -B build -GNinja
-    - name: Build
-      run: |
-        cmake --build build
-        tree -sha build
-    - name: CTest
-      run: |
-        cd build
-        ctest -VV -C "Debug" --output-on-failure
-    - name: Test
-      run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 cmake --build build --target test
+      - uses: actions/checkout@v2
+      - name: Tools
+        run: sudo apt-get -y install tree ninja-build
+      - name: Configure
+        run: |
+          cmake -DSANITIZE_ADDRESS=ON  -S . -B build -GNinja
+      - name: Build
+        run: |
+          cmake --build build
+          tree -sha build
+      - name: CTest
+        run: |
+          cd build
+          ctest -VV -C "Debug" --output-on-failure
+      - name: Test
+        run: ASAN_OPTIONS=detect_leaks=0 LSAN_OPTIONS=verbosity=1:log_threads=1 cmake --build build --target test
 
   macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Tools
-      run: brew install tree ninja
-    - name: Configure
-      run: |
-        cmake -DSANITIZE_ADDRESS=On -S . -B build -GNinja
-    - name: Build
-      run: |
-        cmake --build build
-        tree -sha build
-    - name: CTest
-      run: |
-        cd build
-        ctest -VV -C "Debug" --output-on-failure
-    - name: Test
-      run: cmake --build build --target test
+      - uses: actions/checkout@v2
+      - name: Tools
+        run: brew install tree ninja
+      - name: Configure
+        run: |
+          cmake -DSANITIZE_ADDRESS=ON -S . -B build -GNinja
+      - name: Build
+        run: |
+          cmake --build build
+          tree -sha build
+      - name: CTest
+        run: |
+          cd build
+          ctest -VV -C "Debug" --output-on-failure
+      - name: Test
+        run: cmake --build build --target test
 
   windows-msvc:
     runs-on: "windows-latest"
     steps:
-    - uses: actions/checkout@v2
-    - name: Configure
-      run:  cmake -S . -B build
-    - name: Build
-      run: |
-        cmake --build build  --config "Debug"
-        tree /a /f build
-    - name: Test
-      run: |
-        cd build
-        ctest -VV -C "Debug"
+      - uses: actions/checkout@v2
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: |
+          cmake --build build  --config "Debug"
+          tree /a /f build
+      - name: Test
+        run: |
+          cd build
+          ctest -VV -C "Debug"
 
   windows-mingw:
     runs-on: "windows-latest"
     steps:
-    - uses: actions/checkout@v2
-    - name: Configure
-      run:  cmake -S . -B build -G "MinGW Makefiles"
-    - name: Build
-      run: |
-        cmake --build build
-        tree /a /f build
-    - name: Test
-      run: |
-        cd build
-        ctest -VV -C "Debug" --output-on-failure
+      - uses: actions/checkout@v2
+      - name: Configure
+        run: cmake -S . -B build -G "MinGW Makefiles"
+      - name: Build
+        run: |
+          cmake --build build
+          tree /a /f build
+      - name: Test
+        run: |
+          cd build
+          ctest -VV -C "Debug" --output-on-failure

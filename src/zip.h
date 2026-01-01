@@ -611,6 +611,7 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                   int (*on_extract_entry)(const char *filename,
                                                           void *arg),
                                   void *arg);
+
 /** @} */
 #ifdef __cplusplus
 }
