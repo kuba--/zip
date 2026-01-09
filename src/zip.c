@@ -114,7 +114,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
-static const char *const zip_errlist[35] = {
+static const char *const zip_errlist[36] = {
     NULL,
     "not initialized\0",
     "invalid entry name\0",
@@ -150,11 +150,12 @@ static const char *const zip_errlist[35] = {
     "cannot initialize writer from reader\0",
     "invalid argument\0",
     "cannot initialize reader iterator\0",
+    "check dir error - path exists but is not directory\0",
 };
 
 const char *zip_strerror(int errnum) {
   errnum = -errnum;
-  if (errnum <= 0 || errnum >= 33) {
+  if (errnum <= 0 || errnum >= 36) {
     return NULL;
   }
 
@@ -180,38 +181,50 @@ static const char *zip_basename(const char *name) {
   return base;
 }
 
-static int zip_mkpath(char *path) {
+static int zip_mkpath(char *path, size_t pos) {
   char *p;
   char npath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
-  int len = 0;
-  int has_device = HAS_DEVICE(path);
+  size_t len = pos;
+  struct MZ_FILE_STAT_STRUCT st;
 
   memset(npath, 0, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1);
-  if (has_device) {
-    // only on windows
-    npath[0] = path[0];
-    npath[1] = path[1];
-    len = 2;
+  strncpy(npath, path, len);
+
+  if (MZ_FILE_STAT(npath, &st) < 0) {
+    return ZIP_ENOFILE;
   }
+
   for (p = path + len; *p && len < MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE; p++) {
-    if (ISSLASH(*p) && ((!has_device && len > 0) || (has_device && len > 2))) {
+    if (ISSLASH(*p)) {
 #if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
     defined(__MINGW32__)
-#else
-      if ('\\' == *p) {
-        *p = '/';
-      }
-#endif
-
       if (MZ_MKDIR(npath) == -1) {
         if (errno != EEXIST) {
           return ZIP_EMKDIR;
         }
       }
+#else
+      if ('\\' == *p) {
+        *p = '/';
+      }
+
+      if (lstat(npath, &st) < 0) {
+        if (MZ_MKDIR(npath) == -1) {
+          if (errno != EEXIST) {
+            return ZIP_EMKDIR;
+          }
+        }
+      } else {
+        if (!S_ISDIR(st.st_mode)) {
+          return ZIP_ECHKDIR;
+        } else {
+          // OK - DIR EXISTS
+        }
+      }
+#endif
     }
     npath[len++] = *p;
   }
-
   return 0;
 }
 
@@ -373,7 +386,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #else
     strncpy(&path[dirlen], info.m_filename, filename_size);
 #endif
-    err = zip_mkpath(path);
+
+    err = zip_mkpath(path, dirlen);
     if (err < 0) {
       // Cannot make a path
       goto out;
