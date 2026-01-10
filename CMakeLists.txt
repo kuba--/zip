@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(zip
   LANGUAGES C
-  VERSION "0.3.0")
+  VERSION "0.3.6")
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -19,12 +19,12 @@ option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
-	add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
+    add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-	# large file support
-	add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
+    # large file support
+    add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
 endif()
 
 # zip
@@ -33,12 +33,12 @@ add_library(${PROJECT_NAME} ${SRC})
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 if(ZIP_STATIC_PIC)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_VISIBILITY_PRESET hidden)
 if(BUILD_SHARED_LIBS)
-  target_compile_definitions(${PROJECT_NAME}
+    target_compile_definitions(${PROJECT_NAME}
     PUBLIC ZIP_SHARED
     PRIVATE ZIP_BUILD_SHARED
   )
@@ -51,35 +51,35 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # test
 if (NOT CMAKE_DISABLE_TESTING)
-  enable_testing()
-  add_subdirectory(test)
+    enable_testing()
+    add_subdirectory(test)
 endif()
 if (CMAKE_ENABLE_SANITIZERS)
-  find_package(Sanitizers)
-  add_sanitizers(${PROJECT_NAME})
+    find_package(Sanitizers)
+    add_sanitizers(${PROJECT_NAME})
 endif()
 
 set(CMAKE_C_STANDARD 90)
 if (MSVC)
-  # Use secure functions by default and suppress warnings about "deprecated" functions
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
+    # Use secure functions by default and suppress warnings about "deprecated" functions
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_NONSTDC_NO_WARNINGS=1 /D _CRT_SECURE_NO_WARNINGS=1")
 
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR
         "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic -Wno-implicit-function-declaration")
 endif (MSVC)
 
 ####
 
 # fuzz
 if (ZIP_BUILD_FUZZ)
-  if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-    message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
-  endif()
-  add_subdirectory(fuzz)
+    if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
+        message(FATAL_ERROR "LIB_FUZZING_ENGINE is not defined")
+    endif()
+    add_subdirectory(fuzz)
 endif()
 ###
 

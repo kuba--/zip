@@ -114,7 +114,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
-static const char *const zip_errlist[36] = {
+static const char *const zip_errlist[ZIP_NERRORS] = {
     NULL,
     "not initialized\0",
     "invalid entry name\0",
@@ -150,12 +150,12 @@ static const char *const zip_errlist[36] = {
     "cannot initialize writer from reader\0",
     "invalid argument\0",
     "cannot initialize reader iterator\0",
-    "check dir error - path exists but is not directory\0",
+    "check dir error: path exists but is not directory\0",
 };
 
 const char *zip_strerror(int errnum) {
   errnum = -errnum;
-  if (errnum <= 0 || errnum >= 36) {
+  if (errnum <= 0 || errnum >= ZIP_NERRORS) {
     return NULL;
   }
 
