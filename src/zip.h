@@ -99,6 +99,7 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EINVAL -33      // invalid argument
 #define ZIP_ENORITER -34    // cannot initialize reader iterator
 #define ZIP_ECHKDIR -35     // check dir error path exists but is not directory
+#define ZIP_NERRORS 36      /** number of error codes **/
 
 /**
  * Looks up the error message string corresponding to an error number.
