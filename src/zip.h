@@ -98,6 +98,7 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EWRINIT -32     // cannot initialize writer from reader
 #define ZIP_EINVAL -33      // invalid argument
 #define ZIP_ENORITER -34    // cannot initialize reader iterator
+#define ZIP_ECHKDIR -35     // check dir error path exists but is not directory
 
 /**
  * Looks up the error message string corresponding to an error number.
