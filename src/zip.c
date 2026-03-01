@@ -2124,11 +2124,18 @@ void zip_cstream_close(struct zip_t *zip) { zip_close(zip); }
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int err = 0;
   size_t i;
-  struct zip_t *zip = zip_open(zipname, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-  if (!zip) {
+  int open_err = 0;
+  struct zip_t *zip;
+
+  if (!zipname || !*zipname) {
     return ZIP_EINVZIPNAME;
   }
 
+  zip =
+      zip_openwitherror(zipname, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', &open_err);
+  if (!zip) {
+    return open_err;
+  }
   for (i = 0; i < len; ++i) {
     const char *name = filenames[i];
     if (!name) {

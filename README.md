@@ -1,6 +1,6 @@
 ## A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
 
-This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v3.0.2 API.
+This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v3.1.1 API.
 
 [![Build](https://github.com/kuba--/zip/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/kuba--/zip/actions/workflows/build.yml)
 
@@ -412,7 +412,7 @@ module Zip
   attach_function :zip_entry_write, [:pointer, :string, :int], :int
 end
 
-ptr = Zip.zip_open("/tmp/ruby.zip", 6, "w".bytes()[0])
+ptr = Zip.zip_open("/tmp/ruby.zip", 6, "w" )
 
 status = Zip.zip_entry_open(ptr, "test")
 
@@ -445,7 +445,8 @@ ffi.cdef("""
     int zip_entry_open(struct zip_t *zip, const char *entryname);
     int zip_entry_close(struct zip_t *zip);
     int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize);
-""")
+"""
+)
 
 Zip = ffi.dlopen(ctypes.util.find_library("zip"))
 
@@ -561,7 +562,7 @@ main :: proc() {
     zip_entry_open(zip_file, "test")
     defer zip_entry_close(zip_file)
 
-    content := "test content"
+    content := "test content";
     zip_entry_write(zip_file, &content, len(content))
 }
 ```
@@ -585,7 +586,7 @@ when isMainModule:
 
   discard zip_entry_open(zip, "test")
 
-  let content: cstring = "test content"
+  let content: cstring = "test content";
   discard zip_entry_write(zip, content, csize_t(len(content)))
 
   discard zip_entry_close(zip)
@@ -674,20 +675,19 @@ zip.zip_close(z)
 
 ### No ZIP64
 
-By default, opening an archive for writing with the literal mode character `'w'` will enable ZIP64 output. 
-Internally the library sets a write flag when the mode equals the literal `'w'`:
+By default, opening an archive for writing with the literal mode character 'w' will enable ZIP64 output. 
+Internally the library sets a write flag when the mode equals the literal 'w':
 
 ```zip/src/zip.c#L948-956
 mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
 ```
 
-To ensure the produced ZIP archive is _NOT ZIP64_, use the alternate mode value that selects the same semantic mode but does not compare equal to the literal `'w'`. 
-The implementation accepts an alternate value in the switch labels (so the same behavior is selected), but only the literal `'w'` triggers the automatic ZIP64 flag.
+To ensure the produced ZIP archive is _NOT ZIP64_, use the alternate mode value that selects the same semantic mode but does not compare equal to the literal 'w'. 
+The implementation accepts an alternate value in the switch labels (so the same behavior is selected), but only the literal 'w' triggers the automatic ZIP64 flag.
 
 Convention:
-- Use `'w' - 64` (integer value 55) when calling `zip_open`, `zip_stream_open`, etc., to select write mode without enabling ZIP64.
-- The same pattern applies to other modes: use `'r' - 64`, `'a' - 64`, `'d' - 64` to pick the non-ZIP64 variants.
-
+- Use 'w' - 64 (integer value 55) when calling zip_open, zip_stream_open, etc., to select write mode without enabling ZIP64.
+- The same pattern applies to other modes: use 'r' - 64, 'a' - 64, 'd' - 64 to pick the non-ZIP64 variants.
 
 ### Check out more cool projects which use this library
 

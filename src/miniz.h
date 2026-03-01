@@ -595,7 +595,7 @@ typedef void (*free_func)(void *opaque, void *address);
 #define z_stream mz_stream
 
 #ifndef MINIZ_NO_DEFLATE_APIS
-/* Compatiblity with zlib API. See called functions for documentation */
+/* Compatibility with zlib API. See called functions for documentation */
 static MZ_FORCEINLINE int deflateInit(mz_streamp pStream, int level) {
   return mz_deflateInit(pStream, level);
 }
@@ -634,7 +634,7 @@ static MZ_FORCEINLINE mz_ulong compressBound(mz_ulong source_len) {
 #endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
 
 #ifndef MINIZ_NO_INFLATE_APIS
-/* Compatiblity with zlib API. See called functions for documentation */
+/* Compatibility with zlib API. See called functions for documentation */
 static MZ_FORCEINLINE int inflateInit(mz_streamp pStream) {
   return mz_inflateInit(pStream);
 }
@@ -1732,8 +1732,8 @@ MINIZ_EXPORT mz_bool mz_zip_writer_init_heap_v2(
 
 #ifndef MINIZ_NO_STDIO
 MINIZ_EXPORT
-    mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename,
-                                    mz_uint64 size_to_reserve_at_beginning);
+mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename,
+                                mz_uint64 size_to_reserve_at_beginning);
 MINIZ_EXPORT mz_bool mz_zip_writer_init_file_v2(
     mz_zip_archive *pZip, const char *pFilename,
     mz_uint64 size_to_reserve_at_beginning, mz_uint flags);
