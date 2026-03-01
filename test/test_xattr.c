@@ -178,8 +178,7 @@ MU_TEST(test_xattr_stream_roundtrip) {
 
   remove(TMPFILE1);
 
-  mu_assert_int_eq(0,
-                   zip_stream_extract(outbuf, outbufsize, ".", NULL, NULL));
+  mu_assert_int_eq(0, zip_stream_extract(outbuf, outbufsize, ".", NULL, NULL));
 
   mu_assert_int_eq(0, MZ_FILE_STAT(TMPFILE1, &st));
   mu_assert_int_eq(0100711, st.st_mode);
