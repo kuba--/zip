@@ -2124,26 +2124,10 @@ void zip_cstream_close(struct zip_t *zip) { zip_close(zip); }
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int err = 0;
   size_t i;
-  mz_zip_archive zip_archive;
-  struct MZ_FILE_STAT_STRUCT file_stat;
-  mz_uint32 ext_attributes = 0;
-  mz_uint16 modes;
-  mz_uint flags = MZ_ZIP_FLAG_WRITE_ZIP64;
-
-  if (!zipname || strlen(zipname) < 1) {
-    // zip_t archive name is empty or NULL
+  struct zip_t *zip = zip_open(zipname, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  if (!zip) {
     return ZIP_EINVZIPNAME;
   }
-
-  // Create a new archive.
-  memset(&(zip_archive), 0, sizeof(zip_archive));
-
-  if (!mz_zip_writer_init_file_v2(&zip_archive, zipname, 0, flags)) {
-    // Cannot initialize zip_archive writer
-    return ZIP_ENOINIT;
-  }
-
-  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
 
   for (i = 0; i < len; ++i) {
     const char *name = filenames[i];
@@ -2152,50 +2136,24 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
       break;
     }
 
-    if (MZ_FILE_STAT(name, &file_stat) != 0) {
-      // problem getting information - check errno
-      err = ZIP_ENOFILE;
+    err = zip_entry_open(zip, zip_basename(name));
+    if (err) {
       break;
     }
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(DJGPP)
-    (void)modes; // unused
-#else
-
-    /* Initialize with permission bits--which are not implementation-optional */
-    modes = file_stat.st_mode &
-            (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX);
-    if (S_ISDIR(file_stat.st_mode))
-      modes |= UNX_IFDIR;
-    if (S_ISREG(file_stat.st_mode))
-      modes |= UNX_IFREG;
-    if (S_ISLNK(file_stat.st_mode))
-      modes |= UNX_IFLNK;
-    if (S_ISBLK(file_stat.st_mode))
-      modes |= UNX_IFBLK;
-    if (S_ISCHR(file_stat.st_mode))
-      modes |= UNX_IFCHR;
-    if (S_ISFIFO(file_stat.st_mode))
-      modes |= UNX_IFIFO;
-    if (S_ISSOCK(file_stat.st_mode))
-      modes |= UNX_IFSOCK;
-    ext_attributes = (modes << 16) | !(file_stat.st_mode & S_IWUSR);
-    if ((file_stat.st_mode & S_IFMT) == S_IFDIR) {
-      ext_attributes |= MZ_ZIP_DOS_DIR_ATTRIBUTE_BITFLAG;
+    err = zip_entry_fwrite(zip, name);
+    if (err) {
+      zip_entry_close(zip);
+      break;
     }
-#endif
 
-    if (!mz_zip_writer_add_file(&zip_archive, zip_basename(name), name, "", 0,
-                                ZIP_DEFAULT_COMPRESSION_LEVEL,
-                                ext_attributes)) {
-      // Cannot add file to zip_archive
-      err = ZIP_ENOFILE;
+    err = zip_entry_close(zip);
+    if (err) {
       break;
     }
   }
 
-  mz_zip_writer_finalize_archive(&zip_archive);
-  mz_zip_writer_end(&zip_archive);
+  zip_close(zip);
   return err;
 }
 
