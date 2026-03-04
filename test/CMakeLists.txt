@@ -70,6 +70,12 @@ target_link_libraries(${test_offset_out} zip)
 add_test(NAME ${test_offset_out} COMMAND ${test_offset_out})
 add_sanitizers(${test_offset_out})
 
+set(test_xattr_out test_xattr.out)
+add_executable(${test_xattr_out} test_xattr.c)
+target_link_libraries(${test_xattr_out} zip)
+add_test(NAME ${test_xattr_out} COMMAND ${test_xattr_out})
+add_sanitizers(${test_xattr_out})
+
 set(test_data test_data.out)
 add_executable(${test_data} test_data.c)
 target_link_libraries(${test_data} zip)
