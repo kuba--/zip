@@ -79,6 +79,45 @@
 #define UNX_IFCHR 0020000  /* Unix character special   (not Amiga) */
 #define UNX_IFIFO 0010000  /* Unix fifo    (BCC, not MSC or Amiga) */
 
+/*
+ * Write function for in-memory delete mode. Behaves identically to
+ * mz_zip_heap_write_func but has a distinct address so
+ * mz_zip_writer_end_internal won't free m_pMem (it only frees when
+ * m_pWrite == mz_zip_heap_write_func). This lets the caller retain
+ * ownership of the buffer passed to zip_stream_open.
+ */
+static size_t zip_stream_delete_write_func(void *pOpaque, mz_uint64 file_ofs,
+                                           const void *pBuf, size_t n) {
+  mz_zip_archive *pZip = (mz_zip_archive *)pOpaque;
+  mz_zip_internal_state *pState = pZip->m_pState;
+  mz_uint64 new_size = MZ_MAX(file_ofs + n, pState->m_mem_size);
+
+  if (!n)
+    return 0;
+
+  if ((sizeof(size_t) == sizeof(mz_uint32)) && (new_size > 0x7FFFFFFF)) {
+    mz_zip_set_error(pZip, MZ_ZIP_FILE_TOO_LARGE);
+    return 0;
+  }
+
+  if (new_size > pState->m_mem_capacity) {
+    void *pNew_block;
+    size_t new_capacity = MZ_MAX(64, pState->m_mem_capacity);
+    while (new_capacity < new_size)
+      new_capacity *= 2;
+    if (NULL == (pNew_block = pZip->m_pRealloc(
+                     pZip->m_pAlloc_opaque, pState->m_pMem, 1, new_capacity))) {
+      mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);
+      return 0;
+    }
+    pState->m_pMem = pNew_block;
+    pState->m_mem_capacity = new_capacity;
+  }
+  memcpy((mz_uint8 *)pState->m_pMem + file_ofs, pBuf, n);
+  pState->m_mem_size = (size_t)new_size;
+  return n;
+}
+
 struct zip_entry_t {
   ssize_t index;
   char *name;
@@ -1963,6 +2002,27 @@ struct zip_t *zip_stream_openwitherror(const char *stream, size_t size,
         *errnum = ZIP_ERINIT;
         goto cleanup;
       }
+    } else {
+      *errnum = ZIP_EINVMODE;
+      goto cleanup;
+    }
+  } break;
+
+  case 'd':
+  case ('d' - 64): {
+    if (stream && size > 0) {
+      if (!mz_zip_reader_init_mem(
+              &(zip->archive), stream, size,
+              zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+        *errnum = ZIP_ERINIT;
+        goto cleanup;
+      }
+      if (!mz_zip_writer_init_from_reader_v2(&(zip->archive), NULL, 0)) {
+        *errnum = ZIP_EWRINIT;
+        mz_zip_reader_end(&(zip->archive));
+        goto cleanup;
+      }
+      zip->archive.m_pWrite = zip_stream_delete_write_func;
     } else {
       *errnum = ZIP_EINVMODE;
       goto cleanup;

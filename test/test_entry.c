@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <zip.h>
 
@@ -390,6 +391,281 @@ MU_TEST(test_entries_delete) {
   zip_close(zip);
 }
 
+MU_TEST(test_entries_delete_stream) {
+  char *entries[] = {"delete.me", "_", "delete/file.1", "deleteme/file.3",
+                     "delete/file.2"};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(5, zip_entries_delete(zip, entries, 5));
+
+  void *modified_zdata = NULL;
+  size_t modified_zsize = 0;
+  ssize_t copy_size = zip_stream_copy(zip, &modified_zdata, &modified_zsize);
+  mu_check(copy_size > 0);
+  mu_check(modified_zdata != NULL);
+  mu_check(modified_zsize > 0);
+
+  zip_stream_close(zip);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)modified_zdata, modified_zsize, 0, 'r');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete.me"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "_"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.1"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "deleteme/file.3"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete/file.2"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(total_entries - 5, zip_entries_total(zip));
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "delete/file.4"));
+
+  size_t buftmp = 0;
+  char *buf = NULL;
+  ssize_t bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
+
+  mu_assert_int_eq(bufsize, strlen(TESTDATA2));
+  mu_assert_int_eq((size_t)bufsize, buftmp);
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, bufsize));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  free(buf);
+  buf = NULL;
+
+  zip_stream_close(zip);
+  free(modified_zdata);
+}
+
+MU_TEST(test_entries_deletebyindex_stream) {
+  size_t entries[] = {5, 6, 7, 9, 8};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(5, zip_entries_deletebyindex(zip, entries, 5));
+
+  void *modified_zdata = NULL;
+  size_t modified_zsize = 0;
+  ssize_t copy_size = zip_stream_copy(zip, &modified_zdata, &modified_zsize);
+  mu_check(copy_size > 0);
+
+  zip_stream_close(zip);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)modified_zdata, modified_zsize, 0, 'r');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "delete.me"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  mu_assert_int_eq(total_entries - 5, zip_entries_total(zip));
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "delete/file.4"));
+  size_t buftmp = 0;
+  char *buf = NULL;
+  ssize_t bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);
+  mu_assert_int_eq(bufsize, strlen(TESTDATA2));
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2, bufsize));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  free(buf);
+  zip_stream_close(zip);
+  free(modified_zdata);
+}
+
+MU_TEST(test_entries_deleteinvalid_stream) {
+  size_t entries[] = {111, 222, 333, 444};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(0, zip_entries_deletebyindex(zip, entries, 4));
+
+  void *modified_zdata = NULL;
+  size_t modified_zsize = 0;
+  ssize_t copy_size = zip_stream_copy(zip, &modified_zdata, &modified_zsize);
+  mu_check(copy_size > 0);
+
+  zip_stream_close(zip);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)modified_zdata, modified_zsize, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(total_entries, zip_entries_total(zip));
+
+  zip_stream_close(zip);
+  free(modified_zdata);
+}
+
+MU_TEST(test_entries_delete_stream_noclose_copy) {
+  char *entries[] = {"delete.me", "_"};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(2, zip_entries_delete(zip, entries, 2));
+
+  zip_stream_close(zip);
+  free(zdata);
+}
+
+MU_TEST(test_entries_delete_stream_open_close) {
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  zip_stream_close(zip);
+  free(zdata);
+}
+
+MU_TEST(test_entries_delete_stream_all) {
+  char *entries[] = {"test/test-1.txt",
+                     "test/test-2.txt",
+                     "test/empty/",
+                     "empty/",
+                     "dotfiles/.test",
+                     "delete.me",
+                     "_",
+                     "delete/file.1",
+                     "delete/file.2",
+                     "deleteme/file.3",
+                     "delete/file.4"};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(total_entries,
+                   zip_entries_delete(zip, entries, total_entries));
+
+  void *modified_zdata = NULL;
+  size_t modified_zsize = 0;
+  ssize_t copy_size = zip_stream_copy(zip, &modified_zdata, &modified_zsize);
+  mu_check(copy_size > 0);
+
+  zip_stream_close(zip);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)modified_zdata, modified_zsize, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entries_total(zip));
+
+  zip_stream_close(zip);
+  free(modified_zdata);
+}
+
+MU_TEST(test_entries_delete_stream_multi_copy) {
+  char *entries[] = {"delete.me"};
+
+  FILE *fh = fopen(ZIPNAME, "rb");
+  mu_check(fh != NULL);
+  fseek(fh, 0, SEEK_END);
+  size_t zsize = (size_t)ftell(fh);
+  rewind(fh);
+
+  char *zdata = (char *)malloc(zsize);
+  mu_check(zdata != NULL);
+  mu_check(fread(zdata, 1, zsize, fh) == zsize);
+  fclose(fh);
+
+  struct zip_t *zip = zip_stream_open(zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(1, zip_entries_delete(zip, entries, 1));
+
+  void *copy1 = NULL;
+  size_t size1 = 0;
+  void *copy2 = NULL;
+  size_t size2 = 0;
+  ssize_t n1 = zip_stream_copy(zip, &copy1, &size1);
+  ssize_t n2 = zip_stream_copy(zip, &copy2, &size2);
+  mu_check(n1 > 0);
+  mu_check(n2 > 0);
+  mu_assert_int_eq(size1, size2);
+  mu_assert_int_eq(0, memcmp(copy1, copy2, size1));
+
+  zip_stream_close(zip);
+  free(zdata);
+  free(copy1);
+  free(copy2);
+}
+
 MU_TEST(test_entry_offset) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
@@ -427,6 +703,13 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete);
+  MU_RUN_TEST(test_entries_delete_stream);
+  MU_RUN_TEST(test_entries_deletebyindex_stream);
+  MU_RUN_TEST(test_entries_deleteinvalid_stream);
+  MU_RUN_TEST(test_entries_delete_stream_noclose_copy);
+  MU_RUN_TEST(test_entries_delete_stream_open_close);
+  MU_RUN_TEST(test_entries_delete_stream_all);
+  MU_RUN_TEST(test_entries_delete_stream_multi_copy);
   MU_RUN_TEST(test_entry_offset);
 }
 
