@@ -490,7 +490,6 @@ zip_stream_extract(const char *stream, size_t size, const char *dir,
  * @param mode file access mode.
  *        - 'r': opens a file for reading/extracting (the file must exists).
  *        - 'w': creates an empty file for writing.
- *        - 'a': appends to an existing archive.
  *        - 'd': deletes entries from an existing archive. The caller
  *               retains ownership of the stream buffer. Use
  *               zip_stream_copy() to obtain the modified archive.
@@ -510,7 +509,6 @@ extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
  * @param mode file access mode.
  *        - 'r': opens a file for reading/extracting (the file must exists).
  *        - 'w': creates an empty file for writing.
- *        - 'a': appends to an existing archive.
  *        - 'd': deletes entries from an existing archive. The caller
  *               retains ownership of the stream buffer. Use
  *               zip_stream_copy() to obtain the modified archive.
