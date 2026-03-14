@@ -189,7 +189,7 @@ zip_stream_close(zip);
 free(outbuf);
 ```
 
-* Extract a zip entry into a memory (stream API).
+* Extract a zip entry into memory (stream API).
 
 ```c
 char *buf = NULL;
@@ -225,8 +225,6 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
     zip_entry_close(zip);
 }
 zip_close(zip);
-
-free(buf);
 ```
 
 * List of all zip entries
@@ -795,19 +793,19 @@ Or define before including the header:
 
 ### No ZIP64
 
-By default, opening an archive for writing with the literal mode character 'w' will enable ZIP64 output. 
-Internally the library sets a write flag when the mode equals the literal 'w':
+By default, opening an archive for writing with the literal mode character `'w'` will enable ZIP64 output.
+Internally the library sets a write flag when the mode equals the literal `'w'`:
 
-```zip/src/zip.c#L948-956
+```c
 mz_uint wflags = (mode == 'w') ? MZ_ZIP_FLAG_WRITE_ZIP64 : 0;
 ```
 
-To ensure the produced ZIP archive is _NOT ZIP64_, use the alternate mode value that selects the same semantic mode but does not compare equal to the literal 'w'. 
-The implementation accepts an alternate value in the switch labels (so the same behavior is selected), but only the literal 'w' triggers the automatic ZIP64 flag.
+To ensure the produced ZIP archive is _NOT ZIP64_, use the alternate mode value that selects the same semantic mode but does not compare equal to the literal `'w'`.
+The implementation accepts an alternate value in the switch labels (so the same behavior is selected), but only the literal `'w'` triggers the automatic ZIP64 flag.
 
 Convention:
-- Use 'w' - 64 (integer value 55) when calling zip_open, zip_stream_open, etc., to select write mode without enabling ZIP64.
-- The same pattern applies to other modes: use 'r' - 64, 'a' - 64, 'd' - 64 to pick the non-ZIP64 variants.
+- Use `'w' - 64` (integer value 55) when calling `zip_open`, `zip_stream_open`, etc., to select write mode without enabling ZIP64.
+- The same pattern applies to other modes: use `'r' - 64`, `'a' - 64`, `'d' - 64` to pick the non-ZIP64 variants.
 
 ### Check out more cool projects which use this library
 
