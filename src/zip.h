@@ -99,7 +99,8 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_EINVAL -33      // invalid argument
 #define ZIP_ENORITER -34    // cannot initialize reader iterator
 #define ZIP_ECHKDIR -35     // check dir error path exists but is not directory
-#define ZIP_NERRORS 36      /** number of error codes **/
+#define ZIP_EPASSWD -36     // wrong password or password required
+#define ZIP_NERRORS 37      /** number of error codes **/
 
 /**
  * Looks up the error message string corresponding to an error number.
@@ -148,6 +149,38 @@ extern ZIP_EXPORT struct zip_t *zip_open(const char *zipname, int level,
  */
 extern ZIP_EXPORT struct zip_t *
 zip_openwitherror(const char *zipname, int level, char mode, int *errnum);
+
+/**
+ * Opens zip archive with a password for encryption/decryption using
+ * Traditional PKWARE Encryption.
+ *
+ * @param zipname zip archive file name.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode ('r', 'w', 'a').
+ * @param password the password for encryption (write) or decryption (read).
+ *        Pass NULL for no encryption.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *zip_open_with_password(const char *zipname,
+                                                       int level, char mode,
+                                                       const char *password);
+
+/**
+ * Opens zip archive with a password, additionally returning an error code.
+ *
+ * @param zipname zip archive file name.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode ('r', 'w', 'a').
+ * @param password the password for encryption (write) or decryption (read).
+ *        Pass NULL for no encryption.
+ * @param errnum 0 on success, negative number (< 0) on error.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *
+zip_open_with_password_and_error(const char *zipname, int level, char mode,
+                                 const char *password, int *errnum);
 
 /**
  * Closes the zip archive, releases resources - always finalize.
@@ -498,6 +531,21 @@ zip_stream_extract(const char *stream, size_t size, const char *dir,
  */
 extern ZIP_EXPORT struct zip_t *zip_stream_open(const char *stream, size_t size,
                                                 int level, char mode);
+
+/**
+ * Opens zip archive stream into memory with a password.
+ *
+ * @param stream zip archive stream.
+ * @param size stream size.
+ * @param level compression level (0-9 are the standard zlib-style levels).
+ * @param mode file access mode ('r', 'w', 'd').
+ * @param password the password for encryption/decryption. Pass NULL for none.
+ *
+ * @return the zip archive handler or NULL on error
+ */
+extern ZIP_EXPORT struct zip_t *
+zip_stream_open_with_password(const char *stream, size_t size, int level,
+                              char mode, const char *password);
 
 /**
  * Opens zip archive stream into memory.
