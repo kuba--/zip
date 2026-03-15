@@ -17,6 +17,7 @@ option(CMAKE_ENABLE_SANITIZERS "Enable zip sanitizers" OFF)
 option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
+option(ZIP_BUILD_TOOLS "Build command-line tools (zipcli, unzipcli)" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
     add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
@@ -73,6 +74,19 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
 endif (MSVC)
 
 ####
+
+# tools
+if (ZIP_BUILD_TOOLS)
+    add_executable(zipcli cmd/zipcli.c)
+    target_link_libraries(zipcli ${PROJECT_NAME})
+    set_target_properties(zipcli PROPERTIES C_STANDARD 99)
+
+    add_executable(unzipcli cmd/unzipcli.c)
+    target_link_libraries(unzipcli ${PROJECT_NAME})
+    set_target_properties(unzipcli PROPERTIES C_STANDARD 99)
+
+    install(TARGETS zipcli unzipcli RUNTIME DESTINATION bin)
+endif()
 
 # fuzz
 if (ZIP_BUILD_FUZZ)

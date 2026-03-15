@@ -76,6 +76,12 @@ target_link_libraries(${test_xattr_out} zip)
 add_test(NAME ${test_xattr_out} COMMAND ${test_xattr_out})
 add_sanitizers(${test_xattr_out})
 
+set(test_password_out test_password.out)
+add_executable(${test_password_out} test_password.c)
+target_link_libraries(${test_password_out} zip)
+add_test(NAME ${test_password_out} COMMAND ${test_password_out})
+add_sanitizers(${test_password_out})
+
 set(test_data test_data.out)
 add_executable(${test_data} test_data.c)
 target_link_libraries(${test_data} zip)

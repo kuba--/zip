@@ -296,6 +296,89 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'd');
 zip_close(zip);
 ```
 
+* Create a password-protected zip archive (Traditional PKWARE Encryption).
+
+```c
+struct zip_t *zip = zip_open_with_password("secret.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', "password");
+{
+    zip_entry_open(zip, "secret-1.txt");
+    {
+        const char *buf = "Classified data...\0";
+        zip_entry_write(zip, buf, strlen(buf));
+    }
+    zip_entry_close(zip);
+}
+zip_close(zip);
+```
+
+* Extract a password-protected zip archive.
+
+```c
+void *buf = NULL;
+size_t bufsize;
+
+struct zip_t *zip = zip_open_with_password("secret.zip", 0, 'r', "password");
+{
+    zip_entry_open(zip, "secret-1.txt");
+    {
+        zip_entry_read(zip, &buf, &bufsize);
+    }
+    zip_entry_close(zip);
+}
+zip_close(zip);
+
+free(buf);
+```
+
+* Password-protected archive in memory (stream API).
+
+```c
+char *outbuf = NULL;
+size_t outbufsize = 0;
+
+struct zip_t *zip = zip_stream_open_with_password(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', "password");
+{
+    zip_entry_open(zip, "secret-1.txt");
+    {
+        const char *buf = "Classified data...\0";
+        zip_entry_write(zip, buf, strlen(buf));
+    }
+    zip_entry_close(zip);
+
+    zip_stream_copy(zip, (void **)&outbuf, &outbufsize);
+}
+zip_stream_close(zip);
+
+/* read it back */
+void *readbuf = NULL;
+size_t readsize = 0;
+
+zip = zip_stream_open_with_password(outbuf, outbufsize, 0, 'r', "password");
+{
+    zip_entry_open(zip, "secret-1.txt");
+    {
+        zip_entry_read(zip, &readbuf, &readsize);
+    }
+    zip_entry_close(zip);
+}
+zip_stream_close(zip);
+
+free(readbuf);
+free(outbuf);
+```
+
+* Delete entries from a password-protected archive.
+
+```c
+char *entries[] = {"obsolete.txt", "remove-me.dat"};
+
+struct zip_t *zip = zip_open_with_password("secret.zip", 0, 'd', "password");
+{
+    zip_entries_delete(zip, entries, 2);
+}
+zip_close(zip);
+```
+
 ### Bindings
 
 Compile zip library as a dynamic library.
