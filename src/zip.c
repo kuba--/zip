@@ -136,6 +136,8 @@ struct zip_pkware_keys_t {
   mz_uint32 key2;
 };
 
+#if ZIP_ENABLE_INFLATE || ZIP_ENABLE_DEFLATE
+
 /* Resets PKWARE cipher keys to their initial values (0x12345678, etc.). */
 static void zip_pkware_keys_init(struct zip_pkware_keys_t *keys) {
   keys->key0 = 305419896;
@@ -178,6 +180,7 @@ static void zip_pkware_keys_init_password(struct zip_pkware_keys_t *keys,
   }
 }
 
+#if ZIP_ENABLE_DEFLATE
 /* Encrypts a single plaintext byte and advances the cipher state. */
 static mz_uint8 zip_pkware_encrypt_byte(struct zip_pkware_keys_t *keys,
                                         mz_uint8 c) {
@@ -186,6 +189,7 @@ static mz_uint8 zip_pkware_encrypt_byte(struct zip_pkware_keys_t *keys,
   zip_pkware_keys_update(keys, c);
   return enc;
 }
+#endif /* ZIP_ENABLE_DEFLATE */
 
 /* Decrypts a single ciphertext byte and advances the cipher state. */
 static mz_uint8 zip_pkware_decrypt(struct zip_pkware_keys_t *keys, mz_uint8 c) {
@@ -195,6 +199,9 @@ static mz_uint8 zip_pkware_decrypt(struct zip_pkware_keys_t *keys, mz_uint8 c) {
   return dec;
 }
 
+#endif /* ZIP_ENABLE_INFLATE || ZIP_ENABLE_DEFLATE */
+
+#if ZIP_ENABLE_DEFLATE
 /*
  * Callback state passed to tdefl for encrypting compressed output on the fly.
  * Wraps the normal mz_zip_writer_add_state with a reference to the active
@@ -204,6 +211,7 @@ struct zip_encrypt_put_buf_state_t {
   mz_zip_writer_add_state *inner_state;
   struct zip_pkware_keys_t *keys;
 };
+#endif
 
 struct zip_entry_t {
   ssize_t index;
@@ -222,8 +230,10 @@ struct zip_entry_t {
   mz_uint32 external_attr;
   time_t m_time;
   struct zip_pkware_keys_t enc_keys;
+#if ZIP_ENABLE_DEFLATE
   struct zip_encrypt_put_buf_state_t enc_state;
   mz_uint64 enc_header_ofs;
+#endif
 };
 
 struct zip_t {
@@ -246,6 +256,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
+#if ZIP_ENABLE_DEFLATE
 /*
  * tdefl output callback that encrypts each compressed chunk before writing
  * it to the archive.  Used in place of mz_zip_writer_add_put_buf_callback
@@ -282,6 +293,7 @@ static mz_bool zip_encrypt_put_buf_callback(const void *pBuf, int len,
   free(enc_buf);
   return MZ_TRUE;
 }
+#endif /* ZIP_ENABLE_DEFLATE */
 
 static const char *const zip_errlist[ZIP_NERRORS] = {
     NULL,
@@ -1146,6 +1158,8 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   return (ssize_t)deleted_entry_num;
 }
 
+#endif /* ZIP_ENABLE_DEFLATE */
+
 static char *zip_password_clone(const char *password) {
   char *p;
   size_t len;
@@ -1162,8 +1176,6 @@ static char *zip_password_clone(const char *password) {
   }
   return p;
 }
-
-#endif /* ZIP_ENABLE_DEFLATE */
 
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
   int errnum = 0;
