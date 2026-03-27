@@ -1,5 +1,8 @@
 name: build
 
+permissions:
+  contents: read
+
 on: [push, pull_request]
 
 jobs:
@@ -72,3 +75,31 @@ jobs:
         run: |
           cd build
           ctest -VV -C "Debug" --output-on-failure
+
+  compile-flags:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: no-inflate
+            flags: -DZIP_ENABLE_INFLATE=OFF
+          - name: no-deflate
+            flags: -DZIP_ENABLE_DEFLATE=OFF
+          - name: no-symlink
+            flags: -DZIP_HAVE_SYMLINK=OFF
+          - name: no-inflate-no-deflate
+            flags: -DZIP_ENABLE_INFLATE=OFF -DZIP_ENABLE_DEFLATE=OFF
+          - name: no-inflate-no-symlink
+            flags: -DZIP_ENABLE_INFLATE=OFF -DZIP_HAVE_SYMLINK=OFF
+          - name: no-deflate-no-symlink
+            flags: -DZIP_ENABLE_DEFLATE=OFF -DZIP_HAVE_SYMLINK=OFF
+          - name: all-disabled
+            flags: -DZIP_ENABLE_INFLATE=OFF -DZIP_ENABLE_DEFLATE=OFF -DZIP_HAVE_SYMLINK=OFF
+    name: compile-flags (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure
+        run: cmake -DCMAKE_DISABLE_TESTING=ON ${{ matrix.flags }} -S . -B build
+      - name: Build
+        run: cmake --build build
