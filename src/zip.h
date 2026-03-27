@@ -31,6 +31,32 @@
 #endif
 #endif
 
+/**
+ * Optional feature flags. All features are enabled by default.
+ * Define these to 0 before including zip.h (or via compiler flags) to disable.
+ *
+ * ZIP_ENABLE_INFLATE  - Enable decompression / extraction support.
+ * ZIP_ENABLE_DEFLATE  - Enable compression / archive creation support.
+ * ZIP_HAVE_SYMLINK    - Enable symlink support during extraction.
+ *                       When disabled, symlinks are extracted as regular files.
+ */
+#ifndef ZIP_ENABLE_INFLATE
+#define ZIP_ENABLE_INFLATE 1
+#endif
+
+#ifndef ZIP_ENABLE_DEFLATE
+#define ZIP_ENABLE_DEFLATE 1
+#endif
+
+#ifndef ZIP_HAVE_SYMLINK
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW32__)
+#define ZIP_HAVE_SYMLINK 0
+#else
+#define ZIP_HAVE_SYMLINK 1
+#endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -351,6 +377,8 @@ extern ZIP_EXPORT unsigned long long zip_entry_dir_offset(struct zip_t *zip);
  */
 extern ZIP_EXPORT unsigned long long zip_entry_header_offset(struct zip_t *zip);
 
+#if ZIP_ENABLE_DEFLATE
+
 /**
  * Compresses an input buffer for the current zip entry.
  *
@@ -372,6 +400,10 @@ extern ZIP_EXPORT int zip_entry_write(struct zip_t *zip, const void *buf,
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
 extern ZIP_EXPORT int zip_entry_fwrite(struct zip_t *zip, const char *filename);
+
+#endif /* ZIP_ENABLE_DEFLATE */
+
+#if ZIP_ENABLE_INFLATE
 
 /**
  * Extracts the current zip entry into output buffer.
@@ -458,6 +490,8 @@ zip_entry_extract(struct zip_t *zip,
                                        const void *data, size_t size),
                   void *arg);
 
+#endif /* ZIP_ENABLE_INFLATE */
+
 /**
  * Returns the number of all entries (files and directories) in the zip
  * archive.
@@ -468,6 +502,8 @@ zip_entry_extract(struct zip_t *zip,
  *         (< 0) on error.
  */
 extern ZIP_EXPORT ssize_t zip_entries_total(struct zip_t *zip);
+
+#if ZIP_ENABLE_DEFLATE
 
 /**
  * Deletes zip archive entries.
@@ -492,6 +528,10 @@ extern ZIP_EXPORT ssize_t zip_entries_deletebyindex(struct zip_t *zip,
                                                     size_t entries[],
                                                     size_t len);
 
+#endif /* ZIP_ENABLE_DEFLATE */
+
+#if ZIP_ENABLE_INFLATE
+
 /**
  * Extracts a zip archive stream into directory.
  *
@@ -513,6 +553,8 @@ extern ZIP_EXPORT int
 zip_stream_extract(const char *stream, size_t size, const char *dir,
                    int (*on_extract)(const char *filename, void *arg),
                    void *arg);
+
+#endif /* ZIP_ENABLE_INFLATE */
 
 /**
  * Opens zip archive stream into memory.
@@ -633,6 +675,8 @@ zip_cstream_openwitherror(FILE *stream, int level, char mode, int *errnum);
  */
 extern ZIP_EXPORT void zip_cstream_close(struct zip_t *zip);
 
+#if ZIP_ENABLE_DEFLATE
+
 /**
  * Creates a new archive and puts files into a single zip archive.
  *
@@ -644,6 +688,10 @@ extern ZIP_EXPORT void zip_cstream_close(struct zip_t *zip);
  */
 extern ZIP_EXPORT int zip_create(const char *zipname, const char *filenames[],
                                  size_t len);
+
+#endif /* ZIP_ENABLE_DEFLATE */
+
+#if ZIP_ENABLE_INFLATE
 
 /**
  * Extracts a zip archive file into directory.
@@ -665,6 +713,8 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                   int (*on_extract_entry)(const char *filename,
                                                           void *arg),
                                   void *arg);
+
+#endif /* ZIP_ENABLE_INFLATE */
 
 /** @} */
 #ifdef __cplusplus

@@ -18,10 +18,14 @@ option(ZIP_STATIC_PIC "Build static zip with PIC" ON)
 option(ZIP_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 option(ZIP_BUILD_FUZZ "Build fuzz targets" OFF)
 option(ZIP_BUILD_TOOLS "Build command-line tools (zipcli, unzipcli)" OFF)
+option(ZIP_ENABLE_INFLATE "Enable decompression / extraction support" ON)
+option(ZIP_ENABLE_DEFLATE "Enable compression / archive creation support" ON)
+option(ZIP_HAVE_SYMLINK "Enable symlink support during extraction" ON)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
     add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
 endif()
+
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     # large file support
@@ -49,6 +53,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:include>
 )
+
+if(NOT ZIP_ENABLE_INFLATE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ZIP_ENABLE_INFLATE=0)
+endif()
+if(NOT ZIP_ENABLE_DEFLATE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ZIP_ENABLE_DEFLATE=0)
+endif()
+if(NOT ZIP_HAVE_SYMLINK)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ZIP_HAVE_SYMLINK=0)
+endif()
 
 # test
 if (NOT CMAKE_DISABLE_TESTING)
