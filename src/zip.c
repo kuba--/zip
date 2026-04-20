@@ -23,12 +23,6 @@
    (P)[1] == ':')
 #define FILESYSTEM_PREFIX_LEN(P) (HAS_DEVICE(P) ? 2 : 0)
 
-#else
-
-#if ZIP_HAVE_SYMLINK
-#include <unistd.h> // needed for symlink()
-#endif
-
 #endif
 
 #ifdef __MINGW32__
@@ -38,6 +32,12 @@
 
 #include "miniz.h"
 #include "zip.h"
+
+#if ZIP_HAVE_SYMLINK
+#include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
+#endif
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -498,6 +498,123 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
 
   return nname;
 }
+
+#if ZIP_HAVE_SYMLINK
+/*
+ * Returns nonzero if path equals root or is a strict child path of root.
+ * root and path must be absolute paths from realpath(3) with no trailing
+ * slash (except root "/").
+ */
+static int zip_path_is_under_root(const char *root, size_t root_len,
+                                  const char *path) {
+  if (strncmp(path, root, root_len) != 0) {
+    return 0;
+  }
+  return path[root_len] == '\0' || path[root_len] == '/';
+}
+
+/*
+ * Ensures a symlink target would not resolve outside the extraction directory.
+ * Rejects absolute targets outside root; for relative targets, resolves ".."
+ * lexically from the link's parent directory against root.
+ */
+static int zip_symlink_target_is_safe(const char *root_real,
+                                      const char *link_fullpath,
+                                      const char *target) {
+  size_t root_len;
+  char parent_buf[PATH_MAX];
+  char cur[PATH_MAX];
+  const char *p;
+  size_t plen;
+  char *slash;
+
+  if (target == NULL || target[0] == '\0') {
+    return 0;
+  }
+
+  root_len = strlen(root_real);
+
+  if (target[0] == '/') {
+    return zip_path_is_under_root(root_real, root_len, target);
+  }
+
+  plen = strlen(link_fullpath);
+  if (plen >= sizeof(parent_buf)) {
+    return 0;
+  }
+  memcpy(parent_buf, link_fullpath, plen + 1);
+  slash = strrchr(parent_buf, '/');
+  if (slash == NULL) {
+    return 0;
+  }
+  if (slash == parent_buf) {
+    parent_buf[0] = '/';
+    parent_buf[1] = '\0';
+  } else {
+    *slash = '\0';
+  }
+
+  if (realpath(parent_buf, cur) == NULL) {
+    return 0;
+  }
+  if (!zip_path_is_under_root(root_real, root_len, cur)) {
+    return 0;
+  }
+
+  p = target;
+  for (;;) {
+    const char *start;
+    size_t comlen;
+    char *last_slash;
+    size_t curlen;
+
+    while (*p == '/') {
+      p++;
+    }
+    if (*p == '\0') {
+      break;
+    }
+
+    start = p;
+    while (*p && !ISSLASH(*p)) {
+      p++;
+    }
+    comlen = (size_t)(p - start);
+
+    if (comlen == 1 && start[0] == '.') {
+      continue;
+    }
+    if (comlen == 2 && start[0] == '.' && start[1] == '.') {
+      last_slash = strrchr(cur, '/');
+      if (last_slash == NULL) {
+        return 0;
+      }
+      if (last_slash == cur) {
+        return 0;
+      }
+      *last_slash = '\0';
+      if (!zip_path_is_under_root(root_real, root_len, cur)) {
+        return 0;
+      }
+      continue;
+    }
+
+    curlen = strlen(cur);
+    if (curlen + 1 + comlen + 1 > sizeof(cur)) {
+      return 0;
+    }
+    cur[curlen] = '/';
+    memcpy(cur + curlen + 1, start, comlen);
+    cur[curlen + 1 + comlen] = '\0';
+    if (!zip_path_is_under_root(root_real, root_len, cur)) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+#endif /* ZIP_HAVE_SYMLINK */
+
 #endif /* ZIP_ENABLE_INFLATE */
 
 #if ZIP_ENABLE_DEFLATE
@@ -528,6 +645,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
   char path[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
 #if ZIP_HAVE_SYMLINK
   char symlink_to[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
+  char root_real[PATH_MAX];
+  int root_resolved = 0;
 #endif
   mz_zip_archive_file_stat info;
   size_t dirlen = 0, filename_size = MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE;
@@ -607,6 +726,17 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
         goto out;
       }
       symlink_to[info.m_uncomp_size] = '\0';
+      if (!root_resolved) {
+        if (realpath(dir, root_real) == NULL) {
+          err = ZIP_ESYMLINK;
+          goto out;
+        }
+        root_resolved = 1;
+      }
+      if (!zip_symlink_target_is_safe(root_real, path, symlink_to)) {
+        err = ZIP_ESYMLINK;
+        goto out;
+      }
       if (symlink(symlink_to, path) != 0) {
         err = ZIP_ESYMLINK;
         goto out;
