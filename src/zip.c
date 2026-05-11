@@ -366,6 +366,7 @@ static const char *zip_basename(const char *name) {
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
+#ifndef MINIZ_NO_STDIO
 static int zip_mkpath(char *path, size_t pos) {
   char *p;
   char npath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
@@ -412,6 +413,7 @@ static int zip_mkpath(char *path, size_t pos) {
   }
   return 0;
 }
+#endif /* MINIZ_NO_STDIO */
 #endif /* ZIP_ENABLE_INFLATE */
 
 static char *zip_strclone(const char *str, size_t n) {
@@ -452,6 +454,7 @@ static char *zip_strrpl(const char *str, size_t n, char oldchar, char newchar) {
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
+#ifndef MINIZ_NO_STDIO
 static inline int zip_strchr_match(const char *const str, size_t len, char c) {
   size_t i;
   for (i = 0; i < len; ++i) {
@@ -498,6 +501,7 @@ static char *zip_name_normalize(char *name, char *const nname, size_t len) {
 
   return nname;
 }
+#endif /* MINIZ_NO_STDIO */
 #endif /* ZIP_ENABLE_INFLATE */
 
 #if ZIP_ENABLE_DEFLATE
@@ -518,6 +522,7 @@ static int zip_archive_truncate(mz_zip_archive *pzip) {
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
+#ifndef MINIZ_NO_STDIO
 
 static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
                                int (*on_extract)(const char *filename,
@@ -655,6 +660,7 @@ out:
   return err;
 }
 
+#endif /* MINIZ_NO_STDIO */
 #endif /* ZIP_ENABLE_INFLATE */
 
 #if ZIP_ENABLE_DEFLATE
@@ -1177,6 +1183,7 @@ static char *zip_password_clone(const char *password) {
   return p;
 }
 
+#ifndef MINIZ_NO_STDIO
 struct zip_t *zip_open(const char *zipname, int level, char mode) {
   int errnum = 0;
   return zip_openwitherror(zipname, level, mode, &errnum);
@@ -1378,6 +1385,7 @@ cleanup:
   CLEANUP(zip);
   return NULL;
 }
+#endif /* MINIZ_NO_STDIO */
 
 void zip_close(struct zip_t *zip) {
   if (zip) {
@@ -2076,6 +2084,7 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
   return 0;
 }
 
+#ifndef MINIZ_NO_STDIO
 int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   int err = 0;
   size_t n = 0;
@@ -2139,6 +2148,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
 
   return err;
 }
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_DEFLATE */
 
@@ -2419,6 +2429,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   }
 }
 
+#ifndef MINIZ_NO_STDIO
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
@@ -2484,6 +2495,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
 
   return 0;
 }
+#endif /* MINIZ_NO_STDIO */
 
 int zip_entry_extract(struct zip_t *zip,
                       size_t (*on_extract)(void *arg, uint64_t offset,
@@ -2617,6 +2629,7 @@ ssize_t zip_entries_deletebyindex(struct zip_t *zip, size_t entries[],
 
 #if ZIP_ENABLE_INFLATE
 
+#ifndef MINIZ_NO_STDIO
 int zip_stream_extract(const char *stream, size_t size, const char *dir,
                        int (*on_extract)(const char *filename, void *arg),
                        void *arg) {
@@ -2633,6 +2646,7 @@ int zip_stream_extract(const char *stream, size_t size, const char *dir,
 
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_INFLATE */
 
@@ -2791,6 +2805,7 @@ void zip_stream_close(struct zip_t *zip) {
   }
 }
 
+#ifndef MINIZ_NO_STDIO
 struct zip_t *zip_cstream_open(FILE *stream, int level, char mode) {
   int errnum = 0;
   return zip_cstream_openwitherror(stream, level, mode, &errnum);
@@ -2887,9 +2902,11 @@ cleanup:
 }
 
 void zip_cstream_close(struct zip_t *zip) { zip_close(zip); }
+#endif /* MINIZ_NO_STDIO */
 
 #if ZIP_ENABLE_DEFLATE
 
+#ifndef MINIZ_NO_STDIO
 int zip_create(const char *zipname, const char *filenames[], size_t len) {
   int err = 0;
   size_t i;
@@ -2932,10 +2949,12 @@ int zip_create(const char *zipname, const char *filenames[], size_t len) {
   zip_close(zip);
   return err;
 }
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
+#ifndef MINIZ_NO_STDIO
 
 int zip_extract(const char *zipname, const char *dir,
                 int (*on_extract)(const char *filename, void *arg), void *arg) {
@@ -2957,4 +2976,5 @@ int zip_extract(const char *zipname, const char *dir,
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
 
+#endif /* MINIZ_NO_STDIO */
 #endif /* ZIP_ENABLE_INFLATE */

@@ -144,6 +144,8 @@ extern ZIP_EXPORT const char *zip_strerror(int errnum);
  */
 struct zip_t;
 
+#ifndef MINIZ_NO_STDIO
+
 /**
  * Opens zip archive with compression level using the given mode.
  *
@@ -207,6 +209,8 @@ extern ZIP_EXPORT struct zip_t *zip_open_with_password(const char *zipname,
 extern ZIP_EXPORT struct zip_t *
 zip_open_with_password_and_error(const char *zipname, int level, char mode,
                                  const char *password, int *errnum);
+
+#endif /* MINIZ_NO_STDIO */
 
 /**
  * Closes the zip archive, releases resources - always finalize.
@@ -391,6 +395,7 @@ extern ZIP_EXPORT unsigned long long zip_entry_header_offset(struct zip_t *zip);
 extern ZIP_EXPORT int zip_entry_write(struct zip_t *zip, const void *buf,
                                       size_t bufsize);
 
+#ifndef MINIZ_NO_STDIO
 /**
  * Compresses a file for the current zip entry.
  *
@@ -400,6 +405,7 @@ extern ZIP_EXPORT int zip_entry_write(struct zip_t *zip, const void *buf,
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
 extern ZIP_EXPORT int zip_entry_fwrite(struct zip_t *zip, const char *filename);
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_DEFLATE */
 
@@ -464,6 +470,7 @@ extern ZIP_EXPORT ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
                                                           size_t size,
                                                           void *buf);
 
+#ifndef MINIZ_NO_STDIO
 /**
  * Extracts the current zip entry into output file.
  *
@@ -473,6 +480,7 @@ extern ZIP_EXPORT ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
 extern ZIP_EXPORT int zip_entry_fread(struct zip_t *zip, const char *filename);
+#endif /* MINIZ_NO_STDIO */
 
 /**
  * Extracts the current zip entry using a callback function (on_extract).
@@ -532,6 +540,7 @@ extern ZIP_EXPORT ssize_t zip_entries_deletebyindex(struct zip_t *zip,
 
 #if ZIP_ENABLE_INFLATE
 
+#ifndef MINIZ_NO_STDIO
 /**
  * Extracts a zip archive stream into directory.
  *
@@ -553,6 +562,7 @@ extern ZIP_EXPORT int
 zip_stream_extract(const char *stream, size_t size, const char *dir,
                    int (*on_extract)(const char *filename, void *arg),
                    void *arg);
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_INFLATE */
 
@@ -632,6 +642,8 @@ extern ZIP_EXPORT ssize_t zip_stream_copy(struct zip_t *zip, void **buf,
  */
 extern ZIP_EXPORT void zip_stream_close(struct zip_t *zip);
 
+#ifndef MINIZ_NO_STDIO
+
 /**
  * Opens zip archive from existing FILE stream with compression level using
  * the given mode. The stream will not be closed when calling zip_close.
@@ -675,8 +687,11 @@ zip_cstream_openwitherror(FILE *stream, int level, char mode, int *errnum);
  */
 extern ZIP_EXPORT void zip_cstream_close(struct zip_t *zip);
 
+#endif /* MINIZ_NO_STDIO */
+
 #if ZIP_ENABLE_DEFLATE
 
+#ifndef MINIZ_NO_STDIO
 /**
  * Creates a new archive and puts files into a single zip archive.
  *
@@ -688,11 +703,13 @@ extern ZIP_EXPORT void zip_cstream_close(struct zip_t *zip);
  */
 extern ZIP_EXPORT int zip_create(const char *zipname, const char *filenames[],
                                  size_t len);
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
 
+#ifndef MINIZ_NO_STDIO
 /**
  * Extracts a zip archive file into directory.
  *
@@ -713,6 +730,7 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
                                   int (*on_extract_entry)(const char *filename,
                                                           void *arg),
                                   void *arg);
+#endif /* MINIZ_NO_STDIO */
 
 #endif /* ZIP_ENABLE_INFLATE */
 
