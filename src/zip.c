@@ -345,6 +345,7 @@ const char *zip_strerror(int errnum) {
 }
 
 #if ZIP_ENABLE_DEFLATE
+#ifndef MINIZ_NO_STDIO
 static const char *zip_basename(const char *name) {
   char const *p;
   char const *base = name += FILESYSTEM_PREFIX_LEN(name);
@@ -363,6 +364,7 @@ static const char *zip_basename(const char *name) {
 
   return base;
 }
+#endif /* MINIZ_NO_STDIO */
 #endif /* ZIP_ENABLE_DEFLATE */
 
 #if ZIP_ENABLE_INFLATE
@@ -513,8 +515,13 @@ static int zip_archive_truncate(mz_zip_archive *pzip) {
   }
   if (pzip->m_zip_mode == MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED) {
     if (pState->m_pFile) {
+#ifndef MINIZ_NO_STDIO
       int fd = fileno(pState->m_pFile);
       return ftruncate(fd, pState->m_file_archive_start_ofs + file_size);
+#else
+      (void)file_size;
+      return ZIP_ENOFILE;
+#endif /* MINIZ_NO_STDIO */
     }
   }
   return 0;
@@ -919,6 +926,7 @@ static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to,
   return length;
 }
 
+#ifndef MINIZ_NO_STDIO
 static ssize_t zip_file_move(MZ_FILE *m_pFile, const mz_uint64 to,
                              const mz_uint64 from, const size_t length,
                              mz_uint8 *move_buf, const size_t capacity_size) {
@@ -939,6 +947,7 @@ static ssize_t zip_file_move(MZ_FILE *m_pFile, const mz_uint64 to,
   }
   return (ssize_t)length;
 }
+#endif /* MINIZ_NO_STDIO */
 
 static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
                               mz_uint64 read_num, size_t length) {
@@ -957,8 +966,13 @@ static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
     move_count = (length >= page_size) ? page_size : length;
 
     if (pState->m_pFile) {
+#ifndef MINIZ_NO_STDIO
       n = zip_file_move(pState->m_pFile, writen_num, read_num, move_count,
                         move_buf, page_size);
+#else
+      CLEANUP(move_buf);
+      return ZIP_ENOFILE;
+#endif /* MINIZ_NO_STDIO */
     } else if (pState->m_pMem) {
       n = zip_mem_move(pState->m_pMem, pState->m_mem_size, writen_num, read_num,
                        move_count);
@@ -1109,10 +1123,15 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   zip->archive.m_zip_mode = MZ_ZIP_MODE_WRITING;
 
   if (pState->m_pFile) {
+#ifndef MINIZ_NO_STDIO
     if (MZ_FSEEK64(pState->m_pFile, 0, SEEK_SET)) {
       CLEANUP(deleted_entry_flag_array);
       return ZIP_ENOENT;
     }
+#else
+    CLEANUP(deleted_entry_flag_array);
+    return ZIP_ENOFILE;
+#endif /* MINIZ_NO_STDIO */
   }
 
   while (i < entry_num) {
@@ -1829,6 +1848,7 @@ int zip_entry_close(struct zip_t *zip) {
     zip_pkware_keys_init_password(&orig_keys, zip->password);
 
     if (pState->m_pFile) {
+#ifndef MINIZ_NO_STDIO
       if (MZ_FSEEK64(pState->m_pFile, (mz_int64)zip->entry.enc_header_ofs,
                      SEEK_SET)) {
         err = ZIP_EFSEEK;
@@ -1839,6 +1859,10 @@ int zip_entry_close(struct zip_t *zip) {
         err = ZIP_EFREAD;
         goto cleanup;
       }
+#else
+      err = ZIP_ENOFILE;
+      goto cleanup;
+#endif /* MINIZ_NO_STDIO */
     } else if (pState->m_pMem) {
       memcpy(enc_header,
              (const mz_uint8 *)pState->m_pMem + zip->entry.enc_header_ofs,
@@ -1876,6 +1900,7 @@ int zip_entry_close(struct zip_t *zip) {
             (remaining > sizeof(re_buf)) ? sizeof(re_buf) : (size_t)remaining;
 
         if (pState->m_pFile) {
+#ifndef MINIZ_NO_STDIO
           if (MZ_FSEEK64(pState->m_pFile, (mz_int64)ofs, SEEK_SET)) {
             err = ZIP_EFSEEK;
             goto cleanup;
@@ -1884,6 +1909,10 @@ int zip_entry_close(struct zip_t *zip) {
             err = ZIP_EFREAD;
             goto cleanup;
           }
+#else
+          err = ZIP_ENOFILE;
+          goto cleanup;
+#endif /* MINIZ_NO_STDIO */
         } else if (pState->m_pMem) {
           memcpy(re_buf, (const mz_uint8 *)pState->m_pMem + ofs, chunk);
         } else {
