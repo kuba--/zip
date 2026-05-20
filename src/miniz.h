@@ -4081,7 +4081,7 @@ mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits,
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4204) /* nonstandard extension used : non-constant   \
-                                   aggregate initializer (also supported by                                                            \
+                                   aggregate initializer (also supported by    \
                                    GNU C and C99, so no big deal) */
 #endif
 
