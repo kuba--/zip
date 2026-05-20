@@ -34,9 +34,7 @@ MU_TEST(test_entry) {
     mu_check(zip != NULL);
     {
       mu_assert_int_eq(0, zip_entry_open(zip, DATANAME));
-      {
-        mu_assert_int_eq(0, zip_entry_fwrite(zip, DATANAME));
-      }
+      { mu_assert_int_eq(0, zip_entry_fwrite(zip, DATANAME)); }
       mu_assert_int_eq(0, zip_entry_close(zip));
     }
     zip_close(zip);
