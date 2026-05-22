@@ -764,6 +764,7 @@ All features are **enabled by default** -- if you just drop the source files int
 | `ZIP_ENABLE_DEFLATE` | `1` | Removes compression / archive-writing APIs (`zip_entry_write`, `zip_entry_fwrite`, `zip_create`, `zip_entries_delete`, …). Write and append modes (`'w'`, `'a'`, `'d'`) return an error. |
 | `ZIP_ENABLE_INFLATE` | `1` | Removes decompression / extraction APIs (`zip_entry_read`, `zip_entry_fread`, `zip_entry_extract`, `zip_extract`, `zip_stream_extract`, …). Read mode (`'r'`) returns an error. |
 | `ZIP_HAVE_SYMLINK` | `1` (Unix/macOS), `0` (Windows) | When disabled, symlink entries are extracted as regular file copies instead of creating actual symlinks. |
+| `MINIZ_NO_STDIO` | `0` | When defined, will disable miniz and zip.c's usage of stdio. |
 
 **With CMake:**
 

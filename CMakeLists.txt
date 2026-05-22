@@ -21,6 +21,7 @@ option(ZIP_BUILD_TOOLS "Build command-line tools (zipcli, unzipcli)" OFF)
 option(ZIP_ENABLE_INFLATE "Enable decompression / extraction support" ON)
 option(ZIP_ENABLE_DEFLATE "Enable compression / archive creation support" ON)
 option(ZIP_HAVE_SYMLINK "Enable symlink support during extraction" ON)
+option(MINIZ_NO_STDIO "Disable stdio usage in miniz" OFF)
 
 if(ZIP_ENABLE_SHARABLE_FILE_OPEN)
     add_definitions(-DZIP_ENABLE_SHARABLE_FILE_OPEN)
@@ -62,6 +63,9 @@ if(NOT ZIP_ENABLE_DEFLATE)
 endif()
 if(NOT ZIP_HAVE_SYMLINK)
     target_compile_definitions(${PROJECT_NAME} PUBLIC ZIP_HAVE_SYMLINK=0)
+endif()
+if(MINIZ_NO_STDIO)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC MINIZ_NO_STDIO)
 endif()
 
 # test
