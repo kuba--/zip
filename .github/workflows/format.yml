@@ -16,13 +16,12 @@ jobs:
           - "test"
           - "fuzz"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          # check out HEAD on the branch
-          ref: ${{ github.head_ref }}
-          # make sure the parent commit is grabbed as well, because
-          # that's what will get formatted (i.e. the most recent commit)
-          fetch-depth: 2
+        # check out the exact PR head commit
+        ref: ${{ github.event.pull_request.head.sha }}
+        # grab one parent commit as well for formatting comparisons
+        fetch-depth: 2
       # format the latest commit
       - uses: jidicula/clang-format-action@v4.15.0
         with:
