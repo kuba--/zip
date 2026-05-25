@@ -98,6 +98,8 @@ jobs:
             flags: -DZIP_ENABLE_INFLATE=OFF -DZIP_ENABLE_DEFLATE=OFF -DZIP_HAVE_SYMLINK=OFF
           - name: no-stdio
             flags: -DMINIZ_NO_STDIO=ON
+          - name: release
+            flags: -DCMAKE_BUILD_TYPE=Release
     name: compile-flags (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v2
