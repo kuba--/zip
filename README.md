@@ -237,6 +237,7 @@ for (i = 0; i < n; ++i) {
     {
         const char *name = zip_entry_name(zip);
         int isdir = zip_entry_isdir(zip);
+        int issymlink = zip_entry_issymlink(zip);
         unsigned long long size = zip_entry_size(zip);
         unsigned int crc32 = zip_entry_crc32(zip);
     }
