@@ -322,6 +322,16 @@ extern ZIP_EXPORT ssize_t zip_entry_index(struct zip_t *zip);
 extern ZIP_EXPORT int zip_entry_isdir(struct zip_t *zip);
 
 /**
+ * Determines if the current zip entry is a symlink.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the return code - 1 (true), 0 (false), negative number (< 0) on
+ *         error.
+ */
+extern ZIP_EXPORT int zip_entry_issymlink(struct zip_t *zip);
+
+/**
  * Returns the uncompressed size of the current zip entry.
  * Alias for zip_entry_uncomp_size (for backward compatibility).
  *
