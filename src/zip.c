@@ -2405,6 +2405,10 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
     if (n < 0) {
       return n;
     }
+    if (offset >= heap_size) {
+      free(heap_buf);
+      return (ssize_t)0;
+    }
     if (offset + size > heap_size) {
       size = heap_size - offset;
     }
