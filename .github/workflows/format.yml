@@ -18,10 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-        # check out the exact PR head commit
-        ref: ${{ github.event.pull_request.head.sha }}
-        # grab one parent commit as well for formatting comparisons
-        fetch-depth: 2
+          # check out the exact PR head commit
+          ref: ${{ github.event.pull_request.head.sha }}
+          # grab one parent commit as well for formatting comparisons
+          fetch-depth: 2
       # format the latest commit
       - uses: jidicula/clang-format-action@v4.15.0
         with:
