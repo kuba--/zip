@@ -302,12 +302,12 @@ static void sym_assert_link(const char *dir, const char *name,
 
 MU_TEST(test_extract_symlink_contained) {
   static const struct sym_entry_t entries[] = {
-      {"a", ".", 1},                 // depth 0, allowed
-      {"a2/x", "..", 1},             // depth 1 -> 0, allowed
-      {"c/foo", TESTDATA1, 0},       // regular file under a dir
-      {"d/link", "../sibling", 1},   // in-tree ../sibling, allowed
-      {"link", "file.txt", 1},       // benign link -> file
-      {"file.txt", TESTDATA2, 0},    // benign target
+      {"a", ".", 1},               // depth 0, allowed
+      {"a2/x", "..", 1},           // depth 1 -> 0, allowed
+      {"c/foo", TESTDATA1, 0},     // regular file under a dir
+      {"d/link", "../sibling", 1}, // in-tree ../sibling, allowed
+      {"link", "file.txt", 1},     // benign link -> file
+      {"file.txt", TESTDATA2, 0},  // benign target
   };
   char tmpl[] = "ext-XXXXXX";
   char *dir = mkdtemp(tmpl);
