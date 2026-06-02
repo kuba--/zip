@@ -2268,6 +2268,10 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
 
   if (stat.m_method == MZ_DEFLATED) {
     size_t uncomp_size = (size_t)stat.m_uncomp_size;
+    if (uncomp_size == SIZE_MAX) {
+      free(enc_data);
+      return (ssize_t)ZIP_EOOMEM;
+    }
     out_buf = malloc(uncomp_size + 1);
     if (!out_buf) {
       free(enc_data);
@@ -2311,6 +2315,10 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
     return (ssize_t)uncomp_size;
   } else {
     size_t uncomp_size = (size_t)stat.m_uncomp_size;
+    if (uncomp_size == SIZE_MAX) {
+      free(enc_data);
+      return (ssize_t)ZIP_EOOMEM;
+    }
     out_buf = malloc(uncomp_size + 1);
     if (!out_buf) {
       free(enc_data);
