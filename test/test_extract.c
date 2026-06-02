@@ -181,12 +181,195 @@ MU_TEST(test_extract_cstream) {
   zip_cstream_close(zip);
 }
 
+#if ZIP_HAVE_SYMLINK
+#include <string.h>
+#include <unistd.h>
+
+#include <sys/stat.h>
+
+struct sym_entry_t {
+  const char *name;
+  const char *data; // symlink target, or regular file content
+  int is_symlink;
+};
+
+static void sym_put16(unsigned char *b, unsigned v) {
+  b[0] = (unsigned char)(v & 0xff);
+  b[1] = (unsigned char)((v >> 8) & 0xff);
+}
+
+static void sym_put32(unsigned char *b, unsigned long v) {
+  b[0] = (unsigned char)(v & 0xff);
+  b[1] = (unsigned char)((v >> 8) & 0xff);
+  b[2] = (unsigned char)((v >> 16) & 0xff);
+  b[3] = (unsigned char)((v >> 24) & 0xff);
+}
+
+static unsigned long sym_crc32(const unsigned char *data, size_t len) {
+  unsigned long crc = 0xFFFFFFFFUL;
+  size_t i;
+  int k;
+  for (i = 0; i < len; ++i) {
+    crc ^= data[i];
+    for (k = 0; k < 8; ++k) {
+      crc = (crc >> 1) ^ (0xEDB88320UL & (0UL - (crc & 1UL)));
+    }
+  }
+  return crc ^ 0xFFFFFFFFUL;
+}
+
+// Write a minimal stored (uncompressed) zip carrying the given entries.
+// Symlink entries get a Unix "made by" byte and the S_IFLNK external attribute
+// so the extractor treats their data as a link target.
+static void sym_write_zip(const char *path, const struct sym_entry_t *e,
+                          size_t n) {
+  unsigned char buf[4096];
+  size_t offsets[16];
+  unsigned long crcs[16];
+  size_t sizes[16];
+  size_t pos = 0, cd_start, cd_size, i;
+  unsigned char hdr[46];
+  FILE *fp;
+
+  for (i = 0; i < n; ++i) {
+    size_t namelen = strlen(e[i].name);
+    size_t datalen = strlen(e[i].data);
+    offsets[i] = pos;
+    crcs[i] = sym_crc32((const unsigned char *)e[i].data, datalen);
+    sizes[i] = datalen;
+
+    memset(hdr, 0, 30);
+    sym_put32(hdr + 0, 0x04034b50UL);
+    sym_put16(hdr + 4, 20);
+    sym_put32(hdr + 14, crcs[i]);
+    sym_put32(hdr + 18, (unsigned long)datalen);
+    sym_put32(hdr + 22, (unsigned long)datalen);
+    sym_put16(hdr + 26, (unsigned)namelen);
+    memcpy(buf + pos, hdr, 30);
+    pos += 30;
+    memcpy(buf + pos, e[i].name, namelen);
+    pos += namelen;
+    memcpy(buf + pos, e[i].data, datalen);
+    pos += datalen;
+  }
+
+  cd_start = pos;
+  for (i = 0; i < n; ++i) {
+    size_t namelen = strlen(e[i].name);
+    memset(hdr, 0, 46);
+    sym_put32(hdr + 0, 0x02014b50UL);
+    sym_put16(hdr + 4, 0x0314); // made by: Unix
+    sym_put16(hdr + 6, 20);
+    sym_put32(hdr + 16, crcs[i]);
+    sym_put32(hdr + 20, (unsigned long)sizes[i]);
+    sym_put32(hdr + 24, (unsigned long)sizes[i]);
+    sym_put16(hdr + 28, (unsigned)namelen);
+    sym_put32(hdr + 38, e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL);
+    sym_put32(hdr + 42, (unsigned long)offsets[i]);
+    memcpy(buf + pos, hdr, 46);
+    pos += 46;
+    memcpy(buf + pos, e[i].name, namelen);
+    pos += namelen;
+  }
+  cd_size = pos - cd_start;
+
+  memset(hdr, 0, 22);
+  sym_put32(hdr + 0, 0x06054b50UL);
+  sym_put16(hdr + 8, (unsigned)n);
+  sym_put16(hdr + 10, (unsigned)n);
+  sym_put32(hdr + 12, (unsigned long)cd_size);
+  sym_put32(hdr + 16, (unsigned long)cd_start);
+  memcpy(buf + pos, hdr, 22);
+  pos += 22;
+
+  fp = fopen(path, "wb");
+  mu_check(fp != NULL);
+  mu_assert_int_eq(pos, fwrite(buf, 1, pos, fp));
+  fclose(fp);
+}
+
+static void sym_assert_link(const char *dir, const char *name,
+                            const char *target) {
+  char p[512];
+  char got[512];
+  ssize_t k;
+  snprintf(p, sizeof(p), "%s/%s", dir, name);
+  k = readlink(p, got, sizeof(got) - 1);
+  mu_check(k >= 0);
+  got[k >= 0 ? k : 0] = '\0';
+  mu_assert_string_eq(target, got);
+}
+
+MU_TEST(test_extract_symlink_contained) {
+  static const struct sym_entry_t entries[] = {
+      {"a", ".", 1},               // depth 0, allowed
+      {"a2/x", "..", 1},           // depth 1 -> 0, allowed
+      {"c/foo", TESTDATA1, 0},     // regular file under a dir
+      {"d/link", "../sibling", 1}, // in-tree ../sibling, allowed
+      {"link", "file.txt", 1},     // benign link -> file
+      {"file.txt", TESTDATA2, 0},  // benign target
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, sizeof(entries) / sizeof(entries[0]));
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  sym_assert_link(dir, "a", ".");
+  sym_assert_link(dir, "a2/x", "..");
+  sym_assert_link(dir, "d/link", "../sibling");
+  sym_assert_link(dir, "link", "file.txt");
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
+MU_TEST(test_extract_symlink_absolute_rejected) {
+  static const struct sym_entry_t entries[] = {
+      {"esc", "/etc/passwd", 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
+MU_TEST(test_extract_symlink_climb_rejected) {
+  static const struct sym_entry_t entries[] = {
+      {"esc", "../escape", 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+#endif
+
 MU_TEST_SUITE(test_extract_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_extract);
   MU_RUN_TEST(test_extract_stream);
   MU_RUN_TEST(test_extract_cstream);
+#if ZIP_HAVE_SYMLINK
+  MU_RUN_TEST(test_extract_symlink_contained);
+  MU_RUN_TEST(test_extract_symlink_absolute_rejected);
+  MU_RUN_TEST(test_extract_symlink_climb_rejected);
+#endif
 }
 
 int main(int argc, char *argv[]) {
