@@ -756,6 +756,7 @@ MU_TEST(test_password_deflate_oversized_uncomp_size) {
   n = zip_entry_read(zip, &buf, &bufsize);
   mu_assert_int_eq(strlen(TESTDATA1), (int)n);
   mu_assert_int_eq(strlen(TESTDATA1), (int)bufsize);
+  mu_check(memcmp(buf, TESTDATA1, (size_t)n) == 0);
   free(buf);
   buf = NULL;
   mu_assert_int_eq(0, zip_entry_close(zip));
