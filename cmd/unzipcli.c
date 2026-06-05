@@ -54,6 +54,32 @@ static const char *size_human(unsigned long long bytes, char *buf,
   return buf;
 }
 
+/* Returns 1 if an archive entry name would resolve outside the destination
+   directory: an absolute path, a Windows drive/UNC path, or any ".." path
+   component. Such names must not be joined onto the output directory. */
+static int entry_is_unsafe(const char *name) {
+  const char *p = name;
+
+  if (name[0] == '/' || name[0] == '\\') {
+    return 1;
+  }
+#ifdef _WIN32
+  if (name[0] != '\0' && name[1] == ':') {
+    return 1;
+  }
+#endif
+
+  while (*p) {
+    if (p[0] == '.' && p[1] == '.' &&
+        (p[2] == '/' || p[2] == '\\' || p[2] == '\0') &&
+        (p == name || p[-1] == '/' || p[-1] == '\\')) {
+      return 1;
+    }
+    p++;
+  }
+  return 0;
+}
+
 /* Returns 1 if name matches the entry filter list, or if no filter is set. */
 static int should_process(const char *name, char *const *entries,
                           int nentries) {
@@ -162,6 +188,12 @@ static int extract_archive(struct zip_t *zip, const char *outdir, int overwrite,
 
     const char *name = zip_entry_name(zip);
     if (!should_process(name, entries, nentries)) {
+      zip_entry_close(zip);
+      continue;
+    }
+
+    if (entry_is_unsafe(name)) {
+      fprintf(stderr, "  skipping: %s (path escapes destination)\n", name);
       zip_entry_close(zip);
       continue;
     }
