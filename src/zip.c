@@ -2326,9 +2326,10 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
       return (ssize_t)ZIP_EOOMEM;
     }
 
+    size_t out_pos = 0;
     {
       tinfl_decompressor decomp;
-      size_t in_pos = 0, out_pos = 0;
+      size_t in_pos = 0;
       tinfl_status tstatus;
       tinfl_init(&decomp);
 
@@ -2358,9 +2359,9 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
     free(enc_data);
     *buf = out_buf;
     if (bufsize) {
-      *bufsize = uncomp_size;
+      *bufsize = out_pos;
     }
-    return (ssize_t)uncomp_size;
+    return (ssize_t)out_pos;
   } else {
     size_t uncomp_size = (size_t)stat.m_uncomp_size;
     if (uncomp_size == SIZE_MAX) {

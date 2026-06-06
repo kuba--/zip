@@ -699,9 +699,74 @@ MU_TEST(test_password_stream_stored) {
   free(stream_buf);
 }
 
+// A deflated, encrypted entry whose central-directory uncompressed size is
+// larger than what the deflate stream actually produces must not make
+// zip_entry_read report the inflated size (which would expose uninitialized
+// heap past the real data).
+MU_TEST(test_password_deflate_oversized_uncomp_size) {
+  struct zip_t *zip;
+  unsigned char *raw = NULL;
+  long raw_size = 0;
+  long i;
+  FILE *fp;
+  void *buf = NULL;
+  size_t bufsize = 0;
+  ssize_t n;
+
+  zip = zip_open_with_password(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w',
+                               PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "deflate.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  fp = fopen(ZIPNAME, "rb");
+  mu_check(fp != NULL);
+  fseek(fp, 0, SEEK_END);
+  raw_size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  raw = (unsigned char *)malloc((size_t)raw_size);
+  mu_check(raw != NULL);
+  mu_check(fread(raw, 1, (size_t)raw_size, fp) == (size_t)raw_size);
+  fclose(fp);
+
+  // bump the decompressed-size field (offset 24) of the central dir header
+  for (i = 0; i + 30 <= raw_size; i++) {
+    if (raw[i] == 0x50 && raw[i + 1] == 0x4b && raw[i + 2] == 0x01 &&
+        raw[i + 3] == 0x02) {
+      raw[i + 24] = 0x00;
+      raw[i + 25] = 0x10; // 4096
+      raw[i + 26] = 0x00;
+      raw[i + 27] = 0x00;
+      break;
+    }
+  }
+  mu_check(i + 30 <= raw_size);
+
+  fp = fopen(ZIPNAME, "wb");
+  mu_check(fp != NULL);
+  mu_check(fwrite(raw, 1, (size_t)raw_size, fp) == (size_t)raw_size);
+  fclose(fp);
+  free(raw);
+
+  zip = zip_open_with_password(ZIPNAME, 0, 'r', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "deflate.txt"));
+  n = zip_entry_read(zip, &buf, &bufsize);
+  mu_assert_int_eq(strlen(TESTDATA1), (int)n);
+  mu_assert_int_eq(strlen(TESTDATA1), (int)bufsize);
+  mu_check(memcmp(buf, TESTDATA1, (size_t)n) == 0);
+  free(buf);
+  buf = NULL;
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_password_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
+  MU_RUN_TEST(test_password_deflate_oversized_uncomp_size);
   MU_RUN_TEST(test_password_write_read);
   MU_RUN_TEST(test_password_stored);
   MU_RUN_TEST(test_password_noallocread);
