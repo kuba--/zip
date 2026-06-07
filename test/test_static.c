@@ -15,7 +15,8 @@ static inline int zip_strchr_match(const char *const str, size_t len, char c) {
   return 1;
 }
 
-static char *zip_name_normalize(char *name, char *const nname, size_t len) {
+static char *zip_name_normalize(const char *name, char *const nname,
+                                size_t len) {
   size_t offn = 0, ncpy = 0;
   char c;
 
