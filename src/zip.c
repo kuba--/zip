@@ -65,6 +65,17 @@
 #define ISSLASH(C) ((C) == '/' || (C) == '\\')
 #endif
 
+/* setuid/setgid/sticky bits are not defined on every toolchain (e.g. MinGW) */
+#ifndef S_ISUID
+#define S_ISUID 04000
+#endif
+#ifndef S_ISGID
+#define S_ISGID 02000
+#endif
+#ifndef S_ISVTX
+#define S_ISVTX 01000
+#endif
+
 #define CLEANUP(ptr)                                                           \
   do {                                                                         \
     if (ptr) {                                                                 \

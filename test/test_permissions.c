@@ -117,6 +117,7 @@ MU_TEST(test_write_permissions) {
   mu_assert_int_eq(WMODE, file_stats.st_mode);
 }
 
+#if !defined(_WIN32) && !defined(__WIN32__)
 MU_TEST(test_setuid_not_restored) {
   struct MZ_FILE_STAT_STRUCT file_stats;
 
@@ -142,6 +143,7 @@ MU_TEST(test_setuid_not_restored) {
 
   remove(XFILE);
 }
+#endif
 
 #define TESTDATA1 "Some test data 1...\0"
 
