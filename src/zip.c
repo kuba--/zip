@@ -65,16 +65,8 @@
 #define ISSLASH(C) ((C) == '/' || (C) == '\\')
 #endif
 
-/* setuid/setgid/sticky bits are not defined on every toolchain (e.g. MinGW) */
-#ifndef S_ISUID
-#define S_ISUID 04000
-#endif
-#ifndef S_ISGID
-#define S_ISGID 02000
-#endif
-#ifndef S_ISVTX
-#define S_ISVTX 01000
-#endif
+/* setuid/setgid/sticky bits (S_ISUID | S_ISGID | S_ISVTX) */
+#define ZIP_SETID_MASK 07000
 
 #define CLEANUP(ptr)                                                           \
   do {                                                                         \
@@ -708,7 +700,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
       // do not restore setuid/setgid/sticky bits from an untrusted archive
-      xattr &= ~(mz_uint32)(S_ISUID | S_ISGID | S_ISVTX);
+      xattr &= ~(mz_uint32)ZIP_SETID_MASK;
       if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
         if (CHMOD(path, (mode_t)xattr) < 0) {
           err = ZIP_ENOPERM;
@@ -2614,7 +2606,7 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
 
   xattr = (info.m_external_attr >> 16) & 0xFFFF;
   // do not restore setuid/setgid/sticky bits from an untrusted archive
-  xattr &= ~(mz_uint32)(S_ISUID | S_ISGID | S_ISVTX);
+  xattr &= ~(mz_uint32)ZIP_SETID_MASK;
   if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
     if (CHMOD(filename, (mode_t)xattr) < 0) {
       return ZIP_ENOPERM;
