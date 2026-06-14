@@ -65,6 +65,9 @@
 #define ISSLASH(C) ((C) == '/' || (C) == '\\')
 #endif
 
+/* setuid/setgid/sticky bits (S_ISUID | S_ISGID | S_ISVTX) */
+#define ZIP_SETID_MASK 07000
+
 #define CLEANUP(ptr)                                                           \
   do {                                                                         \
     if (ptr) {                                                                 \
@@ -696,6 +699,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       (void)xattr; // unused
 #else
       xattr = (info.m_external_attr >> 16) & 0xFFFF;
+      // do not restore setuid/setgid/sticky bits from an untrusted archive
+      xattr &= ~(mz_uint32)ZIP_SETID_MASK;
       if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
         if (CHMOD(path, (mode_t)xattr) < 0) {
           err = ZIP_ENOPERM;
@@ -2601,6 +2606,8 @@ int zip_entry_fread(struct zip_t *zip, const char *filename) {
   }
 
   xattr = (info.m_external_attr >> 16) & 0xFFFF;
+  // do not restore setuid/setgid/sticky bits from an untrusted archive
+  xattr &= ~(mz_uint32)ZIP_SETID_MASK;
   if (xattr > 0 && xattr <= MZ_UINT16_MAX) {
     if (CHMOD(filename, (mode_t)xattr) < 0) {
       return ZIP_ENOPERM;

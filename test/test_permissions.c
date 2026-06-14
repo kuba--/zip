@@ -52,6 +52,7 @@ void test_teardown(void) {
 #define RMODE 0100444
 #define WMODE 0100666
 #define UNIXMODE 0100600
+#define SUIDMODE 04755
 
 MU_TEST(test_exe_permissions) {
   struct MZ_FILE_STAT_STRUCT file_stats;
@@ -115,6 +116,34 @@ MU_TEST(test_write_permissions) {
   mu_assert_int_eq(0, MZ_FILE_STAT(WFILE, &file_stats));
   mu_assert_int_eq(WMODE, file_stats.st_mode);
 }
+
+#if !defined(_WIN32) && !defined(__WIN32__)
+MU_TEST(test_setuid_not_restored) {
+  struct MZ_FILE_STAT_STRUCT file_stats;
+
+  const char *filenames[] = {XFILE};
+  FILE *f = fopen(XFILE, "w");
+  fclose(f);
+  chmod(XFILE, SUIDMODE);
+
+  // make sure the setuid bit really made it into the source mode, otherwise
+  // this test cannot tell a fixed tree from a broken one
+  mu_assert_int_eq(0, MZ_FILE_STAT(XFILE, &file_stats));
+  mu_check((file_stats.st_mode & S_ISUID) != 0);
+
+  mu_assert_int_eq(0, zip_create(ZIPNAME, filenames, 1));
+  remove(XFILE);
+
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, ".", NULL, NULL));
+
+  mu_assert_int_eq(0, MZ_FILE_STAT(XFILE, &file_stats));
+  mu_check((file_stats.st_mode & S_ISUID) == 0);
+  mu_check((file_stats.st_mode & S_ISGID) == 0);
+  mu_assert_int_eq(0100755, file_stats.st_mode & 0100777);
+
+  remove(XFILE);
+}
+#endif
 
 #define TESTDATA1 "Some test data 1...\0"
 
@@ -188,6 +217,7 @@ MU_TEST_SUITE(test_permissions_suite) {
   MU_RUN_TEST(test_read_permissions);
   MU_RUN_TEST(test_write_permissions);
   MU_RUN_TEST(test_unix_permissions);
+  MU_RUN_TEST(test_setuid_not_restored);
 #endif
   MU_RUN_TEST(test_mtime);
 }
