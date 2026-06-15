@@ -2342,23 +2342,23 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
       for (;;) {
         size_t in_avail = dec_size - in_pos;
         size_t out_avail = uncomp_size - out_pos;
-        int flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
-        if (in_avail == 0)
-          flags |= TINFL_FLAG_HAS_MORE_INPUT;
 
-        tstatus = tinfl_decompress(
-            &decomp, dec_data + in_pos, &in_avail, (mz_uint8 *)out_buf,
-            (mz_uint8 *)out_buf + out_pos, &out_avail, flags);
+        tstatus = tinfl_decompress(&decomp, dec_data + in_pos, &in_avail,
+                                   (mz_uint8 *)out_buf,
+                                   (mz_uint8 *)out_buf + out_pos, &out_avail,
+                                   TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
         in_pos += in_avail;
         out_pos += out_avail;
 
         if (tstatus == TINFL_STATUS_DONE)
           break;
-        if (tstatus < 0) {
-          free(enc_data);
-          free(out_buf);
-          return (ssize_t)ZIP_EPASSWD;
-        }
+        // the whole payload is already in dec_data and the output buffer is
+        // sized to the declared uncomp_size, so a NEEDS_MORE_INPUT or
+        // HAS_MORE_OUTPUT result means the entry is truncated or its declared
+        // size is wrong; bail out instead of spinning on it
+        free(enc_data);
+        free(out_buf);
+        return (ssize_t)ZIP_EPASSWD;
       }
     }
 
