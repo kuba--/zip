@@ -763,9 +763,75 @@ MU_TEST(test_password_deflate_oversized_uncomp_size) {
   zip_close(zip);
 }
 
+// A deflated, encrypted entry whose compressed size is truncated down to just
+// the 12-byte PKWARE encryption header has no deflate payload left to inflate.
+// zip_entry_read must reject it rather than spin forever feeding an empty
+// stream to the decompressor.
+MU_TEST(test_password_deflate_truncated_no_hang) {
+  struct zip_t *zip;
+  unsigned char *raw = NULL;
+  long raw_size = 0;
+  long i;
+  FILE *fp;
+  void *buf = NULL;
+  size_t bufsize = 0;
+  ssize_t n;
+
+  zip = zip_open_with_password(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w',
+                               PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "deflate.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  fp = fopen(ZIPNAME, "rb");
+  mu_check(fp != NULL);
+  fseek(fp, 0, SEEK_END);
+  raw_size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  raw = (unsigned char *)malloc((size_t)raw_size);
+  mu_check(raw != NULL);
+  mu_check(fread(raw, 1, (size_t)raw_size, fp) == (size_t)raw_size);
+  fclose(fp);
+
+  // shrink the compressed-size field (offset 20) of the central dir header to
+  // the encryption-header size, leaving an empty deflate stream
+  for (i = 0; i + 30 <= raw_size; i++) {
+    if (raw[i] == 0x50 && raw[i + 1] == 0x4b && raw[i + 2] == 0x01 &&
+        raw[i + 3] == 0x02) {
+      raw[i + 20] = 12;
+      raw[i + 21] = 0x00;
+      raw[i + 22] = 0x00;
+      raw[i + 23] = 0x00;
+      break;
+    }
+  }
+  mu_check(i + 30 <= raw_size);
+
+  fp = fopen(ZIPNAME, "wb");
+  mu_check(fp != NULL);
+  mu_check(fwrite(raw, 1, (size_t)raw_size, fp) == (size_t)raw_size);
+  fclose(fp);
+  free(raw);
+
+  zip = zip_open_with_password(ZIPNAME, 0, 'r', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "deflate.txt"));
+  n = zip_entry_read(zip, &buf, &bufsize);
+  mu_check(n < 0);
+  if (buf) {
+    free(buf);
+    buf = NULL;
+  }
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_password_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
+  MU_RUN_TEST(test_password_deflate_truncated_no_hang);
   MU_RUN_TEST(test_password_deflate_oversized_uncomp_size);
   MU_RUN_TEST(test_password_write_read);
   MU_RUN_TEST(test_password_stored);
