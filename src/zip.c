@@ -1543,6 +1543,13 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     return ZIP_EINVENTNAME;
   }
 
+  // the zip filename length is a 16-bit field; a longer name is truncated by
+  // the (mz_uint16) cast in the local/central header while the full name is
+  // still written, leaving a corrupt entry
+  if (entrylen > MZ_UINT16_MAX) {
+    return ZIP_EINVENTNAME;
+  }
+
   if (zip->entry.name) {
     CLEANUP(zip->entry.name);
   }
