@@ -221,6 +221,30 @@ MU_TEST(test_entry_read) {
   free(bufencode2);
 }
 
+MU_TEST(test_entry_name_too_long) {
+  // the zip filename length field is 16-bit; a name that does not fit must be
+  // rejected instead of being silently truncated into a corrupt entry
+  size_t toolong = (size_t)0xFFFF + 1;
+  char *name = (char *)malloc(toolong + 1);
+  mu_check(name != NULL);
+  memset(name, 'a', toolong);
+  name[toolong] = '\0';
+
+  struct zip_t *zip =
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_entry_open(zip, name));
+
+  // a name of exactly 0xFFFF bytes still fits the field
+  name[0xFFFF] = '\0';
+  mu_assert_int_eq(0, zip_entry_open(zip, name));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  zip_stream_close(zip);
+  free(name);
+}
+
 MU_TEST(test_list_entries) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
@@ -724,6 +748,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entry_index);
   MU_RUN_TEST(test_entry_openbyindex);
   MU_RUN_TEST(test_entry_read);
+  MU_RUN_TEST(test_entry_name_too_long);
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete_emptyarchive);
