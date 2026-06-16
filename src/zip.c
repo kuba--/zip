@@ -891,6 +891,11 @@ static int zip_entry_finalize(struct zip_t *zip,
                               struct zip_entry_mark_t *entry_mark,
                               const size_t n) {
   size_t i = 0;
+  // nothing to finalize for an empty archive; n == 0 would underflow n - 1
+  // below and walk both arrays out of bounds
+  if (n == 0) {
+    return 0;
+  }
   mz_uint64 *local_header_ofs_array = (mz_uint64 *)calloc(n, sizeof(mz_uint64));
   if (!local_header_ofs_array) {
     return ZIP_EOOMEM;

@@ -338,6 +338,30 @@ MU_TEST(test_entries_deleteinvalid) {
   zip_close(zip);
 }
 
+MU_TEST(test_entries_delete_emptyarchive) {
+  char emptyname[L_tmpnam + 1] = {0};
+  strncpy(emptyname, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(emptyname);
+
+  struct zip_t *zip = zip_open(emptyname, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zip != NULL);
+  zip_close(zip);
+
+  char *names[] = {"whatever"};
+  zip = zip_open(emptyname, 0, 'd');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entries_delete(zip, names, 1));
+  zip_close(zip);
+
+  size_t idx[] = {0};
+  zip = zip_open(emptyname, 0, 'd');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entries_deletebyindex(zip, idx, 1));
+  zip_close(zip);
+
+  UNLINK(emptyname);
+}
+
 MU_TEST(test_entries_delete) {
   char *entries[] = {"delete.me", "_", "delete/file.1", "deleteme/file.3",
                      "delete/file.2"};
@@ -702,6 +726,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entry_read);
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
+  MU_RUN_TEST(test_entries_delete_emptyarchive);
   MU_RUN_TEST(test_entries_delete);
   MU_RUN_TEST(test_entries_delete_stream);
   MU_RUN_TEST(test_entries_deletebyindex_stream);
