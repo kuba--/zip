@@ -1488,6 +1488,7 @@ void zip_close(struct zip_t *zip) {
       mz_zip_reader_end(pZip);
     }
 
+    CLEANUP(zip->entry.name);
     CLEANUP(zip->password);
     CLEANUP(zip);
   }
@@ -2934,6 +2935,7 @@ void zip_stream_close(struct zip_t *zip) {
 #if ZIP_ENABLE_INFLATE
     mz_zip_reader_end(&(zip->archive));
 #endif
+    CLEANUP(zip->entry.name);
     CLEANUP(zip->password);
     CLEANUP(zip);
   }
