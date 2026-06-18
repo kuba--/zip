@@ -2374,6 +2374,15 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
       }
     }
 
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+    if (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)out_buf, out_pos) !=
+        stat.m_crc32) {
+      free(enc_data);
+      free(out_buf);
+      return (ssize_t)ZIP_EPASSWD;
+    }
+#endif
+
     free(enc_data);
     *buf = out_buf;
     if (bufsize) {
@@ -2395,6 +2404,14 @@ static ssize_t zip_entry_decrypt_and_read(struct zip_t *zip, void **buf,
       dec_size = uncomp_size;
     }
     memcpy(out_buf, dec_data, dec_size);
+#ifndef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+    if (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)out_buf, dec_size) !=
+        stat.m_crc32) {
+      free(enc_data);
+      free(out_buf);
+      return (ssize_t)ZIP_EPASSWD;
+    }
+#endif
     free(enc_data);
     *buf = out_buf;
     if (bufsize) {

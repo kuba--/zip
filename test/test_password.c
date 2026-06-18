@@ -334,6 +334,36 @@ MU_TEST(test_password_wrong_password) {
   zip_close(zip);
 }
 
+MU_TEST(test_password_wrong_password_stored) {
+  struct zip_t *zip;
+  void *buf = NULL;
+  size_t bufsize = 0;
+  ssize_t n;
+
+  zip = zip_open_with_password(ZIPNAME, 0, 'w', PASSWORD);
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "stored-secret.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  zip_close(zip);
+
+  zip = zip_open_with_password(ZIPNAME, 0, 'r', "wrong_password");
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "stored-secret.txt"));
+  n = zip_entry_read(zip, &buf, &bufsize);
+  mu_check(n < 0);
+  if (buf) {
+    free(buf);
+    buf = NULL;
+  }
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  zip_close(zip);
+}
+
 MU_TEST(test_password_open_with_error) {
   struct zip_t *zip;
   int errnum = 0;
@@ -842,6 +872,7 @@ MU_TEST_SUITE(test_password_suite) {
   MU_RUN_TEST(test_password_null_is_no_encryption);
   MU_RUN_TEST(test_password_empty_is_no_encryption);
   MU_RUN_TEST(test_password_wrong_password);
+  MU_RUN_TEST(test_password_wrong_password_stored);
   MU_RUN_TEST(test_password_open_with_error);
   MU_RUN_TEST(test_password_entry_metadata);
   MU_RUN_TEST(test_password_extract_callback);
