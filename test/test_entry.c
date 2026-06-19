@@ -714,6 +714,106 @@ MU_TEST(test_entries_delete_stream_multi_copy) {
   free(copy2);
 }
 
+static unsigned int te_rd32(const unsigned char *p) {
+  return (unsigned int)p[0] | ((unsigned int)p[1] << 8) |
+         ((unsigned int)p[2] << 16) | ((unsigned int)p[3] << 24);
+}
+static unsigned short te_rd16(const unsigned char *p) {
+  return (unsigned short)(p[0] | (p[1] << 8));
+}
+static void te_wr16(unsigned char *p, unsigned short v) {
+  p[0] = (unsigned char)v;
+  p[1] = (unsigned char)(v >> 8);
+}
+static void te_wr32(unsigned char *p, unsigned int v) {
+  p[0] = (unsigned char)v;
+  p[1] = (unsigned char)(v >> 8);
+  p[2] = (unsigned char)(v >> 16);
+  p[3] = (unsigned char)(v >> 24);
+}
+static void te_wr64(unsigned char *p, unsigned long long v) {
+  int i;
+  for (i = 0; i < 8; i++)
+    p[i] = (unsigned char)(v >> (8 * i));
+}
+
+// A zip64 central-directory header can declare a 64-bit local-header offset far
+// past the archive; deleting from such an archive must be rejected, not run the
+// finalize length math (m_archive_size - ofs) on the bogus offset.
+MU_TEST(test_entries_delete_badoffset) {
+  struct zip_t *zip =
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zip != NULL);
+  zip_entry_open(zip, "a.txt");
+  zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1));
+  zip_entry_close(zip);
+  zip_entry_open(zip, "b.txt");
+  zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2));
+  zip_entry_close(zip);
+
+  void *buf = NULL;
+  size_t bufsize = 0;
+  mu_check(zip_stream_copy(zip, &buf, &bufsize) > 0);
+  zip_stream_close(zip);
+
+  unsigned char *b = (unsigned char *)buf;
+  ssize_t eocd = -1, i;
+  for (i = (ssize_t)bufsize - 22; i >= 0; i--) {
+    if (te_rd32(b + i) == 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  mu_check(eocd >= 0);
+
+  unsigned int cd_ofs = te_rd32(b + eocd + 16);
+  unsigned char *p0 = b + cd_ofs;
+  unsigned int hdr0 =
+      46u + te_rd16(p0 + 28) + te_rd16(p0 + 30) + te_rd16(p0 + 32);
+  unsigned char *p1 = p0 + hdr0;
+  unsigned short fn1 = te_rd16(p1 + 28), ex1 = te_rd16(p1 + 30),
+                 cm1 = te_rd16(p1 + 32);
+
+  unsigned char z64[4 + 16];
+  te_wr16(z64, 0x0001);
+  te_wr16(z64 + 2, 16);
+  te_wr64(z64 + 4, 8);                            // comp size
+  te_wr64(z64 + 12, (unsigned long long)1 << 38); // bogus local-header offset
+
+  unsigned short newex1 = sizeof(z64);
+  size_t newhdr1 = 46u + fn1 + newex1 + cm1;
+  unsigned char *ne = (unsigned char *)calloc(1, newhdr1);
+  mu_check(ne != NULL);
+  memcpy(ne, p1, 46u + fn1);
+  memcpy(ne + 46u + fn1, z64, sizeof(z64));
+  memcpy(ne + 46u + fn1 + newex1, p1 + 46u + fn1 + ex1, cm1);
+  te_wr32(ne + 20, 0xFFFFFFFF); // comp size sentinel
+  te_wr32(ne + 42, 0xFFFFFFFF); // local-header offset sentinel
+  te_wr16(ne + 30, newex1);
+
+  size_t cd_new_len = hdr0 + newhdr1;
+  size_t eocd_len = bufsize - (size_t)eocd;
+  size_t total_new = cd_ofs + cd_new_len + eocd_len;
+  unsigned char *nb = (unsigned char *)calloc(1, total_new);
+  mu_check(nb != NULL);
+  memcpy(nb, b, cd_ofs);
+  memcpy(nb + cd_ofs, p0, hdr0);
+  memcpy(nb + cd_ofs + hdr0, ne, newhdr1);
+  memcpy(nb + cd_ofs + cd_new_len, b + eocd, eocd_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 12, (unsigned int)cd_new_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 16, cd_ofs);
+
+  struct zip_t *zd = zip_stream_open((const char *)nb, total_new, 0, 'd');
+  mu_check(zd != NULL);
+  char *del[] = {"a.txt"};
+  mu_assert_int_eq(ZIP_ENOHDR, zip_entries_delete(zd, del, 1));
+  zip_stream_close(zd);
+
+  free(buf);
+  free(ne);
+  free(nb);
+}
+
 MU_TEST(test_entry_offset) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
@@ -760,6 +860,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_stream_open_close);
   MU_RUN_TEST(test_entries_delete_stream_all);
   MU_RUN_TEST(test_entries_delete_stream_multi_copy);
+  MU_RUN_TEST(test_entries_delete_badoffset);
   MU_RUN_TEST(test_entry_offset);
 }
 
