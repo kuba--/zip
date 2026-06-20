@@ -2533,7 +2533,10 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
     return (ssize_t)ZIP_EINVAL;
   }
 
-  if ((offset + size) > (size_t)zip->entry.uncomp_size) {
+  // offset < uncomp_size here, so test size against the remaining bytes; the
+  // original offset + size form wraps when size is near SIZE_MAX, skipping the
+  // clamp and leaving size huge for the memcpy below
+  if (size > (size_t)zip->entry.uncomp_size - offset) {
     size = (size_t)(zip->entry.uncomp_size - (mz_uint64)offset);
   }
 
@@ -2554,7 +2557,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
       free(heap_buf);
       return (ssize_t)0;
     }
-    if (offset + size > heap_size) {
+    if (size > heap_size - offset) {
       size = heap_size - offset;
     }
     memcpy(buf, (mz_uint8 *)heap_buf + offset, size);
@@ -2579,7 +2582,7 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
       free(heap_buf);
       return (ssize_t)0;
     }
-    if (offset + size > heap_size) {
+    if (size > heap_size - offset) {
       size = heap_size - offset;
     }
     memcpy(buf, (mz_uint8 *)heap_buf + offset, size);
