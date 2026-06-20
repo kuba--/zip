@@ -191,6 +191,7 @@ struct sym_entry_t {
   const char *name;
   const char *data; // symlink target, or regular file content
   int is_symlink;
+  int dir_flag; // also set the DOS directory attribute bit
 };
 
 static void sym_put16(unsigned char *b, unsigned v) {
@@ -264,7 +265,8 @@ static void sym_write_zip(const char *path, const struct sym_entry_t *e,
     sym_put32(hdr + 20, (unsigned long)sizes[i]);
     sym_put32(hdr + 24, (unsigned long)sizes[i]);
     sym_put16(hdr + 28, (unsigned)namelen);
-    sym_put32(hdr + 38, e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL);
+    sym_put32(hdr + 38, (e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL) |
+                            (e[i].dir_flag ? 0x10UL : 0UL));
     sym_put32(hdr + 42, (unsigned long)offsets[i]);
     memcpy(buf + pos, hdr, 46);
     pos += 46;
@@ -357,6 +359,55 @@ MU_TEST(test_extract_symlink_climb_rejected) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
+
+MU_TEST(test_extract_symlink_dirflag_rejected) {
+  // a symlink entry flagged as a directory carries no data, so the no-alloc
+  // extractor leaves symlink_to untouched; without the guard "victim" would be
+  // created pointing at the previous entry's target ("seedtarget")
+  static const struct sym_entry_t entries[] = {
+      {"seed", "seedtarget", 1, 0},
+      {"victim", "victimtarget", 1, 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char p[512];
+  char got[512];
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, sizeof(entries) / sizeof(entries[0]));
+  mu_assert_int_eq(ZIP_EMEMNOALLOC, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(p, sizeof(p), "%s/victim", dir);
+  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
+MU_TEST(test_extract_symlink_zerolen_first_rejected) {
+  // a zero-length symlink as the very first entry carries no data, so the
+  // no-alloc extractor never writes symlink_to and it still holds the initial
+  // zeroed buffer; it must be rejected rather than create an empty-target link
+  static const struct sym_entry_t entries[] = {
+      {"lonely", "", 1, 0},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char p[512];
+  char got[512];
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EMEMNOALLOC, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(p, sizeof(p), "%s/lonely", dir);
+  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
 #endif
 
 MU_TEST_SUITE(test_extract_suite) {
@@ -369,6 +420,8 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_contained);
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
   MU_RUN_TEST(test_extract_symlink_climb_rejected);
+  MU_RUN_TEST(test_extract_symlink_dirflag_rejected);
+  MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
 #endif
 }
 
