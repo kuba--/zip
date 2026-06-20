@@ -1264,6 +1264,7 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
     }
     writen_num += move_length;
     read_num += move_length;
+    move_length = 0;
   }
 
   zip->archive.m_archive_size -= (mz_uint64)deleted_length;
