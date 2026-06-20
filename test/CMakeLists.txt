@@ -25,6 +25,7 @@ set(test_read_out test_read.out)
 add_executable(${test_read_out} test_read.c)
 target_link_libraries(${test_read_out} zip)
 add_test(NAME ${test_read_out} COMMAND ${test_read_out})
+set_tests_properties(${test_read_out} PROPERTIES TIMEOUT 120)
 add_sanitizers(${test_read_out})
 
 set(test_extract_out test_extract.out)
