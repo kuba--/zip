@@ -770,10 +770,17 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
     }
 
     if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
+      zip_entry_close(zip);
       return ZIP_ENOENT;
     }
 
     zip_entry_close(zip);
+
+    // an offset past the archive comes from a corrupt (zip64) central-directory
+    // header; zip_entry_finalize would underflow m_archive_size - ofs on it
+    if (file_stat.m_local_header_ofs > zip->archive.m_archive_size) {
+      return ZIP_ENOHDR;
+    }
 
     entry_mark[i].m_local_header_ofs = file_stat.m_local_header_ofs;
     entry_mark[i].file_index = (ssize_t)-1;
@@ -827,10 +834,17 @@ static ssize_t zip_entry_markbyindex(struct zip_t *zip,
     }
 
     if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
+      zip_entry_close(zip);
       return ZIP_ENOENT;
     }
 
     zip_entry_close(zip);
+
+    // an offset past the archive comes from a corrupt (zip64) central-directory
+    // header; zip_entry_finalize would underflow m_archive_size - ofs on it
+    if (file_stat.m_local_header_ofs > zip->archive.m_archive_size) {
+      return ZIP_ENOHDR;
+    }
 
     entry_mark[i].m_local_header_ofs = file_stat.m_local_header_ofs;
     entry_mark[i].file_index = (ssize_t)-1;
