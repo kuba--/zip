@@ -664,7 +664,13 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 
     if (zip_stat_is_symlink(info.m_version_made_by, info.m_external_attr)) {
 #if ZIP_HAVE_SYMLINK
-      if (info.m_uncomp_size > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE ||
+      // the link target is the entry's file data; an entry that carries none
+      // (directory-flagged or zero comp_size) makes the no-alloc extractor
+      // return success without writing symlink_to, leaving a previous entry's
+      // target behind and creating a link to stale data
+      if (info.m_comp_size == 0 ||
+          mz_zip_reader_is_file_a_directory(zip_archive, i) ||
+          info.m_uncomp_size > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE ||
           !mz_zip_reader_extract_to_mem_no_alloc(
               zip_archive, i, symlink_to, MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, 0,
               NULL, 0)) {
