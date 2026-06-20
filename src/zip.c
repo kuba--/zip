@@ -770,6 +770,7 @@ static ssize_t zip_entry_mark(struct zip_t *zip,
     }
 
     if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
+      zip_entry_close(zip);
       return ZIP_ENOENT;
     }
 
@@ -833,6 +834,7 @@ static ssize_t zip_entry_markbyindex(struct zip_t *zip,
     }
 
     if (!mz_zip_reader_file_stat(&zip->archive, (mz_uint)i, &file_stat)) {
+      zip_entry_close(zip);
       return ZIP_ENOENT;
     }
 
