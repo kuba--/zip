@@ -1091,8 +1091,17 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
   }
 
   if (next && l_size == 0) {
+    mz_uint8 *shrunk = NULL;
     memmove(pState->m_central_dir.m_p, next, r_size);
-    pState->m_central_dir.m_p = MZ_REALLOC(pState->m_central_dir.m_p, r_size);
+    // shrinking the buffer must also lower m_capacity; otherwise the next
+    // mz_zip_array append sees the stale (larger) capacity, skips its realloc
+    // and writes past the smaller block. keep the old buffer on realloc
+    // failure.
+    shrunk = (mz_uint8 *)MZ_REALLOC(pState->m_central_dir.m_p, r_size);
+    if (shrunk) {
+      pState->m_central_dir.m_p = shrunk;
+      pState->m_central_dir.m_capacity = r_size;
+    }
     {
       int i;
       for (i = end; i < entry_num; i++) {
