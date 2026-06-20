@@ -221,6 +221,28 @@ MU_TEST(test_noallocreadwithoffset_corrupt) {
   free(abuf);
 }
 
+MU_TEST(test_noallocreadwithoffset_hugesize) {
+  // A size large enough that offset + size wraps around size_t must still be
+  // clamped to the bytes remaining in the entry. Before the fix the wrapped
+  // sum skipped the clamp and the memcpy ran with the huge size, overrunning
+  // the buffer; the read must now be bounded by the entry size.
+  size_t entry_size = strlen(TESTDATA2);
+  size_t offset = 4;
+  char *buf = calloc(entry_size, sizeof(char));
+
+  struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
+  mu_check(zip != NULL);
+
+  mu_assert_int_eq(0, zip_entry_open(zip, "test/test-2.txt"));
+  ssize_t nread = zip_entry_noallocreadwithoffset(zip, offset, (size_t)-1, buf);
+  mu_assert_int_eq(entry_size - offset, (size_t)nread);
+  mu_assert_int_eq(0, strncmp(buf, TESTDATA2 + offset, (size_t)nread));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+
+  free(buf);
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -228,6 +250,7 @@ MU_TEST_SUITE(test_read_suite) {
   MU_RUN_TEST(test_noallocread);
   MU_RUN_TEST(test_noallocreadwithoffset);
   MU_RUN_TEST(test_noallocreadwithoffset_corrupt);
+  MU_RUN_TEST(test_noallocreadwithoffset_hugesize);
 }
 
 #define UNUSED(x) (void)x
