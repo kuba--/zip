@@ -386,6 +386,44 @@ MU_TEST(test_entries_delete_emptyarchive) {
   UNLINK(emptyname);
 }
 
+MU_TEST(test_entries_deletefirst_then_add) {
+  // deleting the first central-directory entry shrinks the central-dir
+  // buffer; a following add must not write past the shrunk allocation.
+  char name[L_tmpnam + 1] = {0};
+  strncpy(name, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(name);
+
+  const char *names[] = {"aaa.txt", "bbb.txt", "ccc.txt", "ddd.txt"};
+  struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zip != NULL);
+  for (size_t i = 0; i < 4; ++i) {
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_close(zip);
+
+  size_t idx[] = {0};
+  zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(1, zip_entries_deletebyindex(zip, idx, 1));
+  mu_assert_int_eq(0, zip_entry_open(zip, "new.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  zip = zip_open(name, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(4, zip_entries_total(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "aaa.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "new.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  UNLINK(name);
+}
+
 MU_TEST(test_entries_delete) {
   char *entries[] = {"delete.me", "_", "delete/file.1", "deleteme/file.3",
                      "delete/file.2"};
@@ -852,6 +890,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_list_entries);
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete_emptyarchive);
+  MU_RUN_TEST(test_entries_deletefirst_then_add);
   MU_RUN_TEST(test_entries_delete);
   MU_RUN_TEST(test_entries_delete_stream);
   MU_RUN_TEST(test_entries_deletebyindex_stream);
