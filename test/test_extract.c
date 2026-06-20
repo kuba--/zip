@@ -384,6 +384,30 @@ MU_TEST(test_extract_symlink_dirflag_rejected) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
+
+MU_TEST(test_extract_symlink_zerolen_first_rejected) {
+  // a zero-length symlink as the very first entry carries no data, so the
+  // no-alloc extractor never writes symlink_to and it still holds the initial
+  // zeroed buffer; it must be rejected rather than create an empty-target link
+  static const struct sym_entry_t entries[] = {
+      {"lonely", "", 1, 0},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char p[512];
+  char got[512];
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EMEMNOALLOC, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(p, sizeof(p), "%s/lonely", dir);
+  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
 #endif
 
 MU_TEST_SUITE(test_extract_suite) {
@@ -397,6 +421,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
   MU_RUN_TEST(test_extract_symlink_climb_rejected);
   MU_RUN_TEST(test_extract_symlink_dirflag_rejected);
+  MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
 #endif
 }
 
