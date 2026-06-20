@@ -424,6 +424,61 @@ MU_TEST(test_entries_deletefirst_then_add) {
   UNLINK(name);
 }
 
+MU_TEST(test_entries_delete_noncontiguous) {
+  // deleting two non-adjacent entries leaves two separate runs of surviving
+  // entries to shift down; each run must move by its own length, not the
+  // running total of all prior runs, or the survivors are corrupted.
+  char name[L_tmpnam + 1] = {0};
+  strncpy(name, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(name);
+
+  const size_t len = 8192;
+  char *payload = (char *)malloc(len * 5);
+  mu_check(payload != NULL);
+  const char *names[] = {"a.bin", "b.bin", "c.bin", "d.bin", "e.bin"};
+
+  // store (level 0) so each local-file region stays larger than the central
+  // directory that trails the data
+  struct zip_t *zip = zip_open(name, 0, 'w');
+  mu_check(zip != NULL);
+  for (size_t i = 0; i < 5; ++i) {
+    char *p = payload + i * len;
+    memset(p, (int)('A' + i), len);
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zip, p, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_close(zip);
+
+  // b.bin and d.bin removed -> c.bin and e.bin become two separate move runs
+  char *del[] = {"b.bin", "d.bin"};
+  zip = zip_open(name, 0, 'd');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(2, zip_entries_delete(zip, del, 2));
+  zip_close(zip);
+
+  zip = zip_open(name, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(3, zip_entries_total(zip));
+  const size_t survivors[] = {0, 2, 4};
+  for (size_t s = 0; s < 3; ++s) {
+    size_t i = survivors[s];
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    char *buf = NULL;
+    size_t bufsize = 0;
+    ssize_t r = zip_entry_read(zip, (void **)&buf, &bufsize);
+    mu_assert_int_eq((int)len, (int)r);
+    mu_assert_int_eq((int)len, (int)bufsize);
+    mu_assert_int_eq(0, memcmp(buf, payload + i * len, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+    free(buf);
+  }
+  zip_close(zip);
+
+  free(payload);
+  UNLINK(name);
+}
+
 MU_TEST(test_entries_delete) {
   char *entries[] = {"delete.me", "_", "delete/file.1", "deleteme/file.3",
                      "delete/file.2"};
@@ -891,6 +946,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete_emptyarchive);
   MU_RUN_TEST(test_entries_deletefirst_then_add);
+  MU_RUN_TEST(test_entries_delete_noncontiguous);
   MU_RUN_TEST(test_entries_delete);
   MU_RUN_TEST(test_entries_delete_stream);
   MU_RUN_TEST(test_entries_deletebyindex_stream);
