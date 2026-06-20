@@ -178,12 +178,56 @@ MU_TEST(test_noallocreadwithoffset) {
   zip_close(zip);
 }
 
+MU_TEST(test_noallocreadwithoffset_corrupt) {
+  // Build a multi-entry in-memory archive, then corrupt the first entry's local
+  // header filename length (offset 26) so its data offset no longer lines up
+  // with its compressed bytes while still pointing inside the archive. Before
+  // the fix this made zip_entry_noallocreadwithoffset loop forever on the
+  // memory-backed stream; it must now return instead of hanging.
+  char *abuf = NULL;
+  size_t asize = 0;
+  char big[5000];
+  size_t i;
+
+  struct zip_t *zw =
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zw != NULL);
+  zip_entry_open(zw, "a/b.txt");
+  zip_entry_write(zw, TESTDATA1, strlen(TESTDATA1));
+  zip_entry_close(zw);
+  zip_entry_open(zw, "c.bin");
+  for (i = 0; i < sizeof(big); ++i) {
+    big[i] = (char)(i * 7 + 3);
+  }
+  zip_entry_write(zw, big, sizeof(big));
+  zip_entry_close(zw);
+  zip_stream_copy(zw, (void **)&abuf, &asize);
+  zip_stream_close(zw);
+
+  mu_check(abuf != NULL);
+  mu_check(asize > 28);
+  abuf[26] = (char)0xA5;
+
+  struct zip_t *zr = zip_stream_open(abuf, asize, 0, 'r');
+  if (zr != NULL) {
+    if (zip_entry_openbyindex(zr, 0) == 0) {
+      unsigned char out[64];
+      ssize_t n = zip_entry_noallocreadwithoffset(zr, 0, sizeof(out), out);
+      mu_check(n <= (ssize_t)sizeof(out));
+      zip_entry_close(zr);
+    }
+    zip_stream_close(zr);
+  }
+  free(abuf);
+}
+
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_read);
   MU_RUN_TEST(test_noallocread);
   MU_RUN_TEST(test_noallocreadwithoffset);
+  MU_RUN_TEST(test_noallocreadwithoffset_corrupt);
 }
 
 #define UNUSED(x) (void)x
