@@ -2557,47 +2557,28 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   }
 
   {
-    mz_zip_reader_extract_iter_state *iter =
-        mz_zip_reader_extract_iter_new(pzip, (mz_uint)zip->entry.index, 0);
-    mz_uint8 *writebuf = (mz_uint8 *)buf;
-    size_t file_offset = 0;
-    size_t write_cursor = 0;
-    size_t to_read = size;
+    void *heap_buf = NULL;
+    size_t heap_size = 0;
 
-    if (!iter) {
+    // the streaming iterator (mz_zip_reader_extract_iter_*) spins forever on a
+    // memory-backed archive whose entry data does not inflate to the declared
+    // uncompressed size, so decode the whole entry up front like the password
+    // branch above and copy out the requested window
+    heap_buf = mz_zip_reader_extract_to_heap(pzip, (mz_uint)zip->entry.index,
+                                             &heap_size, 0);
+    if (!heap_buf) {
       return (ssize_t)ZIP_ENORITER;
     }
-
-    while (file_offset < zip->entry.uncomp_size && to_read > 0) {
-      size_t nread = mz_zip_reader_extract_iter_read(
-          iter, (void *)&writebuf[write_cursor], to_read);
-
-      if (nread == 0)
-        break;
-
-      if (offset < (file_offset + nread)) {
-        size_t read_cursor = offset - file_offset;
-        size_t read_size = nread - read_cursor;
-        MZ_ASSERT(read_cursor < size);
-
-        if (to_read < read_size)
-          read_size = to_read;
-        MZ_ASSERT(read_size <= size);
-
-        if (read_cursor != 0) {
-          memmove(&writebuf[write_cursor], &writebuf[read_cursor], read_size);
-        }
-
-        write_cursor += read_size;
-        offset += read_size;
-        to_read -= read_size;
-      }
-
-      file_offset += nread;
+    if (offset >= heap_size) {
+      free(heap_buf);
+      return (ssize_t)0;
     }
-
-    mz_zip_reader_extract_iter_free(iter);
-    return (ssize_t)write_cursor;
+    if (offset + size > heap_size) {
+      size = heap_size - offset;
+    }
+    memcpy(buf, (mz_uint8 *)heap_buf + offset, size);
+    free(heap_buf);
+    return (ssize_t)size;
   }
 }
 
