@@ -1276,7 +1276,8 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
   // the per-entry lengths sum to at most the archive size, so a deleted_length
   // larger than the archive can only come from corrupted/overlapping offsets;
   // subtracting it would wrap m_archive_size and spin the stream writer's
-  // capacity-doubling loop forever (see #424), so refuse instead of underflowing
+  // capacity-doubling loop forever (see #424), so refuse instead of
+  // underflowing
   if ((mz_uint64)deleted_length > zip->archive.m_archive_size) {
     CLEANUP(deleted_entry_flag_array);
     return ZIP_EINVIDX;
