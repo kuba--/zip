@@ -479,6 +479,64 @@ MU_TEST(test_entries_delete_noncontiguous) {
   UNLINK(name);
 }
 
+MU_TEST(test_entries_delete_trailing) {
+  // deleting the last entry leaves no surviving bytes after it to shift, so the
+  // final delete iteration performs a zero-length move; deleting a middle entry
+  // in the same pass still has to shift the survivor that follows it. both the
+  // zero-length move and the per-run move-length reset must hold for the
+  // survivors to come out intact.
+  char name[L_tmpnam + 1] = {0};
+  strncpy(name, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(name);
+
+  const size_t len = 8192;
+  char *payload = (char *)malloc(len * 4);
+  mu_check(payload != NULL);
+  const char *names[] = {"a.bin", "b.bin", "c.bin", "d.bin"};
+
+  struct zip_t *zip = zip_open(name, 0, 'w');
+  mu_check(zip != NULL);
+  for (size_t i = 0; i < 4; ++i) {
+    char *p = payload + i * len;
+    memset(p, (int)('A' + i), len);
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zip, p, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_close(zip);
+
+  // remove a middle entry (b.bin -> c.bin must shift down) and the trailing
+  // entry (d.bin -> nothing to shift after it)
+  char *del[] = {"b.bin", "d.bin"};
+  zip = zip_open(name, 0, 'd');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(2, zip_entries_delete(zip, del, 2));
+  zip_close(zip);
+
+  zip = zip_open(name, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(2, zip_entries_total(zip));
+  const size_t survivors[] = {0, 2};
+  for (size_t s = 0; s < 2; ++s) {
+    size_t i = survivors[s];
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    char *buf = NULL;
+    size_t bufsize = 0;
+    ssize_t r = zip_entry_read(zip, (void **)&buf, &bufsize);
+    mu_assert_int_eq((int)len, (int)r);
+    mu_assert_int_eq((int)len, (int)bufsize);
+    mu_assert_int_eq(0, memcmp(buf, payload + i * len, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+    free(buf);
+  }
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "d.bin"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  free(payload);
+  UNLINK(name);
+}
+
 MU_TEST(test_entries_delete) {
   char *entries[] = {"delete.me", "_", "delete/file.1", "deleteme/file.3",
                      "delete/file.2"};
@@ -1034,6 +1092,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_emptyarchive);
   MU_RUN_TEST(test_entries_deletefirst_then_add);
   MU_RUN_TEST(test_entries_delete_noncontiguous);
+  MU_RUN_TEST(test_entries_delete_trailing);
   MU_RUN_TEST(test_entries_delete);
   MU_RUN_TEST(test_entries_delete_stream);
   MU_RUN_TEST(test_entries_deletebyindex_stream);
