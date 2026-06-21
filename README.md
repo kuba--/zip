@@ -210,6 +210,12 @@ free(buf);
 
 * Extract a partial zip entry
 
+Reads up to `size` bytes of the entry starting at `offset` into a caller-owned
+buffer (no internal allocation). `size` is clamped to the bytes remaining after
+`offset`, so it is safe to pass a size larger than what is left in the entry. The
+call returns the number of bytes actually written, or a negative error code (for
+example when `offset` is past the end of the entry).
+
 ```c
 unsigned char buf[16];
 size_t bufsize = sizeof(buf);
@@ -220,6 +226,9 @@ struct zip_t *zip = zip_open("foo.zip", 0, 'r');
     {
         size_t offset = 4;
         ssize_t nread = zip_entry_noallocreadwithoffset(zip, offset, bufsize, (void *)buf);
+        if (nread < 0) {
+            // offset out of range or read error
+        }
     }
 
     zip_entry_close(zip);

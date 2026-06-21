@@ -1038,6 +1038,13 @@ static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
   const size_t page_size = 1 << 12; // 4K
   mz_zip_internal_state *pState = zip->archive.m_pState;
 
+  // moving zero bytes is a no-op; bail out before touching the heap so the
+  // common delete iterations that shift nothing (e.g. trailing entries) do not
+  // pay for a page-sized allocation each time
+  if (length == 0) {
+    return 0;
+  }
+
   mz_uint8 *move_buf = (mz_uint8 *)calloc(1, page_size);
   if (!move_buf) {
     return ZIP_EOOMEM;
@@ -1264,6 +1271,16 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
     writen_num += move_length;
     read_num += move_length;
     move_length = 0;
+  }
+
+  // the per-entry lengths sum to at most the archive size, so a deleted_length
+  // larger than the archive can only come from corrupted/overlapping offsets;
+  // subtracting it would wrap m_archive_size and spin the stream writer's
+  // capacity-doubling loop forever (see #424), so refuse instead of
+  // underflowing
+  if ((mz_uint64)deleted_length > zip->archive.m_archive_size) {
+    CLEANUP(deleted_entry_flag_array);
+    return ZIP_EINVIDX;
   }
 
   zip->archive.m_archive_size -= (mz_uint64)deleted_length;
