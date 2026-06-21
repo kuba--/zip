@@ -903,7 +903,6 @@ static int zip_index_update(struct zip_entry_mark_t *entry_mark,
       entry_mark[j].file_index += 1;
     }
   }
-  entry_mark[nxt_index].file_index = last_index;
   return 0;
 }
 
