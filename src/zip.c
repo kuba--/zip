@@ -76,6 +76,7 @@
     }                                                                          \
   } while (0)
 
+#define UNX_IFMT 0170000   /* Unix file-type mask */
 #define UNX_IFDIR 0040000  /* Unix directory */
 #define UNX_IFREG 0100000  /* Unix regular file */
 #define UNX_IFSOCK 0140000 /* Unix socket (BSD, not SysV or Amiga) */
@@ -540,8 +541,9 @@ static mz_bool zip_stat_is_symlink(mz_uint16 version_made_by,
   mz_bool is_unix_or_macos =
       ((version_made_by >> 8) == 3) || ((version_made_by >> 8) == 19);
 
-  // and has sym link attribute (0x80 is file, 0x40 is directory)
-  return is_unix_or_macos && (external_attr & (0x20 << 24));
+  // and the Unix file-type field marks it a symbolic link; test the whole
+  // type field, not a single bit that block/char device modes also set
+  return is_unix_or_macos && (((external_attr >> 16) & UNX_IFMT) == UNX_IFLNK);
 }
 
 #if ZIP_ENABLE_INFLATE
