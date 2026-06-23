@@ -649,6 +649,15 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       goto out;
     }
 
+    // a name that does not fit gets silently truncated by the copy below; the
+    // symlink branch then measures escape depth from the full name while the
+    // link is created at the shortened path, so a long name plus a climbing
+    // target resolves outside the destination
+    if (strlen(info.m_filename) >= filename_size) {
+      err = ZIP_EINVENTNAME;
+      goto out;
+    }
+
 #if defined(_MSC_VER)
     strncpy_s(&path[dirlen], filename_size, info.m_filename, filename_size);
 #else
