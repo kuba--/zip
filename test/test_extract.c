@@ -360,6 +360,26 @@ MU_TEST(test_extract_symlink_climb_rejected) {
   mu_check(system(rm) == 0);
 }
 
+MU_TEST(test_extract_symlink_backslash_climb_rejected) {
+  // a backslash is a literal filename byte in a Unix symlink target, not a path
+  // separator, so "a\b/../../escape" resolves two levels above the extraction
+  // root. the containment check must not treat "\" as a separator, which would
+  // count "a\b" as two levels deep and wrongly cancel the two "..".
+  static const struct sym_entry_t entries[] = {
+      {"esc", "a\\b/../../escape", 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
 MU_TEST(test_extract_symlink_dirflag_rejected) {
   // a symlink entry flagged as a directory carries no data, so the no-alloc
   // extractor leaves symlink_to untouched; without the guard "victim" would be
@@ -459,6 +479,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_contained);
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
   MU_RUN_TEST(test_extract_symlink_climb_rejected);
+  MU_RUN_TEST(test_extract_symlink_backslash_climb_rejected);
   MU_RUN_TEST(test_extract_symlink_dirflag_rejected);
   MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
   MU_RUN_TEST(test_extract_symlink_longname_rejected);
