@@ -1205,8 +1205,12 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
     d_num += end - begin;
   }
 
-  pState->m_central_dir_offsets.m_size =
-      sizeof(mz_uint32) * (entry_num - d_num);
+  // m_central_dir_offsets stores one mz_uint32 element per file, and m_size is
+  // an element count (set to m_total_files by the reader), not a byte count;
+  // multiplying by sizeof(mz_uint32) left it four times too large, so a later
+  // add wrote the new record's offset far past the live entries and stale slots
+  // were consumed as real central-dir offsets
+  pState->m_central_dir_offsets.m_size = (size_t)(entry_num - d_num);
   return 0;
 }
 

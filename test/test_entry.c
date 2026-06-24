@@ -424,6 +424,59 @@ MU_TEST(test_entries_deletefirst_then_add) {
   UNLINK(name);
 }
 
+MU_TEST(test_entries_delete_add_delete) {
+  // delete an entry, add a new one, then delete the added entry in the same
+  // session. the add appends the new central-dir offset at the offsets array's
+  // m_size; if a prior delete left m_size set to a byte count instead of an
+  // element count, the offset lands past the live entries and the second delete
+  // reads stale slots as real offsets, corrupting the central directory.
+  const char *names[] = {"aaa.txt", "bbb.txt", "ccc.txt", "ddd.txt"};
+  struct zip_t *zw =
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zw != NULL);
+  for (size_t i = 0; i < 4; ++i) {
+    mu_assert_int_eq(0, zip_entry_open(zw, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zw, TESTDATA1, strlen(TESTDATA1)));
+    mu_assert_int_eq(0, zip_entry_close(zw));
+  }
+  void *zdata = NULL;
+  size_t zsize = 0;
+  mu_check(zip_stream_copy(zw, &zdata, &zsize) > 0);
+  zip_stream_close(zw);
+
+  struct zip_t *zip = zip_stream_open((const char *)zdata, zsize,
+                                      ZIP_DEFAULT_COMPRESSION_LEVEL, 'd');
+  mu_check(zip != NULL);
+  char *del1[] = {"bbb.txt"};
+  mu_assert_int_eq(1, zip_entries_delete(zip, del1, 1));
+  mu_assert_int_eq(0, zip_entry_open(zip, "new.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  char *del2[] = {"new.txt"};
+  mu_assert_int_eq(1, zip_entries_delete(zip, del2, 1));
+
+  void *outdata = NULL;
+  size_t outsize = 0;
+  mu_check(zip_stream_copy(zip, &outdata, &outsize) > 0);
+  zip_stream_close(zip);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)outdata, outsize, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(3, zip_entries_total(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "bbb.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "new.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  const char *survivors[] = {"aaa.txt", "ccc.txt", "ddd.txt"};
+  for (size_t i = 0; i < 3; ++i) {
+    mu_assert_int_eq(0, zip_entry_open(zip, survivors[i]));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_stream_close(zip);
+  free(outdata);
+}
+
 MU_TEST(test_entries_delete_noncontiguous) {
   // deleting two non-adjacent entries leaves two separate runs of surviving
   // entries to shift down; each run must move by its own length, not the
@@ -1091,6 +1144,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_deletebyindex);
   MU_RUN_TEST(test_entries_delete_emptyarchive);
   MU_RUN_TEST(test_entries_deletefirst_then_add);
+  MU_RUN_TEST(test_entries_delete_add_delete);
   MU_RUN_TEST(test_entries_delete_noncontiguous);
   MU_RUN_TEST(test_entries_delete_trailing);
   MU_RUN_TEST(test_entries_delete);
