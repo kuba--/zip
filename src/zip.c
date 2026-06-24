@@ -557,7 +557,13 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
   long depth = 0;
   const char *p;
 
-  if (ISSLASH(target[0])) {
+  // symlink() stores the target verbatim and POSIX resolves it with '/' as the
+  // only separator; a backslash is an ordinary byte. Splitting the target on
+  // '\' would count "a\b" as two levels and let "a\b/../../escape" cancel its
+  // own ".." and climb out of the root. The link name keeps ISSLASH because
+  // zip_mkpath rewrites its '\' to '/' before the link is created, so each
+  // separator there is a real directory level.
+  if (target[0] == '/') {
     return MZ_TRUE;
   }
 
@@ -571,7 +577,7 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
   for (p = target; *p;) {
     const char *seg = p;
     size_t len = 0;
-    while (*p && !ISSLASH(*p)) {
+    while (*p && *p != '/') {
       ++p;
       ++len;
     }
@@ -582,7 +588,7 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
     } else if (!(len == 0 || (len == 1 && seg[0] == '.'))) {
       ++depth;
     }
-    while (ISSLASH(*p)) {
+    while (*p == '/') {
       ++p;
     }
   }
