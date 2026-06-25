@@ -559,7 +559,13 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
   long depth = 0;
   const char *p;
 
-  if (ISSLASH(target[0])) {
+  // symlink() stores the target verbatim and POSIX resolves it with '/' as the
+  // only separator; a backslash is an ordinary byte. Splitting the target on
+  // '\' would count "a\b" as two levels and let "a\b/../../escape" cancel its
+  // own ".." and climb out of the root. The link name keeps ISSLASH because
+  // zip_mkpath rewrites its '\' to '/' before the link is created, so each
+  // separator there is a real directory level.
+  if (target[0] == '/') {
     return MZ_TRUE;
   }
 
@@ -573,7 +579,7 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
   for (p = target; *p;) {
     const char *seg = p;
     size_t len = 0;
-    while (*p && !ISSLASH(*p)) {
+    while (*p && *p != '/') {
       ++p;
       ++len;
     }
@@ -584,7 +590,7 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
     } else if (!(len == 0 || (len == 1 && seg[0] == '.'))) {
       ++depth;
     }
-    while (ISSLASH(*p)) {
+    while (*p == '/') {
       ++p;
     }
   }
@@ -647,6 +653,15 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     if (!zip_name_normalize(info.m_filename, info.m_filename,
                             strlen(info.m_filename))) {
       // Cannot normalize file name;
+      err = ZIP_EINVENTNAME;
+      goto out;
+    }
+
+    // a name that does not fit gets silently truncated by the copy below; the
+    // symlink branch then measures escape depth from the full name while the
+    // link is created at the shortened path, so a long name plus a climbing
+    // target resolves outside the destination
+    if (strlen(info.m_filename) >= filename_size) {
       err = ZIP_EINVENTNAME;
       goto out;
     }
@@ -1198,8 +1213,12 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
     d_num += end - begin;
   }
 
-  pState->m_central_dir_offsets.m_size =
-      sizeof(mz_uint32) * (entry_num - d_num);
+  // m_central_dir_offsets stores one mz_uint32 element per file, and m_size is
+  // an element count (set to m_total_files by the reader), not a byte count;
+  // multiplying by sizeof(mz_uint32) left it four times too large, so a later
+  // add wrote the new record's offset far past the live entries and stale slots
+  // were consumed as real central-dir offsets
+  pState->m_central_dir_offsets.m_size = (size_t)(entry_num - d_num);
   return 0;
 }
 

@@ -363,6 +363,26 @@ MU_TEST(test_extract_symlink_climb_rejected) {
   mu_check(system(rm) == 0);
 }
 
+MU_TEST(test_extract_symlink_backslash_climb_rejected) {
+  // a backslash is a literal filename byte in a Unix symlink target, not a path
+  // separator, so "a\b/../../escape" resolves two levels above the extraction
+  // root. the containment check must not treat "\" as a separator, which would
+  // count "a\b" as two levels deep and wrongly cancel the two "..".
+  static const struct sym_entry_t entries[] = {
+      {"esc", "a\\b/../../escape", 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
 MU_TEST(test_extract_symlink_dirflag_rejected) {
   // a symlink entry flagged as a directory carries no data, so the no-alloc
   // extractor leaves symlink_to untouched; without the guard "victim" would be
@@ -452,6 +472,45 @@ MU_TEST(test_extract_chardev_not_symlink) {
 }
 #endif
 
+#if ZIP_HAVE_SYMLINK
+MU_TEST(test_extract_symlink_longname_rejected) {
+  // a name too long for the extraction path buffer was silently truncated, so
+  // the symlink got created at a shorter path than the name the escape check
+  // measured depth from; the full name carries three separators while the
+  // truncated link sits one level deep, so "../../../escape" passed the check
+  // yet resolved outside the destination. such names must be rejected.
+  char longname[512];
+  size_t k = 0;
+  struct sym_entry_t entries[1];
+  char tmpl[] = "ext-XXXXXX";
+  char *dir;
+  char rm[512];
+
+  memset(longname, 'A', 250);
+  k = 250;
+  longname[k++] = '/';
+  memset(longname + k, 'B', 252);
+  k += 252;
+  memcpy(longname + k, "/xx/link", 8);
+  k += 8;
+  longname[k] = '\0'; // 511 chars
+
+  entries[0].name = longname;
+  entries[0].data = "../../../escape";
+  entries[0].is_symlink = 1;
+  entries[0].dir_flag = 0;
+
+  dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+#endif
+
 MU_TEST_SUITE(test_extract_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -462,8 +521,10 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_contained);
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
   MU_RUN_TEST(test_extract_symlink_climb_rejected);
+  MU_RUN_TEST(test_extract_symlink_backslash_climb_rejected);
   MU_RUN_TEST(test_extract_symlink_dirflag_rejected);
   MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
+  MU_RUN_TEST(test_extract_symlink_longname_rejected);
   MU_RUN_TEST(test_extract_chardev_not_symlink);
 #endif
 }
