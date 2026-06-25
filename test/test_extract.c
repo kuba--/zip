@@ -267,9 +267,9 @@ static void sym_write_zip(const char *path, const struct sym_entry_t *e,
     sym_put32(hdr + 24, (unsigned long)sizes[i]);
     sym_put16(hdr + 28, (unsigned)namelen);
     sym_put32(hdr + 38,
-              (e[i].attr ? e[i].attr
-                         : (e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL)) |
-                  (e[i].dir_flag ? 0x10UL : 0UL));
+              e[i].attr ? e[i].attr
+                        : ((e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL) |
+                           (e[i].dir_flag ? 0x10UL : 0UL)));
     sym_put32(hdr + 42, (unsigned long)offsets[i]);
     memcpy(buf + pos, hdr, 46);
     pos += 46;
