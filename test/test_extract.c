@@ -191,7 +191,8 @@ struct sym_entry_t {
   const char *name;
   const char *data; // symlink target, or regular file content
   int is_symlink;
-  int dir_flag; // also set the DOS directory attribute bit
+  int dir_flag;       // also set the DOS directory attribute bit
+  unsigned long attr; // explicit external_attr override (0 = use default)
 };
 
 static void sym_put16(unsigned char *b, unsigned v) {
@@ -265,8 +266,10 @@ static void sym_write_zip(const char *path, const struct sym_entry_t *e,
     sym_put32(hdr + 20, (unsigned long)sizes[i]);
     sym_put32(hdr + 24, (unsigned long)sizes[i]);
     sym_put16(hdr + 28, (unsigned)namelen);
-    sym_put32(hdr + 38, (e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL) |
-                            (e[i].dir_flag ? 0x10UL : 0UL));
+    sym_put32(hdr + 38,
+              (e[i].attr ? e[i].attr
+                         : (e[i].is_symlink ? 0xA1FF0000UL : 0x81A40000UL)) |
+                  (e[i].dir_flag ? 0x10UL : 0UL));
     sym_put32(hdr + 42, (unsigned long)offsets[i]);
     memcpy(buf + pos, hdr, 46);
     pos += 46;
@@ -430,6 +433,47 @@ MU_TEST(test_extract_symlink_zerolen_first_rejected) {
 }
 #endif
 
+MU_TEST(test_extract_chardev_not_symlink) {
+  // a character-device entry (S_IFCHR) shares the 0x2000 mode bit with S_IFLNK;
+  // the file-type test must match S_IFLNK exactly, otherwise the extractor runs
+  // the symlink() path for an entry the archive never marked as a link
+  static const struct sym_entry_t entries[] = {
+      {"dev", "innocent", 0, 0, 0x21FF0000UL}, // S_IFCHR | 0777
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir;
+  char p[512];
+  char got[512];
+  char rm[512];
+  char content[16];
+  struct stat st;
+  FILE *fp;
+  size_t nread;
+
+  dir = mkdtemp(tmpl);
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  // it must be a regular file holding the data, not a symlink to "innocent"
+  snprintf(p, sizeof(p), "%s/dev", dir);
+  mu_assert_int_eq(0, lstat(p, &st));
+  mu_check(S_ISREG(st.st_mode));
+
+  fp = fopen(p, "rb");
+  mu_check(fp != NULL);
+  memset(content, 0, sizeof(content));
+  nread = fread(content, 1, sizeof(content) - 1, fp);
+  fclose(fp);
+  mu_assert_int_eq((int)strlen("innocent"), (int)nread);
+  mu_assert_int_eq(0, strncmp(content, "innocent", nread));
+
+  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
 #if ZIP_HAVE_SYMLINK
 MU_TEST(test_extract_symlink_longname_rejected) {
   // a name too long for the extraction path buffer was silently truncated, so
@@ -475,6 +519,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract);
   MU_RUN_TEST(test_extract_stream);
   MU_RUN_TEST(test_extract_cstream);
+  MU_RUN_TEST(test_extract_chardev_not_symlink);
 #if ZIP_HAVE_SYMLINK
   MU_RUN_TEST(test_extract_symlink_contained);
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
