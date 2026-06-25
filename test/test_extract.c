@@ -423,6 +423,10 @@ MU_TEST(test_extract_chardev_not_symlink) {
   char *dir = mkdtemp(tmpl);
   char p[512];
   char got[512];
+  struct stat st;
+  FILE *fp;
+  char content[16];
+  size_t nread;
   mu_check(dir != NULL);
 
   sym_write_zip(ZIPNAME, entries, 1);
@@ -430,8 +434,18 @@ MU_TEST(test_extract_chardev_not_symlink) {
 
   // it must be a regular file holding the data, not a symlink to "innocent"
   snprintf(p, sizeof(p), "%s/dev", dir);
-  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
+  mu_assert_int_eq(0, lstat(p, &st));
+  mu_check(S_ISREG(st.st_mode));
 
+  fp = fopen(p, "rb");
+  mu_check(fp != NULL);
+  memset(content, 0, sizeof(content));
+  nread = fread(content, 1, sizeof(content) - 1, fp);
+  fclose(fp);
+  mu_assert_int_eq((int)strlen("innocent"), (int)nread);
+  mu_assert_int_eq(0, strncmp(content, "innocent", nread));
+
+  mu_assert_int_eq(-1, (int)readlink(p, got, sizeof(got)));
   char rm[512];
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
