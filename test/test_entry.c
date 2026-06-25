@@ -1105,6 +1105,106 @@ MU_TEST(test_entries_delete_reordered_cd) {
   free(buf);
 }
 
+MU_TEST(test_entries_delete_reordered_cd_data) {
+  /* same reordered-central-directory layout as above, but verify the surviving
+     entries keep their exact bytes: a delete must shift file data by physical
+     (local-header-offset) order, not central-directory order */
+  static const unsigned int sizes[5] = {500, 30, 300, 40, 200};
+  static const int order[5] = {1, 0, 4, 2, 3};
+  struct zip_t *zip = zip_stream_open(NULL, 0, 0, 'w');
+  void *buf = NULL, *out = NULL;
+  size_t bufsize = 0, outsize = 0;
+  unsigned char *b, *p, *q;
+  unsigned int cd_ofs;
+  unsigned char *rec[5];
+  size_t reclen[5];
+  size_t del[1];
+  ssize_t eocd = -1, i;
+
+  mu_check(zip != NULL);
+  for (i = 0; i < 5; i++) {
+    char name[8];
+    char *data = (char *)malloc(sizes[i]);
+    snprintf(name, sizeof(name), "e%d", (int)i);
+    mu_check(data != NULL);
+    memset(data, 'A' + (int)i, sizes[i]);
+    mu_assert_int_eq(0, zip_entry_open(zip, name));
+    mu_assert_int_eq(0, zip_entry_write(zip, data, sizes[i]));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+    free(data);
+  }
+
+  mu_check(zip_stream_copy(zip, &buf, &bufsize) > 0);
+  zip_stream_close(zip);
+
+  b = (unsigned char *)buf;
+  for (i = (ssize_t)bufsize - 22; i >= 0; i--) {
+    if (te_rd32(b + i) == 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  mu_check(eocd >= 0);
+
+  cd_ofs = te_rd32(b + eocd + 16);
+  p = b + cd_ofs;
+  for (i = 0; i < 5; i++) {
+    reclen[i] = 46u + te_rd16(p + 28) + te_rd16(p + 30) + te_rd16(p + 32);
+    rec[i] = (unsigned char *)malloc(reclen[i]);
+    mu_check(rec[i] != NULL);
+    memcpy(rec[i], p, reclen[i]);
+    p += reclen[i];
+  }
+  q = b + cd_ofs;
+  for (i = 0; i < 5; i++) {
+    memcpy(q, rec[order[i]], reclen[order[i]]);
+    q += reclen[order[i]];
+  }
+  for (i = 0; i < 5; i++) {
+    free(rec[i]);
+  }
+
+  /* central-dir index 4 now points at original entry e3; deleting it must
+     leave e0, e1, e2, e4 with their original bytes */
+  {
+    struct zip_t *zd = zip_stream_open((const char *)b, bufsize, 0, 'd');
+    mu_check(zd != NULL);
+    del[0] = 4;
+    mu_assert_int_eq(1, zip_entries_deletebyindex(zd, del, 1));
+    mu_check(zip_stream_copy(zd, &out, &outsize) > 0);
+    zip_stream_close(zd);
+  }
+
+  {
+    static const int survivors[4] = {0, 1, 2, 4};
+    struct zip_t *zr = zip_stream_open((const char *)out, outsize, 0, 'r');
+    int s;
+    mu_check(zr != NULL);
+    mu_assert_int_eq(4, (int)zip_entries_total(zr));
+    mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zr, "e3"));
+    for (s = 0; s < 4; s++) {
+      char name[8];
+      void *rb = NULL;
+      size_t rbs = 0;
+      ssize_t k;
+      int e = survivors[s];
+      snprintf(name, sizeof(name), "e%d", e);
+      mu_assert_int_eq(0, zip_entry_open(zr, name));
+      mu_check(zip_entry_read(zr, &rb, &rbs) >= 0);
+      mu_assert_int_eq((int)sizes[e], (int)rbs);
+      for (k = 0; k < (ssize_t)rbs; k++) {
+        mu_assert_int_eq('A' + e, (int)((unsigned char *)rb)[k]);
+      }
+      free(rb);
+      mu_assert_int_eq(0, zip_entry_close(zr));
+    }
+    zip_stream_close(zr);
+  }
+
+  free(out);
+  free(buf);
+}
+
 MU_TEST(test_entry_offset) {
   struct zip_t *zip = zip_open(ZIPNAME, 0, 'r');
   mu_check(zip != NULL);
@@ -1157,6 +1257,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_stream_multi_copy);
   MU_RUN_TEST(test_entries_delete_badoffset);
   MU_RUN_TEST(test_entries_delete_reordered_cd);
+  MU_RUN_TEST(test_entries_delete_reordered_cd_data);
   MU_RUN_TEST(test_entry_offset);
 }
 
