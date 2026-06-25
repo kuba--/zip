@@ -411,7 +411,6 @@ MU_TEST(test_extract_symlink_zerolen_first_rejected) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
-#endif
 
 MU_TEST(test_extract_chardev_not_symlink) {
   // a character-device entry (S_IFCHR) shares the 0x2000 mode bit with S_IFLNK;
@@ -437,6 +436,7 @@ MU_TEST(test_extract_chardev_not_symlink) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
+#endif
 
 MU_TEST_SUITE(test_extract_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
