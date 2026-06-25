@@ -1175,7 +1175,6 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
   int i = 0;
   int begin = 0;
   int end = 0;
-  int d_num = 0;
   while (i < entry_num) {
     while ((i < entry_num) && (!deleted_entry_index_array[i])) {
       i++;
@@ -1189,36 +1188,26 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
     zip_central_dir_move(pState, begin, end, entry_num);
   }
 
-  i = 0;
-  while (i < entry_num) {
-    while ((i < entry_num) && (!deleted_entry_index_array[i])) {
-      i++;
+  // every surviving entry already holds its rebased offset at its original
+  // index after the moves above, so pack the offsets down in one stable pass.
+  // the old per-run compaction copied the whole tail (including deleted slots
+  // not yet processed) into the survivor slots, so with two or more separated
+  // delete runs a survivor's offset was overwritten by a stale deleted-entry
+  // offset that points past the realloc-shrunk central directory; the next
+  // index lookup (zip_entry_openbyindex) then read out of bounds.
+  // m_central_dir_offsets holds one mz_uint32 element per file and m_size is an
+  // element count, not a byte count.
+  {
+    int w = 0;
+    for (i = 0; i < entry_num; i++) {
+      if (!deleted_entry_index_array[i]) {
+        MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, w) =
+            MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32, i);
+        w++;
+      }
     }
-    begin = i;
-    if (begin == entry_num) {
-      break;
-    }
-    while ((i < entry_num) && (deleted_entry_index_array[i])) {
-      i++;
-    }
-    end = i;
-    int k = 0, j;
-    for (j = end; j < entry_num; j++) {
-      MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets, mz_uint32,
-                           begin + k) =
-          (mz_uint32)MZ_ZIP_ARRAY_ELEMENT(&pState->m_central_dir_offsets,
-                                          mz_uint32, j);
-      k++;
-    }
-    d_num += end - begin;
+    pState->m_central_dir_offsets.m_size = (size_t)w;
   }
-
-  // m_central_dir_offsets stores one mz_uint32 element per file, and m_size is
-  // an element count (set to m_total_files by the reader), not a byte count;
-  // multiplying by sizeof(mz_uint32) left it four times too large, so a later
-  // add wrote the new record's offset far past the live entries and stale slots
-  // were consumed as real central-dir offsets
-  pState->m_central_dir_offsets.m_size = (size_t)(entry_num - d_num);
   return 0;
 }
 
