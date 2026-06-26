@@ -1231,6 +1231,53 @@ MU_TEST(test_entry_offset) {
   zip_close(zip);
 }
 
+MU_TEST(test_entries_delete_multirun_offsets) {
+  // delete two separated runs of entries, the first starting at index 0 so the
+  // central-dir buffer is realloc-shrunk, then keep operating on the same
+  // handle. the offsets-array compaction used to copy the whole tail (including
+  // deleted slots not yet processed) into the survivor slots, so a survivor's
+  // offset was overwritten with a stale deleted-entry offset that points past
+  // the shrunk buffer; the next index lookup then reads out of bounds. names
+  // have varying lengths so the central-dir records differ in size.
+  char name[L_tmpnam + 1] = {0};
+  strncpy(name, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(name);
+
+  const char *names[] = {"f0",        "file1", "kept_c",    "f3",
+                         "file4xxxx", "keptF", "keptG_long"};
+  struct zip_t *zip = zip_open(name, 0, 'w');
+  mu_check(zip != NULL);
+  for (size_t i = 0; i < 7; ++i) {
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_close(zip);
+
+  // remove indices {0,1,3,4} -> survivors kept_c, keptF, keptG_long; then drop
+  // the first survivor (kept_c) on the same handle
+  zip = zip_open(name, 0, 'd');
+  mu_check(zip != NULL);
+  size_t del1[] = {0, 1, 3, 4};
+  mu_assert_int_eq(4, zip_entries_deletebyindex(zip, del1, 4));
+  size_t del2[] = {0};
+  mu_assert_int_eq(1, zip_entries_deletebyindex(zip, del2, 1));
+  zip_close(zip);
+
+  zip = zip_open(name, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(2, zip_entries_total(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "keptF"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "keptG_long"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "kept_c"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  UNLINK(name);
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -1258,6 +1305,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_badoffset);
   MU_RUN_TEST(test_entries_delete_reordered_cd);
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
+  MU_RUN_TEST(test_entries_delete_multirun_offsets);
   MU_RUN_TEST(test_entry_offset);
 }
 
