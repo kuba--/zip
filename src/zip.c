@@ -732,6 +732,21 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       }
 #endif
     } else {
+#if ZIP_HAVE_SYMLINK
+      // an earlier entry can create a symlink at this path (or one may already
+      // sit there); the fopen("wb") inside mz_zip_reader_extract_to_file and
+      // the CHMOD below both follow it, so a crafted archive that stores a
+      // symlink and then a regular entry of the same name writes through the
+      // link and clobbers its target. refuse to descend a symlink at the
+      // destination.
+      {
+        struct MZ_FILE_STAT_STRUCT path_st;
+        if (lstat(path, &path_st) == 0 && S_ISLNK(path_st.st_mode)) {
+          err = ZIP_ESYMLINK;
+          goto out;
+        }
+      }
+#endif
       if (!mz_zip_reader_is_file_a_directory(zip_archive, i)) {
         if (!mz_zip_reader_extract_to_file(zip_archive, i, path, 0)) {
           // Cannot extract zip archive to file
