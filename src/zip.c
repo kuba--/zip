@@ -669,6 +669,16 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       goto out;
     }
 
+    // a name built only from separators and "."/".." components (e.g. "..",
+    // "/", "./") normalizes to an empty string, so the path below collapses to
+    // the destination directory itself: a directory-flagged entry would then
+    // CHMOD the destination to the archive's mode and a regular entry would try
+    // to write over it
+    if (info.m_filename[0] == '\0') {
+      err = ZIP_EINVENTNAME;
+      goto out;
+    }
+
     // a name that does not fit gets silently truncated by the copy below; the
     // symlink branch then measures escape depth from the full name while the
     // link is created at the shortened path, so a long name plus a climbing
