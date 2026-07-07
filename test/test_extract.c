@@ -470,6 +470,31 @@ MU_TEST(test_extract_chardev_not_symlink) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
+
+MU_TEST(test_extract_dotdot_name_chmod_rejected) {
+  // an entry whose name normalizes to "" (e.g. "..") makes the extraction path
+  // collapse to the destination directory itself; a directory-flagged entry
+  // then chmods the destination to the archive's mode. it must be rejected.
+  static const struct sym_entry_t entries[] = {
+      {"..", "", 0, 1, 0x01FF0000UL}, // dir flag + unix mode 0777
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  struct stat st;
+  char rm[512];
+  mu_check(dir != NULL);
+  mu_check(chmod(dir, 0700) == 0);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  // the destination directory keeps its original permissions
+  mu_assert_int_eq(0, stat(dir, &st));
+  mu_assert_int_eq(0700, (int)(st.st_mode & 0777));
+
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
 #endif
 
 #if ZIP_HAVE_SYMLINK
@@ -526,6 +551,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
   MU_RUN_TEST(test_extract_symlink_longname_rejected);
   MU_RUN_TEST(test_extract_chardev_not_symlink);
+  MU_RUN_TEST(test_extract_dotdot_name_chmod_rejected);
 #endif
 }
 
