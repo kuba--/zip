@@ -383,6 +383,33 @@ MU_TEST(test_extract_symlink_backslash_climb_rejected) {
   mu_check(system(rm) == 0);
 }
 
+MU_TEST(test_extract_symlink_chained_climb_rejected) {
+  // "a" -> "." is a harmless in-tree self link, but a later link whose target
+  // descends through it and then climbs ("a/../secret") escapes the root: the
+  // kernel resolves "a/.." from a's target (the extraction dir) so it lands in
+  // the parent. the lexical depth stays non-negative, so containment must also
+  // reject a ".." that follows a normal component.
+  static const struct sym_entry_t entries[] = {
+      {"a", ".", 1},
+      {"b", "a/../secret", 1},
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char victim[512];
+  struct stat st;
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 2);
+  mu_assert_int_eq(ZIP_EINVENTNAME, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(victim, sizeof(victim), "%s/b", dir);
+  mu_check(lstat(victim, &st) != 0);
+
+  char rm[512];
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
 MU_TEST(test_extract_symlink_dirflag_rejected) {
   // a symlink entry flagged as a directory carries no data, so the no-alloc
   // extractor leaves symlink_to untouched; without the guard "victim" would be
@@ -547,6 +574,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_absolute_rejected);
   MU_RUN_TEST(test_extract_symlink_climb_rejected);
   MU_RUN_TEST(test_extract_symlink_backslash_climb_rejected);
+  MU_RUN_TEST(test_extract_symlink_chained_climb_rejected);
   MU_RUN_TEST(test_extract_symlink_dirflag_rejected);
   MU_RUN_TEST(test_extract_symlink_zerolen_first_rejected);
   MU_RUN_TEST(test_extract_symlink_longname_rejected);

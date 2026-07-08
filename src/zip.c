@@ -569,6 +569,7 @@ static mz_bool zip_stat_is_symlink(mz_uint16 version_made_by,
 static mz_bool zip_symlink_target_escapes(const char *link_name,
                                           const char *target) {
   long depth = 0;
+  mz_bool descended = MZ_FALSE;
   const char *p;
 
   // symlink() stores the target verbatim and POSIX resolves it with '/' as the
@@ -596,10 +597,18 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
       ++len;
     }
     if (len == 2 && seg[0] == '.' && seg[1] == '.') {
-      if (--depth < 0) {
+      // a ".." after a normal component is unsafe even when the running depth
+      // stays non-negative: that earlier component may itself be an in-tree
+      // symlink from a previous entry (e.g. "a" -> "."), so the kernel resolves
+      // "a/.." from a's target rather than from this directory and the link
+      // escapes the root. Only leading ".." (climbing the link's own real
+      // parents, which zip_mkpath refuses to descend through a symlink) is
+      // safe, bounded by the depth count.
+      if (descended || --depth < 0) {
         return MZ_TRUE;
       }
     } else if (!(len == 0 || (len == 1 && seg[0] == '.'))) {
+      descended = MZ_TRUE;
       ++depth;
     }
     while (*p == '/') {
