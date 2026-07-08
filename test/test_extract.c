@@ -522,6 +522,63 @@ MU_TEST(test_extract_dotdot_name_chmod_rejected) {
   snprintf(rm, sizeof(rm), "rm -rf %s", dir);
   mu_check(system(rm) == 0);
 }
+
+MU_TEST(test_extract_symlink_writethrough_rejected) {
+  // a regular entry whose name matches a symlink stored earlier in the same
+  // archive is written with fopen("wb"), which would follow that link and write
+  // through it, clobbering the link target instead of creating the named file.
+  // extraction removes the stale symlink first, so the bytes land at the named
+  // path and the link target is left untouched.
+  static const struct sym_entry_t entries[] = {
+      {"config", "victim", 1, 0},   // symlink config -> victim (in-tree target)
+      {"config", "ATTACKER", 0, 0}, // regular file of the same name
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char victim[512];
+  char config[512];
+  char content[32];
+  char rm[512];
+  struct stat st;
+  FILE *fp;
+  size_t nread;
+  mu_check(dir != NULL);
+
+  // a pre-existing file in the destination that the link points at
+  snprintf(victim, sizeof(victim), "%s/victim", dir);
+  fp = fopen(victim, "wb");
+  mu_check(fp != NULL);
+  mu_check(fwrite("ORIGINAL", 1, 8, fp) == 8);
+  fclose(fp);
+
+  sym_write_zip(ZIPNAME, entries, sizeof(entries) / sizeof(entries[0]));
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  // the link target keeps its original bytes; nothing was written through it
+  fp = fopen(victim, "rb");
+  mu_check(fp != NULL);
+  memset(content, 0, sizeof(content));
+  nread = fread(content, 1, sizeof(content) - 1, fp);
+  fclose(fp);
+  mu_assert_int_eq(8, (int)nread);
+  mu_assert_int_eq(0, strncmp(content, "ORIGINAL", 8));
+
+  // the named path is now a regular file holding the entry's own bytes, not a
+  // link
+  snprintf(config, sizeof(config), "%s/config", dir);
+  mu_assert_int_eq(0, lstat(config, &st));
+  mu_check(S_ISREG(st.st_mode));
+  fp = fopen(config, "rb");
+  mu_check(fp != NULL);
+  memset(content, 0, sizeof(content));
+  nread = fread(content, 1, sizeof(content) - 1, fp);
+  fclose(fp);
+  mu_assert_int_eq((int)strlen("ATTACKER"), (int)nread);
+  mu_assert_int_eq(0, strncmp(content, "ATTACKER", nread));
+
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
 #endif
 
 #if ZIP_HAVE_SYMLINK
@@ -580,6 +637,7 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_longname_rejected);
   MU_RUN_TEST(test_extract_chardev_not_symlink);
   MU_RUN_TEST(test_extract_dotdot_name_chmod_rejected);
+  MU_RUN_TEST(test_extract_symlink_writethrough_rejected);
 #endif
 }
 
