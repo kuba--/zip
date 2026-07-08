@@ -733,17 +733,20 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
 #endif
     } else {
 #if ZIP_HAVE_SYMLINK
-      // an earlier entry can create a symlink at this path (or one may already
-      // sit there); the fopen("wb") inside mz_zip_reader_extract_to_file and
-      // the CHMOD below both follow it, so a crafted archive that stores a
-      // symlink and then a regular entry of the same name writes through the
-      // link and clobbers its target. refuse to descend a symlink at the
-      // destination.
+      // an earlier entry (or a pre-existing file) can leave a symlink at this
+      // path; the fopen("wb") inside mz_zip_reader_extract_to_file and the
+      // CHMOD below both follow it, so a regular entry of the same name would
+      // write through the link onto its target. remove the link first so the
+      // bytes land at the named path instead. this only covers a symlink as the
+      // final path component; a symlinked intermediate directory is not caught
+      // here.
       {
         struct MZ_FILE_STAT_STRUCT path_st;
         if (lstat(path, &path_st) == 0 && S_ISLNK(path_st.st_mode)) {
-          err = ZIP_ESYMLINK;
-          goto out;
+          if (unlink(path) != 0) {
+            err = ZIP_ESYMLINK;
+            goto out;
+          }
         }
       }
 #endif
