@@ -1,6 +1,6 @@
 ## A portable (OSX/Linux/Windows/Android/iOS), simple zip library written in C
 
-This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v3.1.1 API.
+This is done by hacking awesome [miniz](https://github.com/richgel999/miniz) library and layering functions on top of the miniz v3.1.2 API.
 
 [![Build](https://github.com/kuba--/zip/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/kuba--/zip/actions/workflows/build.yml)
 
