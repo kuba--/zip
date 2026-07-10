@@ -1123,7 +1123,12 @@ static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
 
     if (pState->m_pFile) {
 #ifndef MINIZ_NO_STDIO
-      n = zip_file_move(pState->m_pFile, writen_num, read_num, move_count,
+      // writen_num/read_num are archive-relative; a stub-prefixed file needs
+      // m_file_archive_start_ofs added to reach the real bytes (the memory
+      // path below stays archive-relative, so it is left untouched)
+      n = zip_file_move(pState->m_pFile,
+                        writen_num + pState->m_file_archive_start_ofs,
+                        read_num + pState->m_file_archive_start_ofs, move_count,
                         move_buf, page_size);
 #else
       CLEANUP(move_buf);
@@ -2054,7 +2059,11 @@ int zip_entry_close(struct zip_t *zip) {
 
     if (pState->m_pFile) {
 #ifndef MINIZ_NO_STDIO
-      if (MZ_FSEEK64(pState->m_pFile, (mz_int64)zip->entry.enc_header_ofs,
+      // the writer callbacks add m_file_archive_start_ofs, so a raw seek must
+      // add it too or it lands before the archive on a stub-prefixed file
+      if (MZ_FSEEK64(pState->m_pFile,
+                     (mz_int64)(zip->entry.enc_header_ofs +
+                                pState->m_file_archive_start_ofs),
                      SEEK_SET)) {
         err = ZIP_EFSEEK;
         goto cleanup;
@@ -2106,7 +2115,9 @@ int zip_entry_close(struct zip_t *zip) {
 
         if (pState->m_pFile) {
 #ifndef MINIZ_NO_STDIO
-          if (MZ_FSEEK64(pState->m_pFile, (mz_int64)ofs, SEEK_SET)) {
+          if (MZ_FSEEK64(pState->m_pFile,
+                         (mz_int64)(ofs + pState->m_file_archive_start_ofs),
+                         SEEK_SET)) {
             err = ZIP_EFSEEK;
             goto cleanup;
           }

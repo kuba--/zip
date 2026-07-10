@@ -1332,6 +1332,84 @@ MU_TEST(test_entries_delete_multirun_offsets) {
   UNLINK(name);
 }
 
+MU_TEST(test_entries_delete_stub_prefixed) {
+  // a file archive can begin at a nonzero offset (a self-extracting stub or any
+  // prepended bytes); miniz records that base in m_file_archive_start_ofs and
+  // its read/write callbacks add it. the delete path's raw file moves used
+  // archive-relative offsets without that base, so on a stub-prefixed archive a
+  // surviving entry was rebuilt from the wrong bytes and read back corrupt.
+  char name[L_tmpnam + 1] = {0};
+  strncpy(name, "z-XXXXXX\0", L_tmpnam);
+  MKTEMP(name);
+
+  const size_t len = 8192;
+  char *payload = (char *)malloc(len * 3);
+  mu_check(payload != NULL);
+  const char *names[] = {"a.bin", "b.bin", "c.bin"};
+
+  struct zip_t *zip = zip_open(name, 0, 'w');
+  mu_check(zip != NULL);
+  for (size_t i = 0; i < 3; ++i) {
+    char *p = payload + i * len;
+    memset(p, (int)('A' + i), len);
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zip, p, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_close(zip);
+
+  // prepend a stub so the archive no longer starts at file offset 0
+  FILE *f = fopen(name, "rb");
+  mu_check(f != NULL);
+  fseek(f, 0, SEEK_END);
+  long zsize = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  char *zbytes = (char *)malloc((size_t)zsize);
+  mu_check(zbytes != NULL);
+  mu_assert_int_eq(zsize, (long)fread(zbytes, 1, (size_t)zsize, f));
+  fclose(f);
+
+  const size_t stub = 4096;
+  char *sb = (char *)malloc(stub);
+  mu_check(sb != NULL);
+  memset(sb, 'S', stub);
+  f = fopen(name, "wb");
+  mu_check(f != NULL);
+  mu_assert_int_eq((long)stub, (long)fwrite(sb, 1, stub, f));
+  mu_assert_int_eq(zsize, (long)fwrite(zbytes, 1, (size_t)zsize, f));
+  fclose(f);
+  free(sb);
+  free(zbytes);
+
+  // remove the middle entry -> c.bin must shift down over b.bin's old region
+  char *del[] = {"b.bin"};
+  zip = zip_open(name, 0, 'd');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(1, zip_entries_delete(zip, del, 1));
+  zip_close(zip);
+
+  zip = zip_open(name, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(2, zip_entries_total(zip));
+  const size_t survivors[] = {0, 2};
+  for (size_t s = 0; s < 2; ++s) {
+    size_t i = survivors[s];
+    mu_assert_int_eq(0, zip_entry_open(zip, names[i]));
+    char *buf = NULL;
+    size_t bufsize = 0;
+    ssize_t r = zip_entry_read(zip, (void **)&buf, &bufsize);
+    mu_assert_int_eq((int)len, (int)r);
+    mu_assert_int_eq((int)len, (int)bufsize);
+    mu_assert_int_eq(0, memcmp(buf, payload + i * len, len));
+    mu_assert_int_eq(0, zip_entry_close(zip));
+    free(buf);
+  }
+  zip_close(zip);
+
+  free(payload);
+  UNLINK(name);
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -1361,6 +1439,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_reordered_cd);
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
   MU_RUN_TEST(test_entries_delete_multirun_offsets);
+  MU_RUN_TEST(test_entries_delete_stub_prefixed);
   MU_RUN_TEST(test_entry_offset);
 }
 
