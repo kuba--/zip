@@ -2599,6 +2599,14 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
     return (ssize_t)ZIP_ENOENT;
   }
 
+  // a directory entry carries no data: miniz's extractor short-circuits it and
+  // returns success without writing buf or testing bufsize, so returning the
+  // declared uncomp_size below would report more bytes than were written.
+  // reject it as zip_entry_read and zip_entry_fread already do.
+  if (mz_zip_reader_is_file_a_directory(pzip, (mz_uint)zip->entry.index)) {
+    return (ssize_t)ZIP_EINVENTTYPE;
+  }
+
   if (zip->password) {
     void *heap_buf = NULL;
     size_t heap_size = 0;
@@ -2646,6 +2654,13 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   if (pzip->m_zip_mode != MZ_ZIP_MODE_READING ||
       zip->entry.index < (ssize_t)0) {
     return (ssize_t)ZIP_ENOENT;
+  }
+
+  // a directory entry carries no data, yet its declared uncomp_size passed the
+  // offset check above; miniz then returns an unwritten heap block and the copy
+  // below would leak uninitialized memory. reject it like the readers above.
+  if (mz_zip_reader_is_file_a_directory(pzip, (mz_uint)zip->entry.index)) {
+    return (ssize_t)ZIP_EINVENTTYPE;
   }
 
   if (zip->password) {
