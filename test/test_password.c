@@ -858,6 +858,68 @@ MU_TEST(test_password_deflate_truncated_no_hang) {
   zip_close(zip);
 }
 
+MU_TEST(test_password_append_stub_prefixed) {
+  // a file archive can begin at a nonzero offset (a self-extracting stub);
+  // miniz records it in m_file_archive_start_ofs and its write callback adds
+  // it. zip_entry_close re-reads the just-written encryption header/data with a
+  // raw seek that omitted that base, so appending an encrypted entry to a
+  // stub-prefixed archive re-encrypted the wrong bytes and the entry read back
+  // as a wrong-password error.
+  struct zip_t *zip;
+
+  zip = zip_open_with_password(ZIPNAME, 0, 'w', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "first.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  // prepend a stub so the archive no longer starts at file offset 0
+  FILE *f = fopen(ZIPNAME, "rb");
+  mu_check(f != NULL);
+  fseek(f, 0, SEEK_END);
+  long zsize = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  char *zbytes = (char *)malloc((size_t)zsize);
+  mu_check(zbytes != NULL);
+  mu_assert_int_eq(zsize, (long)fread(zbytes, 1, (size_t)zsize, f));
+  fclose(f);
+
+  const size_t stub = 4096;
+  char *sb = (char *)malloc(stub);
+  mu_check(sb != NULL);
+  memset(sb, 'S', stub);
+  f = fopen(ZIPNAME, "wb");
+  mu_check(f != NULL);
+  mu_assert_int_eq((long)stub, (long)fwrite(sb, 1, stub, f));
+  mu_assert_int_eq(zsize, (long)fwrite(zbytes, 1, (size_t)zsize, f));
+  fclose(f);
+  free(sb);
+  free(zbytes);
+
+  // append an encrypted entry to the stub-prefixed archive
+  zip = zip_open_with_password(ZIPNAME, 0, 'a', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "second.txt"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+
+  // the appended entry must decrypt back to its original contents
+  void *buf = NULL;
+  size_t bufsize = 0;
+  ssize_t n;
+  zip = zip_open_with_password(ZIPNAME, 0, 'r', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "second.txt"));
+  n = zip_entry_read(zip, &buf, &bufsize);
+  mu_assert_int_eq(strlen(TESTDATA2), (int)n);
+  mu_check(memcmp(buf, TESTDATA2, strlen(TESTDATA2)) == 0);
+  free(buf);
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_close(zip);
+}
+
 MU_TEST_SUITE(test_password_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -878,6 +940,7 @@ MU_TEST_SUITE(test_password_suite) {
   MU_RUN_TEST(test_password_extract_callback);
   MU_RUN_TEST(test_password_delete_entries);
   MU_RUN_TEST(test_password_delete_by_index);
+  MU_RUN_TEST(test_password_append_stub_prefixed);
   MU_RUN_TEST(test_password_large_data);
   MU_RUN_TEST(test_password_multiple_writes);
   MU_RUN_TEST(test_password_stream_stored);
