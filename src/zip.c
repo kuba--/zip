@@ -1203,7 +1203,11 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
     }
   }
 
-  if (next && l_size * r_size != 0) {
+  // deleted run in the middle: survivors on both sides. test each size
+  // against zero directly; l_size * r_size is computed in size_t and wraps to
+  // zero on a 32-bit size_t build when both sides are a multiple of 64 KiB,
+  // which would skip the shift and the offset rebase below.
+  if (next && l_size != 0 && r_size != 0) {
     memmove(deleted, next, r_size);
     {
       int i;
