@@ -318,6 +318,10 @@ MU_TEST(test_noallocread_dir_entry_rejected) {
                    (int)zip_entry_noallocread(zip, out, sizeof(out)));
   mu_assert_int_eq(ZIP_EINVENTTYPE, (int)zip_entry_noallocreadwithoffset(
                                         zip, 0, sizeof(out), out));
+  // an offset past the declared size must still report the directory, not
+  // ZIP_EINVAL, so every directory call is consistent.
+  mu_assert_int_eq(ZIP_EINVENTTYPE, (int)zip_entry_noallocreadwithoffset(
+                                        zip, us, sizeof(out), out));
 
   mu_assert_int_eq(0, zip_entry_close(zip));
   zip_stream_close(zip);

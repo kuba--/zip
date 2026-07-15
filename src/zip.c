@@ -2639,6 +2639,20 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
     return (ssize_t)ZIP_ENOINIT;
   }
 
+  pzip = &(zip->archive);
+  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING ||
+      zip->entry.index < (ssize_t)0) {
+    return (ssize_t)ZIP_ENOENT;
+  }
+
+  // a directory entry carries no data: reject it before the offset check so
+  // every directory call returns ZIP_EINVENTTYPE instead of ZIP_EINVAL for an
+  // offset past the declared uncomp_size. miniz would otherwise return an
+  // unwritten heap block and the copy below would leak uninitialized memory.
+  if (mz_zip_reader_is_file_a_directory(pzip, (mz_uint)zip->entry.index)) {
+    return (ssize_t)ZIP_EINVENTTYPE;
+  }
+
   if (offset >= (size_t)zip->entry.uncomp_size) {
     return (ssize_t)ZIP_EINVAL;
   }
@@ -2648,19 +2662,6 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   // clamp and leaving size huge for the memcpy below
   if (size > (size_t)zip->entry.uncomp_size - offset) {
     size = (size_t)(zip->entry.uncomp_size - (mz_uint64)offset);
-  }
-
-  pzip = &(zip->archive);
-  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING ||
-      zip->entry.index < (ssize_t)0) {
-    return (ssize_t)ZIP_ENOENT;
-  }
-
-  // a directory entry carries no data, yet its declared uncomp_size passed the
-  // offset check above; miniz then returns an unwritten heap block and the copy
-  // below would leak uninitialized memory. reject it like the readers above.
-  if (mz_zip_reader_is_file_a_directory(pzip, (mz_uint)zip->entry.index)) {
-    return (ssize_t)ZIP_EINVENTTYPE;
   }
 
   if (zip->password) {
