@@ -243,6 +243,90 @@ MU_TEST(test_noallocreadwithoffset_hugesize) {
   zip_close(zip);
 }
 
+static void dz_put16(unsigned char *b, unsigned v) {
+  b[0] = (unsigned char)(v & 0xff);
+  b[1] = (unsigned char)((v >> 8) & 0xff);
+}
+
+static void dz_put32(unsigned char *b, unsigned long v) {
+  b[0] = (unsigned char)(v & 0xff);
+  b[1] = (unsigned char)((v >> 8) & 0xff);
+  b[2] = (unsigned char)((v >> 16) & 0xff);
+  b[3] = (unsigned char)((v >> 24) & 0xff);
+}
+
+MU_TEST(test_noallocread_dir_entry_rejected) {
+  // A directory-named DEFLATE entry that declares a large uncompressed size but
+  // stores almost no data. miniz's extractor short-circuits a directory entry
+  // and returns success without writing the caller's buffer or testing its
+  // size, so before the fix zip_entry_noallocread reported the declared size
+  // (far larger than the 16-byte buffer) and zip_entry_noallocreadwithoffset
+  // copied out of an unwritten heap block. Both must reject the entry now, the
+  // same way zip_entry_read and zip_entry_fread already do.
+  unsigned char arc[128];
+  size_t pos = 0, cd, cds, i;
+  const char *name = "a/";
+  size_t nl = 2;
+  unsigned long cs = 8;
+  unsigned long us = 1000000UL;
+  unsigned char out[16];
+
+  memset(arc + pos, 0, 30);
+  dz_put32(arc + pos + 0, 0x04034b50UL);
+  dz_put16(arc + pos + 4, 20);
+  dz_put16(arc + pos + 8, 8); /* method: deflate */
+  dz_put32(arc + pos + 18, cs);
+  dz_put32(arc + pos + 22, us);
+  dz_put16(arc + pos + 26, (unsigned)nl);
+  pos += 30;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  for (i = 0; i < cs; ++i) {
+    arc[pos++] = 0;
+  }
+
+  cd = pos;
+  memset(arc + pos, 0, 46);
+  dz_put32(arc + pos + 0, 0x02014b50UL);
+  dz_put16(arc + pos + 4, 0x0014);
+  dz_put16(arc + pos + 6, 20);
+  dz_put16(arc + pos + 10, 8);
+  dz_put32(arc + pos + 20, cs);
+  dz_put32(arc + pos + 24, us);
+  dz_put16(arc + pos + 28, (unsigned)nl);
+  dz_put32(arc + pos + 38, 0x41ED0010UL); /* dir mode + DOS dir bit */
+  dz_put32(arc + pos + 42, 0);
+  pos += 46;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  cds = pos - cd;
+
+  memset(arc + pos, 0, 22);
+  dz_put32(arc + pos + 0, 0x06054b50UL);
+  dz_put16(arc + pos + 8, 1);
+  dz_put16(arc + pos + 10, 1);
+  dz_put32(arc + pos + 12, (unsigned long)cds);
+  dz_put32(arc + pos + 16, (unsigned long)cd);
+  pos += 22;
+
+  struct zip_t *zip = zip_stream_open((const char *)arc, pos, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_openbyindex(zip, 0));
+  mu_check(zip_entry_uncomp_size(zip) == us);
+
+  mu_assert_int_eq(ZIP_EINVENTTYPE,
+                   (int)zip_entry_noallocread(zip, out, sizeof(out)));
+  mu_assert_int_eq(ZIP_EINVENTTYPE, (int)zip_entry_noallocreadwithoffset(
+                                        zip, 0, sizeof(out), out));
+  // an offset past the declared size must still report the directory, not
+  // ZIP_EINVAL, so every directory call is consistent.
+  mu_assert_int_eq(ZIP_EINVENTTYPE, (int)zip_entry_noallocreadwithoffset(
+                                        zip, us, sizeof(out), out));
+
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_stream_close(zip);
+}
+
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -251,6 +335,7 @@ MU_TEST_SUITE(test_read_suite) {
   MU_RUN_TEST(test_noallocreadwithoffset);
   MU_RUN_TEST(test_noallocreadwithoffset_corrupt);
   MU_RUN_TEST(test_noallocreadwithoffset_hugesize);
+  MU_RUN_TEST(test_noallocread_dir_entry_rejected);
 }
 
 #define UNUSED(x) (void)x
