@@ -920,6 +920,79 @@ MU_TEST(test_password_append_stub_prefixed) {
   zip_close(zip);
 }
 
+// Returns the offset of the encrypted local-file data (12-byte encryption
+// header + data) for the entry named `name`, and its length via `*len`.
+static size_t find_entry_cipher(const unsigned char *z, size_t zn,
+                                const char *name, size_t *len) {
+  size_t i;
+  size_t nl = strlen(name);
+  for (i = 0; i + 30 <= zn; i++) {
+    if (z[i] == 0x50 && z[i + 1] == 0x4b && z[i + 2] == 0x03 &&
+        z[i + 3] == 0x04) {
+      unsigned csize = (unsigned)z[i + 18] | ((unsigned)z[i + 19] << 8) |
+                       ((unsigned)z[i + 20] << 16) |
+                       ((unsigned)z[i + 21] << 24);
+      unsigned fnl = (unsigned)z[i + 26] | ((unsigned)z[i + 27] << 8);
+      unsigned exl = (unsigned)z[i + 28] | ((unsigned)z[i + 29] << 8);
+      if (fnl == nl && i + 30 + nl <= zn && memcmp(z + i + 30, name, nl) == 0) {
+        *len = csize;
+        return i + 30 + fnl + exl;
+      }
+    }
+  }
+  *len = 0;
+  return 0;
+}
+
+MU_TEST(test_password_encryption_not_deterministic) {
+  // two entries with identical plaintext encrypted under the same password must
+  // not produce identical ciphertext: the encryption header carries a per-entry
+  // salt so each entry gets a distinct keystream. before the salt the header
+  // was a pure function of the password, so identical plaintext encrypted to
+  // identical bytes and entries shared a keystream.
+  struct zip_t *zip;
+  void *stream_buf = NULL;
+  size_t stream_size = 0;
+
+  zip = zip_stream_open_with_password(NULL, 0, 0, 'w', PASSWORD);
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zip, "aa"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "bb"));
+  mu_assert_int_eq(0, zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_check(zip_stream_copy(zip, &stream_buf, &stream_size) > 0);
+  zip_stream_close(zip);
+
+  {
+    const unsigned char *z = (const unsigned char *)stream_buf;
+    size_t la = 0, lb = 0;
+    size_t oa = find_entry_cipher(z, stream_size, "aa", &la);
+    size_t ob = find_entry_cipher(z, stream_size, "bb", &lb);
+    mu_check(oa != 0 && ob != 0);
+    mu_check(la == lb && la > 12);
+    mu_check(memcmp(z + oa, z + ob, la) != 0);
+  }
+
+  // both entries must still decrypt back to the original plaintext
+  zip = zip_stream_open_with_password((const char *)stream_buf, stream_size, 0,
+                                      'r', PASSWORD);
+  mu_check(zip != NULL);
+  {
+    void *buf = NULL;
+    size_t bufsize = 0;
+    mu_assert_int_eq(0, zip_entry_open(zip, "aa"));
+    mu_assert_int_eq(strlen(TESTDATA1),
+                     (int)zip_entry_read(zip, &buf, &bufsize));
+    mu_check(memcmp(buf, TESTDATA1, strlen(TESTDATA1)) == 0);
+    free(buf);
+    mu_assert_int_eq(0, zip_entry_close(zip));
+  }
+  zip_stream_close(zip);
+  free(stream_buf);
+}
+
 MU_TEST_SUITE(test_password_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -944,6 +1017,7 @@ MU_TEST_SUITE(test_password_suite) {
   MU_RUN_TEST(test_password_large_data);
   MU_RUN_TEST(test_password_multiple_writes);
   MU_RUN_TEST(test_password_stream_stored);
+  MU_RUN_TEST(test_password_encryption_not_deterministic);
 }
 
 #define UNUSED(x) (void)x
