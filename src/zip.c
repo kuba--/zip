@@ -1135,6 +1135,24 @@ static ssize_t zip_files_move(struct zip_t *zip, mz_uint64 writen_num,
       return ZIP_ENOFILE;
 #endif /* MINIZ_NO_STDIO */
     } else if (pState->m_pMem) {
+      // 'd' mode aliases the caller-owned buffer as m_pMem with m_mem_capacity
+      // 0; shifting entry data in place would write through it (a crash on a
+      // read-only backing, silent corruption otherwise). The copy-on-write in
+      // zip_stream_delete_write_func only covers the central-directory write,
+      // so copy into a library-owned block on the first move here too; a
+      // non-zero m_mem_capacity then marks the owned block that
+      // zip_stream_close frees.
+      if (pState->m_mem_capacity == 0) {
+        void *owned = zip->archive.m_pAlloc(zip->archive.m_pAlloc_opaque, 1,
+                                            pState->m_mem_size);
+        if (!owned) {
+          CLEANUP(move_buf);
+          return ZIP_EOOMEM;
+        }
+        memcpy(owned, pState->m_pMem, pState->m_mem_size);
+        pState->m_pMem = owned;
+        pState->m_mem_capacity = pState->m_mem_size;
+      }
       n = zip_mem_move(pState->m_pMem, pState->m_mem_size, writen_num, read_num,
                        move_count);
     } else {

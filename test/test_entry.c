@@ -972,6 +972,57 @@ MU_TEST(test_entries_delete_stream_add_grow) {
   free(outdata);
 }
 
+MU_TEST(test_entries_delete_stream_buffer_untouched) {
+  // In-memory delete mode compacts surviving entries by shifting their data in
+  // place. That shift must run on a library-owned copy, not on the caller's
+  // stream buffer (which the caller still owns): writing through it crashes on
+  // a read-only backing and silently corrupts a writable one. Deleting the
+  // first entry makes the second a MOVE, so the compaction shift runs.
+  const char *names[] = {"a.txt", "b.txt"};
+  struct zip_t *zw =
+      zip_stream_open(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  mu_check(zw != NULL);
+  for (size_t i = 0; i < 2; ++i) {
+    mu_assert_int_eq(0, zip_entry_open(zw, names[i]));
+    mu_assert_int_eq(0, zip_entry_write(zw, TESTDATA1, strlen(TESTDATA1)));
+    mu_assert_int_eq(0, zip_entry_close(zw));
+  }
+  void *zdata = NULL;
+  size_t zsize = 0;
+  mu_check(zip_stream_copy(zw, &zdata, &zsize) > 0);
+  zip_stream_close(zw);
+
+  char *pristine = (char *)malloc(zsize);
+  mu_check(pristine != NULL);
+  memcpy(pristine, zdata, zsize);
+
+  struct zip_t *zip = zip_stream_open((const char *)zdata, zsize, 0, 'd');
+  mu_check(zip != NULL);
+  char *entries[] = {"a.txt"};
+  mu_assert_int_eq(1, zip_entries_delete(zip, entries, 1));
+
+  void *outdata = NULL;
+  size_t outsize = 0;
+  mu_check(zip_stream_copy(zip, &outdata, &outsize) > 0);
+  zip_stream_close(zip);
+
+  // the caller's buffer must be byte-for-byte what it was before the delete
+  mu_assert_int_eq(0, memcmp(zdata, pristine, zsize));
+
+  free(pristine);
+  free(zdata);
+
+  zip = zip_stream_open((const char *)outdata, outsize, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(1, zip_entries_total(zip));
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_open(zip, "a.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  mu_assert_int_eq(0, zip_entry_open(zip, "b.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_stream_close(zip);
+  free(outdata);
+}
+
 static unsigned int te_rd32(const unsigned char *p) {
   return (unsigned int)p[0] | ((unsigned int)p[1] << 8) |
          ((unsigned int)p[2] << 16) | ((unsigned int)p[3] << 24);
@@ -1435,6 +1486,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_stream_all);
   MU_RUN_TEST(test_entries_delete_stream_multi_copy);
   MU_RUN_TEST(test_entries_delete_stream_add_grow);
+  MU_RUN_TEST(test_entries_delete_stream_buffer_untouched);
   MU_RUN_TEST(test_entries_delete_badoffset);
   MU_RUN_TEST(test_entries_delete_reordered_cd);
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
