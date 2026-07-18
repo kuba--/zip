@@ -1872,13 +1872,25 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
   if (zip->password) {
     mz_uint8 enc_header[ZIP_PKWARE_ENCRYPT_HEADER_SIZE];
     size_t i;
+    // the header bytes below were derived only from crc32 of the header so far,
+    // a pure function of the password, so every entry encrypted with the same
+    // password got a byte-identical 12-byte header. that leaves the encryption
+    // deterministic (identical plaintext yields identical ciphertext) and lets
+    // entries share a keystream. salt the derivation with this entry's own
+    // local-header offset and time so each entry gets a distinct header; the
+    // salt is stirred per byte with a shift/xor mix to spread its bits.
+    mz_uint32 salt = (mz_uint32)zip->entry.header_offset ^
+                     (mz_uint32)(zip->entry.header_offset >> 16) ^
+                     (mz_uint32)zip->entry.m_time;
 
     zip_pkware_keys_init_password(&zip->entry.enc_keys, zip->password);
 
     for (i = 0; i < ZIP_PKWARE_ENCRYPT_HEADER_SIZE - 1; i++) {
       mz_uint8 rnd =
-          (mz_uint8)(mz_crc32(MZ_CRC32_INIT, enc_header, i) >> (i & 7));
+          (mz_uint8)((mz_crc32(MZ_CRC32_INIT, enc_header, i) ^ salt) >>
+                     (i & 7));
       enc_header[i] = zip_pkware_encrypt_byte(&zip->entry.enc_keys, rnd);
+      salt = (salt << 5) ^ (salt >> 7) ^ (mz_uint32)i;
     }
     enc_header[ZIP_PKWARE_ENCRYPT_HEADER_SIZE - 1] = zip_pkware_encrypt_byte(
         &zip->entry.enc_keys, (mz_uint8)(dos_time >> 8));
