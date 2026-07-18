@@ -1877,7 +1877,8 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
     // password got a byte-identical 12-byte header. that leaves the encryption
     // deterministic (identical plaintext yields identical ciphertext) and lets
     // entries share a keystream. salt the derivation with this entry's own
-    // local-header offset and time so each entry gets a distinct header.
+    // local-header offset and time so each entry gets a distinct header; the
+    // salt is stirred per byte with a shift/xor mix to spread its bits.
     mz_uint32 salt = (mz_uint32)zip->entry.header_offset ^
                      (mz_uint32)(zip->entry.header_offset >> 16) ^
                      (mz_uint32)zip->entry.m_time;
@@ -1889,7 +1890,7 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
           (mz_uint8)((mz_crc32(MZ_CRC32_INIT, enc_header, i) ^ salt) >>
                      (i & 7));
       enc_header[i] = zip_pkware_encrypt_byte(&zip->entry.enc_keys, rnd);
-      salt = salt * 1103515245u + 12345u;
+      salt = (salt << 5) ^ (salt >> 7) ^ (mz_uint32)i;
     }
     enc_header[ZIP_PKWARE_ENCRYPT_HEADER_SIZE - 1] = zip_pkware_encrypt_byte(
         &zip->entry.enc_keys, (mz_uint8)(dos_time >> 8));
