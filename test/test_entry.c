@@ -1123,6 +1123,107 @@ MU_TEST(test_entries_delete_badoffset) {
   free(nb);
 }
 
+// A zip64 entry keeps 0xFFFFFFFF in the 32-bit central-directory offset field
+// and stores the real local-header offset in a zip64 extra field. Deleting a
+// preceding entry shifts its data, and zip_entries_delete_mark rebased the raw
+// 32-bit field, corrupting the sentinel and leaving the extra-field offset
+// stale, so the surviving entry became unlocatable (read failed). The rebase
+// must update the offset where it actually lives and keep the entry readable.
+MU_TEST(test_entries_delete_zip64_offset) {
+  struct zip_t *zip = zip_stream_open(NULL, 0, 0, 'w');
+  mu_check(zip != NULL);
+  zip_entry_open(zip, "a.txt");
+  zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1));
+  zip_entry_close(zip);
+  zip_entry_open(zip, "b.txt");
+  zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2));
+  zip_entry_close(zip);
+
+  void *buf = NULL;
+  size_t bufsize = 0;
+  mu_check(zip_stream_copy(zip, &buf, &bufsize) > 0);
+  zip_stream_close(zip);
+
+  unsigned char *b = (unsigned char *)buf;
+  ssize_t eocd = -1, i;
+  for (i = (ssize_t)bufsize - 22; i >= 0; i--) {
+    if (te_rd32(b + i) == 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  mu_check(eocd >= 0);
+
+  unsigned int cd_ofs = te_rd32(b + eocd + 16);
+  unsigned char *p0 = b + cd_ofs;
+  unsigned int hdr0 =
+      46u + te_rd16(p0 + 28) + te_rd16(p0 + 30) + te_rd16(p0 + 32);
+  unsigned char *p1 = p0 + hdr0; // b.txt central-directory record
+  unsigned short fn1 = te_rd16(p1 + 28), ex1 = te_rd16(p1 + 30),
+                 cm1 = te_rd16(p1 + 32);
+  unsigned int real_comp = te_rd32(p1 + 20);
+  unsigned int real_ofs = te_rd32(p1 + 42);
+
+  // re-encode b.txt with zip64 comp-size and local-offset sentinels; the real
+  // values go into a zip64 extended-information extra field
+  unsigned char z64[4 + 16];
+  te_wr16(z64, 0x0001);
+  te_wr16(z64 + 2, 16);
+  te_wr64(z64 + 4, real_comp);
+  te_wr64(z64 + 12, real_ofs);
+
+  unsigned short newex1 = sizeof(z64);
+  size_t newhdr1 = 46u + fn1 + newex1 + cm1;
+  unsigned char *ne = (unsigned char *)calloc(1, newhdr1);
+  mu_check(ne != NULL);
+  memcpy(ne, p1, 46u + fn1);
+  memcpy(ne + 46u + fn1, z64, sizeof(z64));
+  memcpy(ne + 46u + fn1 + newex1, p1 + 46u + fn1 + ex1, cm1);
+  te_wr32(ne + 20, 0xFFFFFFFF); // comp size sentinel
+  te_wr32(ne + 42, 0xFFFFFFFF); // local-header offset sentinel
+  te_wr16(ne + 30, newex1);
+
+  size_t cd_new_len = hdr0 + newhdr1;
+  size_t eocd_len = bufsize - (size_t)eocd;
+  size_t total_new = cd_ofs + cd_new_len + eocd_len;
+  unsigned char *nb = (unsigned char *)calloc(1, total_new);
+  mu_check(nb != NULL);
+  memcpy(nb, b, cd_ofs);
+  memcpy(nb + cd_ofs, p0, hdr0);
+  memcpy(nb + cd_ofs + hdr0, ne, newhdr1);
+  memcpy(nb + cd_ofs + cd_new_len, b + eocd, eocd_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 12, (unsigned int)cd_new_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 16, cd_ofs);
+
+  // deleting a.txt shifts b.txt to the front of the archive
+  struct zip_t *zd = zip_stream_open((const char *)nb, total_new, 0, 'd');
+  mu_check(zd != NULL);
+  char *del[] = {"a.txt"};
+  mu_assert_int_eq(1, (int)zip_entries_delete(zd, del, 1));
+  void *out = NULL;
+  size_t outsize = 0;
+  mu_check(zip_stream_copy(zd, &out, &outsize) > 0);
+  zip_stream_close(zd);
+
+  struct zip_t *zr = zip_stream_open((const char *)out, outsize, 0, 'r');
+  mu_check(zr != NULL);
+  mu_assert_int_eq(1, (int)zip_entries_total(zr));
+  mu_assert_int_eq(0, zip_entry_open(zr, "b.txt"));
+  void *rd = NULL;
+  size_t rdsize = 0;
+  mu_assert_int_eq((int)strlen(TESTDATA2),
+                   (int)zip_entry_read(zr, &rd, &rdsize));
+  mu_check(rd != NULL && memcmp(rd, TESTDATA2, strlen(TESTDATA2)) == 0);
+  free(rd);
+  zip_entry_close(zr);
+  zip_stream_close(zr);
+
+  free(buf);
+  free(ne);
+  free(nb);
+  free(out);
+}
+
 // When the central-directory records are not stored in local-header-offset
 // order, zip_index_update used to assign a duplicate file_index, so one entry's
 // length was counted twice. The summed deleted length could exceed the archive
@@ -1488,6 +1589,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_stream_add_grow);
   MU_RUN_TEST(test_entries_delete_stream_buffer_untouched);
   MU_RUN_TEST(test_entries_delete_badoffset);
+  MU_RUN_TEST(test_entries_delete_zip64_offset);
   MU_RUN_TEST(test_entries_delete_reordered_cd);
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
   MU_RUN_TEST(test_entries_delete_multirun_offsets);

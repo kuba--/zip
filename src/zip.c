@@ -1287,6 +1287,52 @@ static int zip_central_dir_delete(mz_zip_internal_state *pState,
   return 0;
 }
 
+// Rebase a surviving entry's local-header offset to new_ofs after a delete
+// shifts its data. A non-zip64 entry keeps the offset in the 32-bit
+// central-directory field. A zip64 entry keeps that field at the 0xFFFFFFFF
+// sentinel and stores the real offset in the zip64 extended-information extra
+// field (after the optional 64-bit uncompressed/compressed sizes, which are
+// present only when their own 32-bit fields are the sentinel too); rewrite it
+// there so the entry stays locatable. Returns 0 on success.
+static int zip_cdh_set_local_offset(mz_uint8 *p, mz_uint64 new_ofs) {
+  if (MZ_READ_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS) != MZ_UINT32_MAX) {
+    MZ_WRITE_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS, (mz_uint32)new_ofs);
+    return 0;
+  }
+
+  mz_uint16 fname_len = MZ_READ_LE16(p + MZ_ZIP_CDH_FILENAME_LEN_OFS);
+  mz_uint32 extra_rem = MZ_READ_LE16(p + MZ_ZIP_CDH_EXTRA_LEN_OFS);
+  mz_uint8 *extra = p + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + fname_len;
+  mz_uint32 skip = 0;
+
+  // the zip64 field stores 64-bit uncompressed then compressed size ahead of
+  // the offset, each present only when its own 32-bit field is the sentinel
+  if (MZ_READ_LE32(p + MZ_ZIP_CDH_DECOMPRESSED_SIZE_OFS) == MZ_UINT32_MAX) {
+    skip += 8;
+  }
+  if (MZ_READ_LE32(p + MZ_ZIP_CDH_COMPRESSED_SIZE_OFS) == MZ_UINT32_MAX) {
+    skip += 8;
+  }
+
+  while (extra_rem >= 4) {
+    mz_uint16 field_id = MZ_READ_LE16(extra);
+    mz_uint16 field_size = MZ_READ_LE16(extra + 2);
+    if ((mz_uint32)field_size + 4 > extra_rem) {
+      break;
+    }
+    if (field_id == MZ_ZIP64_EXTENDED_INFORMATION_FIELD_HEADER_ID) {
+      if ((mz_uint32)field_size >= skip + 8) {
+        MZ_WRITE_LE64(extra + 4 + skip, new_ofs);
+        return 0;
+      }
+      break;
+    }
+    extra += 4 + field_size;
+    extra_rem -= 4 + field_size;
+  }
+  return ZIP_ENOHDR;
+}
+
 static ssize_t zip_entries_delete_mark(struct zip_t *zip,
                                        struct zip_entry_mark_t *entry_mark,
                                        int entry_num) {
@@ -1367,9 +1413,17 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
         CLEANUP(deleted_entry_flag_array);
         return ZIP_ENOENT;
       }
-      mz_uint32 offset = MZ_READ_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS);
-      offset -= (mz_uint32)deleted_length;
-      MZ_WRITE_LE32(p + MZ_ZIP_CDH_LOCAL_HEADER_OFS, offset);
+      // a zip64 entry keeps the sentinel in this 32-bit field and the real
+      // offset in an extra field; rebasing the raw field would corrupt the
+      // sentinel and leave the entry unlocatable, so rebase the resolved offset
+      // wherever it actually lives
+      if (zip_cdh_set_local_offset(
+              p, entry_mark[offset_order[i]].m_local_header_ofs -
+                     deleted_length) < 0) {
+        CLEANUP(offset_order);
+        CLEANUP(deleted_entry_flag_array);
+        return ZIP_ENOHDR;
+      }
       i++;
     }
 
