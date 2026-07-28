@@ -1123,6 +1123,86 @@ MU_TEST(test_entries_delete_badoffset) {
   free(nb);
 }
 
+// zip_entry_openbyindex clones the entry name out of the central-directory
+// header before it stats the entry. A zip64 header that declares the
+// uncompressed-size sentinel but carries a truncated zip64 extra field makes
+// that stat fail, and the clone used to survive the failed open: nothing frees
+// it afterwards (zip_entry_mark returns this error without closing, and the
+// archive close paths leave entry.name alone), so it stayed allocated for the
+// rest of the session. A failed open must leave no entry behind.
+MU_TEST(test_entry_openbyindex_badstat) {
+  struct zip_t *zip = zip_stream_open(NULL, 0, 0, 'w');
+  mu_check(zip != NULL);
+  zip_entry_open(zip, "a.txt");
+  zip_entry_write(zip, TESTDATA1, strlen(TESTDATA1));
+  zip_entry_close(zip);
+  zip_entry_open(zip, "b.txt");
+  zip_entry_write(zip, TESTDATA2, strlen(TESTDATA2));
+  zip_entry_close(zip);
+
+  void *buf = NULL;
+  size_t bufsize = 0;
+  mu_check(zip_stream_copy(zip, &buf, &bufsize) > 0);
+  zip_stream_close(zip);
+
+  unsigned char *b = (unsigned char *)buf;
+  ssize_t eocd = -1, i;
+  for (i = (ssize_t)bufsize - 22; i >= 0; i--) {
+    if (te_rd32(b + i) == 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  mu_check(eocd >= 0);
+
+  unsigned int cd_ofs = te_rd32(b + eocd + 16);
+  unsigned char *p0 = b + cd_ofs;
+  unsigned int hdr0 =
+      46u + te_rd16(p0 + 28) + te_rd16(p0 + 30) + te_rd16(p0 + 32);
+  unsigned char *p1 = p0 + hdr0;
+  unsigned short fn1 = te_rd16(p1 + 28), ex1 = te_rd16(p1 + 30),
+                 cm1 = te_rd16(p1 + 32);
+
+  unsigned char z64[4];
+  te_wr16(z64, 0x0001);
+  te_wr16(z64 + 2, 0); // zip64 field with no payload
+
+  unsigned short newex1 = sizeof(z64);
+  size_t newhdr1 = 46u + fn1 + newex1 + cm1;
+  unsigned char *ne = (unsigned char *)calloc(1, newhdr1);
+  mu_check(ne != NULL);
+  memcpy(ne, p1, 46u + fn1);
+  memcpy(ne + 46u + fn1, z64, sizeof(z64));
+  memcpy(ne + 46u + fn1 + newex1, p1 + 46u + fn1 + ex1, cm1);
+  te_wr32(ne + 24, 0xFFFFFFFF); // uncompressed size sentinel
+  te_wr16(ne + 30, newex1);
+
+  size_t cd_new_len = hdr0 + newhdr1;
+  size_t eocd_len = bufsize - (size_t)eocd;
+  size_t total_new = cd_ofs + cd_new_len + eocd_len;
+  unsigned char *nb = (unsigned char *)calloc(1, total_new);
+  mu_check(nb != NULL);
+  memcpy(nb, b, cd_ofs);
+  memcpy(nb + cd_ofs, p0, hdr0);
+  memcpy(nb + cd_ofs + hdr0, ne, newhdr1);
+  memcpy(nb + cd_ofs + cd_new_len, b + eocd, eocd_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 12, (unsigned int)cd_new_len);
+  te_wr32(nb + cd_ofs + cd_new_len + 16, cd_ofs);
+
+  struct zip_t *zr = zip_stream_open((const char *)nb, total_new, 0, 'r');
+  mu_check(zr != NULL);
+  mu_assert_int_eq(ZIP_ENOENT, zip_entry_openbyindex(zr, 1));
+  mu_check(zip_entry_name(zr) == NULL);
+  // the sound entry still opens and closes normally
+  mu_assert_int_eq(0, zip_entry_openbyindex(zr, 0));
+  mu_assert_int_eq(0, zip_entry_close(zr));
+  zip_stream_close(zr);
+
+  free(buf);
+  free(ne);
+  free(nb);
+}
+
 // A zip64 entry keeps 0xFFFFFFFF in the 32-bit central-directory offset field
 // and stores the real local-header offset in a zip64 extra field. Deleting a
 // preceding entry shifts its data, and zip_entries_delete_mark rebased the raw
@@ -1589,6 +1669,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_stream_add_grow);
   MU_RUN_TEST(test_entries_delete_stream_buffer_untouched);
   MU_RUN_TEST(test_entries_delete_badoffset);
+  MU_RUN_TEST(test_entry_openbyindex_badstat);
   MU_RUN_TEST(test_entries_delete_zip64_offset);
   MU_RUN_TEST(test_entries_delete_reordered_cd);
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
