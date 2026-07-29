@@ -1787,6 +1787,16 @@ static int _zip_entry_open(struct zip_t *zip, const char *entryname,
       return ZIP_ENOENT;
     }
 
+    // a header that declares uncompressed bytes while storing none is
+    // malformed; miniz's extractors short-circuit a zero compressed size and
+    // return success without touching the output, so the readers would report
+    // m_uncomp_size bytes that were never produced
+    if (stats.m_comp_size == 0 && stats.m_uncomp_size > 0) {
+      zip->entry.index = -1;
+      CLEANUP(zip->entry.name);
+      return ZIP_ENOHDR;
+    }
+
     zip->entry.comp_size = stats.m_comp_size;
     zip->entry.uncomp_size = stats.m_uncomp_size;
     zip->entry.uncomp_crc32 = stats.m_crc32;
@@ -2052,6 +2062,16 @@ int zip_entry_openbyindex(struct zip_t *zip, size_t index) {
 
   if (!mz_zip_reader_file_stat(pZip, (mz_uint)index, &stats)) {
     return ZIP_ENOENT;
+  }
+
+  // a header that declares uncompressed bytes while storing none is malformed;
+  // miniz's extractors short-circuit a zero compressed size and return success
+  // without touching the output, so the readers would report m_uncomp_size
+  // bytes that were never produced
+  if (stats.m_comp_size == 0 && stats.m_uncomp_size > 0) {
+    zip->entry.index = -1;
+    CLEANUP(zip->entry.name);
+    return ZIP_ENOHDR;
   }
 
   zip->entry.index = (ssize_t)index;

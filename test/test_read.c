@@ -255,6 +255,104 @@ static void dz_put32(unsigned char *b, unsigned long v) {
   b[3] = (unsigned char)((v >> 24) & 0xff);
 }
 
+static void dz_put64(unsigned char *b, unsigned long long v) {
+  int i;
+  for (i = 0; i < 8; ++i) {
+    b[i] = (unsigned char)((v >> (8 * i)) & 0xff);
+  }
+}
+
+MU_TEST(test_open_zero_comp_size_rejected) {
+  // A central-directory header that declares 4000 uncompressed bytes and 0
+  // compressed bytes. miniz refuses that pairing only when neither size field
+  // holds the zip64 sentinel, so carrying the real values in a zip64
+  // extended-information field gets the entry past the reader. Its extractors
+  // then short-circuit the zero compressed size and return success without
+  // touching the output: before the fix zip_entry_read handed back 4000 bytes
+  // of untouched heap and zip_entry_noallocread reported 4000 bytes into a
+  // 16-byte buffer it never wrote. Opening the entry must fail instead.
+  unsigned char arc[160];
+  size_t pos = 0, cd, cds, i;
+  const char *name = "a.txt";
+  size_t nl = 5;
+  unsigned char out[16];
+
+  memset(arc + pos, 0, 30);
+  dz_put32(arc + pos + 0, 0x04034b50UL);
+  dz_put16(arc + pos + 4, 20);
+  dz_put32(arc + pos + 18, 5);
+  dz_put32(arc + pos + 22, 5);
+  dz_put16(arc + pos + 26, (unsigned)nl);
+  pos += 30;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  for (i = 0; i < 5; ++i) {
+    arc[pos++] = 'x';
+  }
+
+  cd = pos;
+  memset(arc + pos, 0, 46);
+  dz_put32(arc + pos + 0, 0x02014b50UL);
+  dz_put16(arc + pos + 4, 0x0014);
+  dz_put16(arc + pos + 6, 20);
+  dz_put32(arc + pos + 20, 0xFFFFFFFFUL); /* compressed size sentinel */
+  dz_put32(arc + pos + 24, 0xFFFFFFFFUL); /* uncompressed size sentinel */
+  dz_put16(arc + pos + 28, (unsigned)nl);
+  dz_put16(arc + pos + 30, 20); /* extra field length */
+  dz_put32(arc + pos + 42, 0);
+  pos += 46;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  dz_put16(arc + pos + 0, 0x0001); /* zip64 extended information */
+  dz_put16(arc + pos + 2, 16);
+  dz_put64(arc + pos + 4, 4000); /* real uncompressed size */
+  dz_put64(arc + pos + 12, 0);   /* real compressed size */
+  pos += 20;
+  cds = pos - cd;
+
+  memset(arc + pos, 0, 22);
+  dz_put32(arc + pos + 0, 0x06054b50UL);
+  dz_put16(arc + pos + 8, 1);
+  dz_put16(arc + pos + 10, 1);
+  dz_put32(arc + pos + 12, (unsigned long)cds);
+  dz_put32(arc + pos + 16, (unsigned long)cd);
+  pos += 22;
+
+  struct zip_t *zip = zip_stream_open((const char *)arc, pos, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(1, (int)zip_entries_total(zip));
+
+  mu_assert_int_eq(ZIP_ENOHDR, zip_entry_openbyindex(zip, 0));
+  mu_check(zip_entry_name(zip) == NULL);
+  mu_assert_int_eq(ZIP_ENOHDR, zip_entry_open(zip, "a.txt"));
+  mu_check(zip_entry_name(zip) == NULL);
+
+  // with no entry open the readers report ZIP_ENOENT rather than a size for
+  // bytes that were never produced
+  mu_assert_int_eq(ZIP_ENOENT,
+                   (int)zip_entry_noallocread(zip, out, sizeof(out)));
+
+  zip_stream_close(zip);
+
+  // a legitimate empty entry keeps both sizes at zero and must still open
+  struct zip_t *zw = zip_stream_open(NULL, 0, 0, 'w');
+  mu_check(zw != NULL);
+  mu_assert_int_eq(0, zip_entry_open(zw, "empty.txt"));
+  mu_assert_int_eq(0, zip_entry_close(zw));
+  char *abuf = NULL;
+  size_t asize = 0;
+  mu_check(zip_stream_copy(zw, (void **)&abuf, &asize) > 0);
+  zip_stream_close(zw);
+
+  struct zip_t *zr = zip_stream_open(abuf, asize, 0, 'r');
+  mu_check(zr != NULL);
+  mu_assert_int_eq(0, zip_entry_openbyindex(zr, 0));
+  mu_assert_int_eq(0, (int)zip_entry_uncomp_size(zr));
+  mu_assert_int_eq(0, zip_entry_close(zr));
+  zip_stream_close(zr);
+  free(abuf);
+}
+
 MU_TEST(test_noallocread_dir_entry_rejected) {
   // A directory-named DEFLATE entry that declares a large uncompressed size but
   // stores almost no data. miniz's extractor short-circuits a directory entry
@@ -336,6 +434,7 @@ MU_TEST_SUITE(test_read_suite) {
   MU_RUN_TEST(test_noallocreadwithoffset_corrupt);
   MU_RUN_TEST(test_noallocreadwithoffset_hugesize);
   MU_RUN_TEST(test_noallocread_dir_entry_rejected);
+  MU_RUN_TEST(test_open_zero_comp_size_rejected);
 }
 
 #define UNUSED(x) (void)x
