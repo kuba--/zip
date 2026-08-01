@@ -2051,6 +2051,11 @@ int zip_entry_openbyindex(struct zip_t *zip, size_t index) {
   }
 
   if (!mz_zip_reader_file_stat(pZip, (mz_uint)index, &stats)) {
+    // release the name clone the way _zip_entry_open does on the same stat
+    // failure. nothing else reaches it after a failed open: zip_entry_mark
+    // and zip_entry_markbyindex propagate this error without calling
+    // zip_entry_close, and the archive close paths leave entry.name alone.
+    CLEANUP(zip->entry.name);
     return ZIP_ENOENT;
   }
 
