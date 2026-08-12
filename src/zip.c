@@ -1386,6 +1386,18 @@ static ssize_t zip_entries_delete_mark(struct zip_t *zip,
     offset_order[rank] = i;
   }
 
+  // the compaction below treats writen_num/read_num as absolute archive
+  // positions, so it must start at the first local header, not at 0. When the
+  // archive carries bytes before that header while m_file_archive_start_ofs
+  // stays 0 (a valid layout: the central-directory offsets are absolute, so
+  // eocd_ofs - (cdir_ofs + cdir_size) == 0 and miniz does not rebase), the
+  // smallest local-header offset is non-zero. Anchoring at 0 there shifts every
+  // move up by that offset, writing over surviving entries and the leading
+  // bytes; anchor at the smallest offset instead. Normal archives keep it 0.
+  if (entry_num > 0) {
+    writen_num = read_num = entry_mark[offset_order[0]].m_local_header_ofs;
+  }
+
   i = 0;
   while (i < entry_num) {
     while ((i < entry_num) && (entry_mark[offset_order[i]].type == MZ_KEEP)) {
