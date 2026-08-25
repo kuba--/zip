@@ -523,6 +523,76 @@ MU_TEST(test_extract_dotdot_name_chmod_rejected) {
   mu_check(system(rm) == 0);
 }
 
+MU_TEST(test_extract_dirflag_no_slash_chmod_rejected) {
+  // a directory entry can also be spelled with the DOS directory attribute and
+  // no trailing separator. nothing creates that directory, so the mode restore
+  // fell through onto whatever already occupied the path: "keep.txt" went from
+  // 0600 to 0777 without a byte of it being written, and zip_extract returned 0
+  static const struct sym_entry_t entries[] = {
+      {"keep.txt", "", 0, 1, 0x01FF0000UL}, // dir flag + unix mode 0777
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char victim[512];
+  char content[32];
+  char rm[512];
+  struct stat st;
+  FILE *fp;
+  size_t nread;
+  mu_check(dir != NULL);
+
+  // a file already in the destination that the archive never writes
+  snprintf(victim, sizeof(victim), "%s/keep.txt", dir);
+  fp = fopen(victim, "wb");
+  mu_check(fp != NULL);
+  mu_check(fwrite("SECRET", 1, 6, fp) == 6);
+  fclose(fp);
+  mu_check(chmod(victim, 0600) == 0);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(ZIP_ECHKDIR, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  // it keeps both its bytes and its permissions
+  mu_assert_int_eq(0, stat(victim, &st));
+  mu_assert_int_eq(0600, (int)(st.st_mode & 0777));
+  fp = fopen(victim, "rb");
+  mu_check(fp != NULL);
+  memset(content, 0, sizeof(content));
+  nread = fread(content, 1, sizeof(content) - 1, fp);
+  fclose(fp);
+  mu_assert_int_eq(6, (int)nread);
+  mu_assert_int_eq(0, strncmp(content, "SECRET", 6));
+
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
+MU_TEST(test_extract_dirflag_no_slash_created) {
+  // the same entry on a free path: the directory is created and carries the
+  // archived mode, where before nothing was created and the mode restore failed
+  // on the missing path, aborting the whole extraction with ZIP_ENOPERM
+  static const struct sym_entry_t entries[] = {
+      {"newdir", "", 0, 1, 0x01ED0000UL}, // dir flag + unix mode 0755
+  };
+  char tmpl[] = "ext-XXXXXX";
+  char *dir = mkdtemp(tmpl);
+  char created[512];
+  char rm[512];
+  struct stat st;
+  mu_check(dir != NULL);
+
+  sym_write_zip(ZIPNAME, entries, 1);
+  mu_assert_int_eq(0, zip_extract(ZIPNAME, dir, NULL, NULL));
+
+  snprintf(created, sizeof(created), "%s/newdir", dir);
+  mu_assert_int_eq(0, stat(created, &st));
+  mu_check(S_ISDIR(st.st_mode));
+  mu_assert_int_eq(0755, (int)(st.st_mode & 0777));
+
+  snprintf(rm, sizeof(rm), "rm -rf %s", dir);
+  mu_check(system(rm) == 0);
+}
+
 MU_TEST(test_extract_symlink_writethrough_rejected) {
   // a regular entry whose name matches a symlink stored earlier in the same
   // archive is written with fopen("wb"), which would follow that link and write
@@ -637,6 +707,8 @@ MU_TEST_SUITE(test_extract_suite) {
   MU_RUN_TEST(test_extract_symlink_longname_rejected);
   MU_RUN_TEST(test_extract_chardev_not_symlink);
   MU_RUN_TEST(test_extract_dotdot_name_chmod_rejected);
+  MU_RUN_TEST(test_extract_dirflag_no_slash_chmod_rejected);
+  MU_RUN_TEST(test_extract_dirflag_no_slash_created);
   MU_RUN_TEST(test_extract_symlink_writethrough_rejected);
 #endif
 }
