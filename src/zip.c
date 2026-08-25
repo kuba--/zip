@@ -620,6 +620,27 @@ static mz_bool zip_symlink_target_escapes(const char *link_name,
 }
 #endif
 
+// Creates the directory of a directory entry whose name carries no trailing
+// separator. zip_mkpath only acts on components that end at a separator, so
+// such an entry never reaches it. Refuses a path already taken by something
+// that is not a directory, the way zip_mkpath does for the trailing-separator
+// spelling of the same entry.
+static int zip_mkdir_entry(const char *path) {
+  struct MZ_FILE_STAT_STRUCT st;
+
+  if (MZ_MKDIR(path) == 0) {
+    return 0;
+  }
+  if (errno != EEXIST) {
+    return ZIP_EMKDIR;
+  }
+  if (MZ_FILE_STAT(path, &st) < 0) {
+    return ZIP_ECHKDIR;
+  }
+
+  return ((st.st_mode & S_IFMT) == S_IFDIR) ? 0 : ZIP_ECHKDIR;
+}
+
 static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
                                int (*on_extract)(const char *filename,
                                                  void *arg),
@@ -631,7 +652,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
   char symlink_to[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
 #endif
   mz_zip_archive_file_stat info;
-  size_t dirlen = 0, filename_size;
+  size_t dirlen = 0, filename_size, namelen = 0;
   mz_uint32 xattr = 0;
 
   memset(path, 0, sizeof(path));
@@ -678,12 +699,14 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
       goto out;
     }
 
+    namelen = strlen(info.m_filename);
+
     // a name built only from separators and "."/".." components (e.g. "..",
     // "/", "./") normalizes to an empty string, so the path below collapses to
     // the destination directory itself: a directory-flagged entry would then
     // CHMOD the destination to the archive's mode and a regular entry would try
     // to write over it
-    if (info.m_filename[0] == '\0') {
+    if (namelen == 0) {
       err = ZIP_EINVENTNAME;
       goto out;
     }
@@ -692,7 +715,7 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     // symlink branch then measures escape depth from the full name while the
     // link is created at the shortened path, so a long name plus a climbing
     // target resolves outside the destination
-    if (strlen(info.m_filename) >= filename_size) {
+    if (namelen >= filename_size) {
       err = ZIP_EINVENTNAME;
       goto out;
     }
@@ -763,6 +786,15 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
         if (!mz_zip_reader_extract_to_file(zip_archive, i, path, 0)) {
           // Cannot extract zip archive to file
           err = ZIP_ENOFILE;
+          goto out;
+        }
+      } else if (!ISSLASH(info.m_filename[namelen - 1])) {
+        // a directory entry can also be spelled with the DOS directory
+        // attribute and no trailing separator. nothing creates that directory,
+        // so the mode restored below used to land on whatever already occupied
+        // the path: an archive could relax the permissions of a file in the
+        // destination it never wrote, and extraction still reported success
+        if ((err = zip_mkdir_entry(path)) < 0) {
           goto out;
         }
       }
