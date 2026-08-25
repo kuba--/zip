@@ -1642,6 +1642,97 @@ MU_TEST(test_entries_delete_stub_prefixed) {
   UNLINK(name);
 }
 
+MU_TEST(test_entries_delete_abs_offset_prefixed) {
+  // an archive can carry bytes before the first local header while
+  // m_file_archive_start_ofs stays 0: when the central-directory offsets are
+  // absolute, eocd_ofs - (cdir_ofs + cdir_size) == 0 and miniz does not rebase,
+  // so the smallest local-header offset is non-zero. the delete compaction
+  // anchored writen_num/read_num at 0 there, shifting every move toward the
+  // front by that offset and writing over the survivors. they must read intact.
+  struct zip_t *zip = zip_stream_open(NULL, 0, 0, 'w');
+  mu_check(zip != NULL);
+  const char *names[] = {"a.txt", "b.txt", "c.txt"};
+  const char *data[] = {TESTDATA1, TESTDATA2, TESTDATA1};
+  for (int i = 0; i < 3; ++i) {
+    zip_entry_open(zip, names[i]);
+    zip_entry_write(zip, data[i], strlen(data[i]));
+    zip_entry_close(zip);
+  }
+  void *buf = NULL;
+  size_t bufsize = 0;
+  mu_check(zip_stream_copy(zip, &buf, &bufsize) > 0);
+  zip_stream_close(zip);
+
+  // prepend a stub and rebase every offset to absolute within the new buffer
+  const size_t stub = 512;
+  size_t total = stub + bufsize;
+  unsigned char *nb = (unsigned char *)malloc(total);
+  mu_check(nb != NULL);
+  memset(nb, 'S', stub);
+  memcpy(nb + stub, buf, bufsize);
+
+  ssize_t eocd = -1, i;
+  for (i = (ssize_t)total - 22; i >= (ssize_t)stub; i--) {
+    if (te_rd32(nb + i) == 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  mu_check(eocd >= 0);
+  // rebase every stored offset by the stub so the archive stays self-consistent
+  // with absolute offsets (classic + zip64 end-of-central-dir and the locator,
+  // plus each record's local-header offset). All values are well under 4 GiB so
+  // patching the low 32 bits is enough.
+  unsigned int cd_ofs = te_rd32(nb + eocd + 16) + (unsigned int)stub;
+  te_wr32(nb + eocd + 16, cd_ofs);
+  for (i = (ssize_t)stub; i + 4 <= (ssize_t)total; ++i) {
+    unsigned int sig = te_rd32(nb + i);
+    if (sig == 0x06064b50) {
+      // zip64 end of central dir: cd_ofs at +48
+      te_wr32(nb + i + 48, te_rd32(nb + i + 48) + (unsigned int)stub);
+    } else if (sig == 0x07064b50) {
+      // zip64 locator: offset of zip64 eocd at +8
+      te_wr32(nb + i + 8, te_rd32(nb + i + 8) + (unsigned int)stub);
+    }
+  }
+  unsigned char *p = nb + cd_ofs;
+  for (int e = 0; e < 3; ++e) {
+    te_wr32(p + 42, te_rd32(p + 42) + (unsigned int)stub);
+    p += 46u + te_rd16(p + 28) + te_rd16(p + 30) + te_rd16(p + 32);
+  }
+
+  struct zip_t *zd = zip_stream_open((const char *)nb, total, 0, 'd');
+  mu_check(zd != NULL);
+  char *del[] = {"b.txt"};
+  mu_assert_int_eq(1, (int)zip_entries_delete(zd, del, 1));
+  void *out = NULL;
+  size_t outsize = 0;
+  mu_check(zip_stream_copy(zd, &out, &outsize) > 0);
+  zip_stream_close(zd);
+
+  struct zip_t *zr = zip_stream_open((const char *)out, outsize, 0, 'r');
+  mu_check(zr != NULL);
+  mu_assert_int_eq(2, (int)zip_entries_total(zr));
+  const int survivors[] = {0, 2};
+  for (int s = 0; s < 2; ++s) {
+    int idx = survivors[s];
+    mu_assert_int_eq(0, zip_entry_open(zr, names[idx]));
+    void *rd = NULL;
+    size_t rdsize = 0;
+    mu_assert_int_eq((int)strlen(data[idx]),
+                     (int)zip_entry_read(zr, &rd, &rdsize));
+    mu_check(rd != NULL && rdsize == strlen(data[idx]) &&
+             memcmp(rd, data[idx], rdsize) == 0);
+    free(rd);
+    zip_entry_close(zr);
+  }
+  zip_stream_close(zr);
+
+  free(buf);
+  free(nb);
+  free(out);
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -1675,6 +1766,7 @@ MU_TEST_SUITE(test_entry_suite) {
   MU_RUN_TEST(test_entries_delete_reordered_cd_data);
   MU_RUN_TEST(test_entries_delete_multirun_offsets);
   MU_RUN_TEST(test_entries_delete_stub_prefixed);
+  MU_RUN_TEST(test_entries_delete_abs_offset_prefixed);
   MU_RUN_TEST(test_entry_offset);
 }
 
