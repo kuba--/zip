@@ -1080,13 +1080,11 @@ static ssize_t zip_entry_setbyindex(struct zip_t *zip,
 
 static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to,
                             const mz_uint64 from, const size_t length) {
-  uint8_t *dst = NULL, *src = NULL, *end = NULL;
+  uint8_t *dst = NULL, *src = NULL;
 
   if (!pBuf) {
     return ZIP_EINVIDX;
   }
-
-  end = (uint8_t *)pBuf + bufSize;
 
   if (to > bufSize) {
     return ZIP_EINVIDX;
@@ -1099,7 +1097,7 @@ static ssize_t zip_mem_move(void *pBuf, size_t bufSize, const mz_uint64 to,
   dst = (uint8_t *)pBuf + to;
   src = (uint8_t *)pBuf + from;
 
-  if (((dst + length) > end) || ((src + length) > end)) {
+  if (length > bufSize - (size_t)to || length > bufSize - (size_t)from) {
     return ZIP_EINVIDX;
   }
 
@@ -1238,16 +1236,18 @@ static int zip_central_dir_move(mz_zip_internal_state *pState, int begin,
   }
 
   if (next && l_size == 0) {
-    mz_uint8 *shrunk = NULL;
-    memmove(pState->m_central_dir.m_p, next, r_size);
-    // shrinking the buffer must also lower m_capacity; otherwise the next
-    // mz_zip_array append sees the stale (larger) capacity, skips its realloc
-    // and writes past the smaller block. keep the old buffer on realloc
-    // failure.
-    shrunk = (mz_uint8 *)MZ_REALLOC(pState->m_central_dir.m_p, r_size);
-    if (shrunk) {
-      pState->m_central_dir.m_p = shrunk;
-      pState->m_central_dir.m_capacity = r_size;
+    if (r_size > 0) {
+      mz_uint8 *shrunk = NULL;
+      memmove(pState->m_central_dir.m_p, next, r_size);
+      // shrinking the buffer must also lower m_capacity; otherwise the next
+      // mz_zip_array append sees the stale (larger) capacity, skips its realloc
+      // and writes past the smaller block. keep the old buffer on realloc
+      // failure.
+      shrunk = (mz_uint8 *)MZ_REALLOC(pState->m_central_dir.m_p, r_size);
+      if (shrunk) {
+        pState->m_central_dir.m_p = shrunk;
+        pState->m_central_dir.m_capacity = r_size;
+      }
     }
     {
       int i;
