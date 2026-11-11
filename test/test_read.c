@@ -60,6 +60,8 @@ MU_TEST(test_read) {
   mu_assert_int_eq(1, zip_is64(zip));
 
   mu_assert_int_eq(0, zip_entry_open(zip, "test/test-1.txt"));
+  mu_check(zip_entry_read(zip, NULL, NULL) == (ssize_t)ZIP_ENOINIT);
+  mu_check(zip_entry_noallocread(zip, NULL, 0) == (ssize_t)ZIP_ENOINIT);
   mu_assert_int_eq(strlen(TESTDATA1), zip_entry_size(zip));
   mu_check(CRC32DATA1 == zip_entry_crc32(zip));
   bufsize = zip_entry_read(zip, (void **)&buf, &buftmp);

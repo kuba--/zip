@@ -2725,7 +2725,7 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
   mz_uint idx;
   size_t size = 0;
 
-  if (!zip) {
+  if (!zip || !buf) {
     return (ssize_t)ZIP_ENOINIT;
   }
 
@@ -2757,7 +2757,7 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
 ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   mz_zip_archive *pzip = NULL;
 
-  if (!zip) {
+  if (!zip || !buf) {
     return (ssize_t)ZIP_ENOINIT;
   }
 
