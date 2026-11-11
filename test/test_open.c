@@ -29,10 +29,18 @@ MU_TEST(test_openwitherror) {
   mu_check(zip == NULL);
   mu_assert_int_eq(ZIP_ERINIT, errnum);
 
+  // Verify NULL errnum does not segfault
+  zip = zip_openwitherror(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'r', NULL);
+  mu_check(zip == NULL);
+
   zip = zip_openwitherror(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', &errnum);
   mu_check(zip != NULL);
   mu_assert_int_eq(0, errnum);
 
+  zip_close(zip);
+
+  zip = zip_openwitherror(ZIPNAME, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', NULL);
+  mu_check(zip != NULL);
   zip_close(zip);
 }
 
@@ -43,11 +51,19 @@ MU_TEST(test_stream_openwitherror) {
   mu_check(zip == NULL);
   mu_assert_int_eq(ZIP_EINVMODE, errnum);
 
+  // Verify NULL errnum does not segfault
+  zip = zip_stream_openwitherror(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'r', NULL);
+  mu_check(zip == NULL);
+
   zip = zip_stream_openwitherror(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w',
                                  &errnum);
   mu_check(zip != NULL);
   mu_assert_int_eq(0, errnum);
 
+  zip_stream_close(zip);
+
+  zip = zip_stream_openwitherror(NULL, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w', NULL);
+  mu_check(zip != NULL);
   zip_stream_close(zip);
 }
 
