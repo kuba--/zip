@@ -7349,14 +7349,17 @@ size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state *pState,
           pState->read_buf_ofs = 0;
         }
 
-        /* Perform decompression */
+        /* Perform decompression. An in-memory archive passes the whole stream
+         * at once, so only a file reader can have more input coming. */
         in_buf_size = (size_t)pState->read_buf_avail;
         pState->status = tinfl_decompress(
             &pState->inflator,
             (const mz_uint8 *)pState->pRead_buf + pState->read_buf_ofs,
             &in_buf_size, (mz_uint8 *)pState->pWrite_buf, pWrite_buf_cur,
             &out_buf_size,
-            pState->comp_remaining ? TINFL_FLAG_HAS_MORE_INPUT : 0);
+            (pState->comp_remaining && !pState->pZip->m_pState->m_pMem)
+                ? TINFL_FLAG_HAS_MORE_INPUT
+                : 0);
         pState->read_buf_avail -= in_buf_size;
         pState->read_buf_ofs += in_buf_size;
 
