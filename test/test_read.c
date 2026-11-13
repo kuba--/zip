@@ -425,6 +425,92 @@ MU_TEST(test_noallocread_dir_entry_rejected) {
   zip_stream_close(zip);
 }
 
+// One DEFLATE entry: a stored block holding "hello" (bfinal sets BFINAL),
+// declaring us uncompressed bytes in a zip64 field.
+static size_t dz_stored_hello(unsigned char *arc, int bfinal,
+                              unsigned long long us) {
+  unsigned char data[] = {0, 5, 0, 0xFA, 0xFF, 'h', 'e', 'l', 'l', 'o'};
+  size_t pos = 0, cd, cds;
+  const char *name = "a.txt";
+  size_t nl = 5;
+  size_t cs = sizeof(data);
+
+  data[0] = (unsigned char)bfinal;
+  memset(arc + pos, 0, 30);
+  dz_put32(arc + pos + 0, 0x04034b50UL);
+  dz_put16(arc + pos + 4, 20);
+  dz_put16(arc + pos + 8, 8); /* method: deflate */
+  dz_put32(arc + pos + 18, (unsigned long)cs);
+  dz_put16(arc + pos + 26, (unsigned)nl);
+  pos += 30;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  memcpy(arc + pos, data, cs);
+  pos += cs;
+
+  cd = pos;
+  memset(arc + pos, 0, 46);
+  dz_put32(arc + pos + 0, 0x02014b50UL);
+  dz_put16(arc + pos + 4, 0x0014);
+  dz_put16(arc + pos + 6, 20);
+  dz_put16(arc + pos + 10, 8);
+  dz_put32(arc + pos + 20, (unsigned long)cs);
+  dz_put32(arc + pos + 24, 0xFFFFFFFFUL); /* uncompressed size sentinel */
+  dz_put16(arc + pos + 28, (unsigned)nl);
+  dz_put16(arc + pos + 30, 12); /* extra field length */
+  dz_put32(arc + pos + 42, 0);
+  pos += 46;
+  memcpy(arc + pos, name, nl);
+  pos += nl;
+  dz_put16(arc + pos + 0, 0x0001); /* zip64 extended information */
+  dz_put16(arc + pos + 2, 8);
+  dz_put64(arc + pos + 4, us);
+  pos += 12;
+  cds = pos - cd;
+
+  memset(arc + pos, 0, 22);
+  dz_put32(arc + pos + 0, 0x06054b50UL);
+  dz_put16(arc + pos + 8, 1);
+  dz_put16(arc + pos + 10, 1);
+  dz_put32(arc + pos + 12, (unsigned long)cds);
+  dz_put32(arc + pos + 16, (unsigned long)cd);
+  pos += 22;
+  return pos;
+}
+
+MU_TEST(test_noallocreadwithoffset_streams_window) {
+  // a read decodes only up to its window, so it never allocates the 2^48 bytes
+  // the entry declares
+  unsigned char arc[160];
+  unsigned char out[4];
+  size_t n = dz_stored_hello(arc, 1, 1ULL << 48);
+
+  struct zip_t *zip = zip_stream_open((const char *)arc, n, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_openbyindex(zip, 0));
+  mu_assert_int_eq(
+      4, (int)zip_entry_noallocreadwithoffset(zip, 1, sizeof(out), out));
+  mu_assert_int_eq(0, memcmp(out, "ello", sizeof(out)));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_stream_close(zip);
+}
+
+MU_TEST(test_noallocreadwithoffset_truncated_stream) {
+  // a stream that ends before its final block must fail, not hang waiting for
+  // input an in-memory archive never delivers
+  unsigned char arc[160];
+  unsigned char out[16];
+  size_t n = dz_stored_hello(arc, 0, sizeof(out));
+
+  struct zip_t *zip = zip_stream_open((const char *)arc, n, 0, 'r');
+  mu_check(zip != NULL);
+  mu_assert_int_eq(0, zip_entry_openbyindex(zip, 0));
+  mu_assert_int_eq(ZIP_ENORITER, (int)zip_entry_noallocreadwithoffset(
+                                     zip, 0, sizeof(out), out));
+  mu_assert_int_eq(0, zip_entry_close(zip));
+  zip_stream_close(zip);
+}
+
 MU_TEST_SUITE(test_read_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -435,6 +521,8 @@ MU_TEST_SUITE(test_read_suite) {
   MU_RUN_TEST(test_noallocreadwithoffset_hugesize);
   MU_RUN_TEST(test_noallocread_dir_entry_rejected);
   MU_RUN_TEST(test_open_zero_comp_size_rejected);
+  MU_RUN_TEST(test_noallocreadwithoffset_streams_window);
+  MU_RUN_TEST(test_noallocreadwithoffset_truncated_stream);
 }
 
 #define UNUSED(x) (void)x
