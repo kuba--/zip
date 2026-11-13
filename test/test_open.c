@@ -70,12 +70,49 @@ MU_TEST(test_cstream_openwitherror) {
   fclose(ZIPFILE);
 }
 
+MU_TEST(test_open_with_long_archive_comments) {
+  unsigned char archive[22 + 65535] = {'P', 'K', 5, 6};
+  const size_t comment_lengths[] = {0,    1,    4073, 4074,  4075, 4093,
+                                    4094, 4095, 4096, 65534, 65535};
+  size_t i;
+
+  /* An empty ZIP followed by its EOCD comment, with no signature in the
+   * comment. */
+  memset(archive + 22, 'A', sizeof(archive) - 22);
+  for (i = 0; i < sizeof(comment_lengths) / sizeof(comment_lengths[0]); ++i) {
+    size_t comment_length = comment_lengths[i];
+    size_t archive_length = 22 + comment_length;
+    struct zip_t *zip;
+    FILE *file;
+    int entries;
+
+    archive[20] = (unsigned char)(comment_length & 0xff);
+    archive[21] = (unsigned char)(comment_length >> 8);
+    zip = zip_stream_open((const char *)archive, archive_length, 0, 'r');
+    mu_check(zip != NULL);
+    entries = zip_entries_total(zip);
+    zip_stream_close(zip);
+    mu_assert_int_eq(0, entries);
+
+    file = fopen(ZIPNAME, "wb");
+    mu_check(file != NULL);
+    mu_check(fwrite(archive, 1, archive_length, file) == archive_length);
+    mu_assert_int_eq(0, fclose(file));
+    zip = zip_open(ZIPNAME, 0, 'r');
+    mu_check(zip != NULL);
+    entries = zip_entries_total(zip);
+    zip_close(zip);
+    mu_assert_int_eq(0, entries);
+  }
+}
+
 MU_TEST_SUITE(test_entry_suite) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
   MU_RUN_TEST(test_openwitherror);
   MU_RUN_TEST(test_stream_openwitherror);
   MU_RUN_TEST(test_cstream_openwitherror);
+  MU_RUN_TEST(test_open_with_long_archive_comments);
 }
 
 #define UNUSED(x) (void)x
