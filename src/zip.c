@@ -2852,28 +2852,30 @@ ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
   }
 
   {
-    void *heap_buf = NULL;
-    size_t heap_size = 0;
+    mz_zip_reader_extract_iter_state *iter =
+        mz_zip_reader_extract_iter_new(pzip, (mz_uint)zip->entry.index, 0);
+    size_t nread = 0;
 
-    // the streaming iterator (mz_zip_reader_extract_iter_*) spins forever on a
-    // memory-backed archive whose entry data does not inflate to the declared
-    // uncompressed size, so decode the whole entry up front like the password
-    // branch above and copy out the requested window
-    heap_buf = mz_zip_reader_extract_to_heap(pzip, (mz_uint)zip->entry.index,
-                                             &heap_size, 0);
-    if (!heap_buf) {
+    if (!iter) {
       return (ssize_t)ZIP_ENORITER;
     }
-    if (offset >= heap_size) {
-      free(heap_buf);
-      return (ssize_t)0;
+
+    // skip to offset using buf as scratch, then read the window
+    while (offset > 0) {
+      size_t n =
+          mz_zip_reader_extract_iter_read(iter, buf, MZ_MIN(offset, size));
+      if (n == 0) {
+        break;
+      }
+      offset -= n;
     }
-    if (size > heap_size - offset) {
-      size = heap_size - offset;
+    if (offset == 0) {
+      nread = mz_zip_reader_extract_iter_read(iter, buf, size);
     }
-    memcpy(buf, (mz_uint8 *)heap_buf + offset, size);
-    free(heap_buf);
-    return (ssize_t)size;
+    mz_zip_reader_extract_iter_free(iter);
+
+    // size is clamped to the entry, so a short read means corrupt data
+    return nread == size ? (ssize_t)nread : (ssize_t)ZIP_ENORITER;
   }
 }
 
